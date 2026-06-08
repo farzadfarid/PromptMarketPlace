@@ -68,7 +68,8 @@
                         <form method="post" asp-page-handler="ToggleStatus" asp-route-id="@a.Id" class="d-inline">
                             <input type="hidden" name="targetStatus" value="Suspended" />
                             <button type="submit" class="btn btn-sm btn-outline-danger"
-                                    onclick="return confirm('ابزار تعلیق شود؟')">
+                                    data-confirm="ابزار تعلیق شود؟"
+                                    data-confirm-type="warning">
                                 <i class="fas fa-ban me-1"></i>تعلیق
                             </button>
                         </form>

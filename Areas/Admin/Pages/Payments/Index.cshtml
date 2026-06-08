@@ -75,7 +75,8 @@
                                 <form method="post" asp-page-handler="Refund" class="d-inline">
                                     <input type="hidden" name="id" value="@p.Id" />
                                     <button type="submit" class="btn btn-sm btn-outline-warning"
-                                            onclick="return confirm('اعتبار این پرداخت بازگشت داده شود؟')">
+                                            data-confirm="اعتبار این پرداخت بازگشت داده شود؟"
+                                            data-confirm-type="warning">
                                         بازگشت اعتبار
                                     </button>
                                 </form>

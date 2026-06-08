@@ -68,7 +68,8 @@
                 <!-- مسدود / فعال -->
                 <form method="post" asp-page-handler="ToggleBlock" asp-route-id="@u.Id" class="mb-2">
                     <button type="submit" class="btn btn-sm w-100 @(u.IsActive ? "btn-outline-danger" : "btn-outline-success")"
-                            onclick="return confirm('@(u.IsActive ? "کاربر مسدود شود؟" : "کاربر فعال شود؟")')">
+                            data-confirm="@(u.IsActive ? "کاربر مسدود شود؟" : "کاربر فعال شود؟")"
+                            data-confirm-type="warning">
                         @(u.IsActive ? "مسدود کردن" : "فعال کردن")
                     </button>
                 </form>

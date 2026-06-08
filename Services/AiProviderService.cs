@@ -64,6 +64,19 @@ public class AiProviderService : IAiProviderService
         await _db.SaveChangesAsync();
     }
 
+    public async Task DeleteProviderAsync(int id)
+    {
+        var provider = await _db.AiProviders.FindAsync(id)
+            ?? throw new KeyNotFoundException($"Provider {id} not found.");
+
+        var hasModels = await _db.AiModels.AnyAsync(m => m.AiProviderId == id);
+        if (hasModels)
+            throw new InvalidOperationException("ابتدا مدل‌های این سرویس‌دهنده را حذف کنید.");
+
+        _db.AiProviders.Remove(provider);
+        await _db.SaveChangesAsync();
+    }
+
     public async Task<List<AiModel>> GetAllModelsAsync(int? providerId = null, AiCapability? capability = null)
     {
         var query = _db.AiModels.Include(m => m.Provider).AsQueryable();
@@ -114,6 +127,19 @@ public class AiProviderService : IAiProviderService
             ?? throw new KeyNotFoundException($"Model {id} not found.");
 
         model.IsActive = !model.IsActive;
+        await _db.SaveChangesAsync();
+    }
+
+    public async Task DeleteModelAsync(int id)
+    {
+        var model = await _db.AiModels.FindAsync(id)
+            ?? throw new KeyNotFoundException($"Model {id} not found.");
+
+        var usedByApps = await _db.Apps.AnyAsync(a => a.AiModelId == id);
+        if (usedByApps)
+            throw new InvalidOperationException("این مدل توسط یک یا چند ابزار استفاده می‌شود. ابتدا مدل آن ابزارها را تغییر دهید.");
+
+        _db.AiModels.Remove(model);
         await _db.SaveChangesAsync();
     }
 

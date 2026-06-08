@@ -125,7 +125,7 @@ else
                                 @if (app.Status == AppStatus.Draft || app.Status == AppStatus.Suspended)
                                 {
                                     <form method="post" asp-page-handler="Delete" class="d-inline"
-                                          onsubmit="return confirm('حذف شود؟')">
+                                          data-confirm="ابزار حذف شود؟">
                                         <input type="hidden" name="appId" value="@app.Id" />
                                         <button type="submit" class="btn btn-sm btn-outline-danger" title="حذف">
                                             <i class="fas fa-trash"></i>

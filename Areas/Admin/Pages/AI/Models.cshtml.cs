@@ -99,6 +99,20 @@ public class ModelsModel : PageModel
         return RedirectToPage();
     }
 
+    public async Task<IActionResult> OnPostDeleteAsync(int id)
+    {
+        try
+        {
+            await _providerService.DeleteModelAsync(id);
+            TempData["Success"] = "مدل حذف شد.";
+        }
+        catch (InvalidOperationException ex)
+        {
+            TempData["Error"] = ex.Message;
+        }
+        return RedirectToPage();
+    }
+
     public async Task<IActionResult> OnPostSetDefaultAsync(int id)
     {
         await _providerService.SetDefaultModelAsync(id);

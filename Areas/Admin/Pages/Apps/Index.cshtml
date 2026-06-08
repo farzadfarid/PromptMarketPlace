@@ -75,7 +75,8 @@
                                         <input type="hidden" name="id" value="@a.Id" />
                                         <input type="hidden" name="targetStatus" value="Suspended" />
                                         <button type="submit" class="btn btn-sm btn-outline-danger"
-                                                onclick="return confirm('ابزار تعلیق شود؟')">تعلیق</button>
+                                                data-confirm="ابزار تعلیق شود؟"
+                                                data-confirm-type="warning">تعلیق</button>
                                     </form>
                                 }
                                 @if (a.Status == AppStatus.Suspended)

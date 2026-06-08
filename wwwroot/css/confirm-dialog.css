@@ -1,0 +1,99 @@
+.confirm-card {
+    border-radius: 20px !important;
+    overflow: hidden;
+}
+
+#appConfirmModal .modal-dialog {
+    transform: scale(0.88) translateY(-12px);
+    opacity: 0;
+    transition: transform 0.22s cubic-bezier(.34,1.56,.64,1), opacity 0.18s ease;
+}
+#appConfirmModal.show .modal-dialog {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+}
+
+.confirm-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 2rem 0.75rem;
+    gap: 0.85rem;
+}
+
+.confirm-circle {
+    width: 68px;
+    height: 68px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.7rem;
+    transition: background 0.2s, color 0.2s;
+}
+
+.confirm-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin: 0;
+    color: #1e293b;
+}
+
+.confirm-body {
+    padding: 0.25rem 2rem 1rem;
+    text-align: center;
+}
+
+.confirm-msg {
+    color: #64748b;
+    font-size: 0.9rem;
+    margin: 0;
+    line-height: 1.6;
+}
+
+.confirm-footer {
+    display: flex;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 0 2rem 1.75rem;
+    border: none;
+}
+
+.confirm-cancel {
+    background: #f1f5f9;
+    color: #475569;
+    border: none;
+    border-radius: 10px;
+    padding: 0.5rem 1.5rem;
+    font-size: 0.9rem;
+    transition: background 0.15s;
+}
+.confirm-cancel:hover {
+    background: #e2e8f0;
+    color: #334155;
+}
+
+.confirm-ok {
+    border-radius: 10px;
+    padding: 0.5rem 1.5rem;
+    font-size: 0.9rem;
+    border: none;
+    box-shadow: 0 4px 12px rgba(0,0,0,.15);
+    transition: transform 0.12s, box-shadow 0.12s;
+}
+.confirm-ok:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(0,0,0,.2);
+}
+.confirm-ok:active {
+    transform: translateY(0);
+}
+
+/* dark mode support */
+@media (prefers-color-scheme: dark) {
+    .confirm-card { background: #1e293b; }
+    .confirm-title { color: #f1f5f9; }
+    .confirm-msg   { color: #94a3b8; }
+    .confirm-cancel { background: #334155; color: #cbd5e1; }
+    .confirm-cancel:hover { background: #475569; }
+}

@@ -111,7 +111,7 @@
                                 <button type="submit" class="btn btn-sm btn-outline-secondary py-0 px-1">↓</button>
                             </form>
                             <form method="post" asp-page-handler="Delete" asp-route-appId="@Model.App.Id" class="d-inline"
-                                  onsubmit="return confirm('حذف شود؟')">
+                                  data-confirm="فیلد حذف شود؟">
                                 <input type="hidden" name="fieldId" value="@field.Id" />
                                 <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-1">×</button>
                             </form>

@@ -11,6 +11,13 @@
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 }
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show">
+        @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
@@ -67,6 +74,12 @@
                             }
                         </td>
                         <td class="text-center">
+                            <button class="btn btn-sm btn-outline-info me-1"
+                                    id="testBtn-@p.Id"
+                                    onclick="testConnectionByRow(this, @p.Id, '@p.BaseUrl')"
+                                    title="تست اتصال">
+                                <i class="fas fa-plug"></i>
+                            </button>
                             <button class="btn btn-sm btn-outline-primary me-1"
                                     onclick="openEdit(@p.Id, '@p.Name', '@p.BaseUrl', '@(p.Description ?? "")', @(p.ApiKeyEncrypted != null ? "true" : "false"))">
                                 <i class="fas fa-edit"></i>
@@ -76,6 +89,13 @@
                                 <button type="submit" class="btn btn-sm @(p.IsActive ? "btn-outline-warning" : "btn-outline-success")"
                                         title="@(p.IsActive ? "غیرفعال کن" : "فعال کن")">
                                     <i class="fas @(p.IsActive ? "fa-pause" : "fa-play")"></i>
+                                </button>
+                            </form>
+                            <form method="post" asp-page-handler="Delete" class="d-inline"
+                                  data-confirm="آیا از حذف «@p.Name» مطمئن هستید؟">
+                                <input type="hidden" name="id" value="@p.Id" />
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="حذف">
+                                    <i class="fas fa-trash"></i>
                                 </button>
                             </form>
                         </td>
@@ -123,8 +143,16 @@
                         <label class="form-label">توضیح</label>
                         <textarea asp-for="Form.Description" class="form-control" rows="2"></textarea>
                     </div>
+
+                    <div id="modalTestResult" class="d-none alert py-2 mb-0" role="alert">
+                        <i id="modalTestIcon" class="fas me-1"></i>
+                        <span id="modalTestMessage"></span>
+                    </div>
                 </div>
-                <div class="modal-footer">
+                <div class="modal-footer d-flex">
+                    <button type="button" class="btn btn-outline-info btn-sm me-auto" id="modalTestBtn" onclick="testConnectionFromModal()">
+                        <i class="fas fa-plug me-1"></i> تست اتصال
+                    </button>
                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">انصراف</button>
                     <button type="submit" class="btn btn-primary btn-sm">ذخیره</button>
                 </div>

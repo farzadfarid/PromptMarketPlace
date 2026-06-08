@@ -10,6 +10,7 @@ public interface IAiProviderService
     Task<AiProvider> CreateProviderAsync(string name, string baseUrl, string? apiKey, string? description);
     Task UpdateProviderAsync(int id, string name, string baseUrl, string? newApiKey, string? description);
     Task ToggleProviderActiveAsync(int id);
+    Task DeleteProviderAsync(int id);
 
     Task<List<AiModel>> GetAllModelsAsync(int? providerId = null, AiCapability? capability = null);
     Task<List<AiModel>> GetModelsForOutputTypeAsync(OutputType outputType);
@@ -17,6 +18,7 @@ public interface IAiProviderService
     Task<AiModel> CreateModelAsync(AiModel model);
     Task UpdateModelAsync(AiModel model);
     Task ToggleModelActiveAsync(int id);
+    Task DeleteModelAsync(int id);
     Task SetDefaultModelAsync(int id);
 
     Task<string?> GetDecryptedApiKeyAsync(int providerId);
