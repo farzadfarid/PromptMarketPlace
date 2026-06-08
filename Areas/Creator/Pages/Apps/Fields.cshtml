@@ -1,0 +1,166 @@
+@page
+@model FieldsModel
+@{ ViewData["Title"] = "فیلدهای ورودی — " + Model.App.Title; }
+
+@if (TempData["Success"] != null) { <div class="alert alert-success alert-dismissible fade show">@TempData["Success"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div> }
+
+<div class="d-flex align-items-center gap-2 mb-4">
+    <a asp-area="Creator" asp-page="/Apps/Index" class="btn btn-sm btn-outline-secondary">
+        <i class="fas fa-arrow-right me-1"></i>بازگشت
+    </a>
+    <h5 class="mb-0 fw-bold">فیلدهای ورودی: @Model.App.Title</h5>
+</div>
+
+<div class="row g-4">
+    <!-- پنل افزودن فیلد -->
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm p-4 sticky-top" style="top:80px;">
+            <h6 class="fw-semibold mb-3">افزودن فیلد جدید</h6>
+            <form method="post" asp-page-handler="Add" asp-route-appId="@Model.App.Id">
+                <div asp-validation-summary="All" class="alert alert-danger small py-2"></div>
+                <div class="mb-2">
+                    <label class="form-label small">نام متغیر <span class="text-danger">*</span>
+                        <small class="text-muted d-block">در پرامپت: <code>{name}</code></small>
+                    </label>
+                    <input asp-for="Form.Name" class="form-control form-control-sm" dir="ltr"
+                           placeholder="brand_name" id="field-name-input"
+                           oninput="updatePreview()" />
+                    <span asp-validation-for="Form.Name" class="text-danger" style="font-size:.7rem;"></span>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small">عنوان نمایشی <span class="text-danger">*</span></label>
+                    <input asp-for="Form.Label" class="form-control form-control-sm" placeholder="نام برند"
+                           id="field-label-input" oninput="updatePreview()" />
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small">نوع فیلد</label>
+                    <select asp-for="Form.Type" class="form-select form-select-sm"
+                            onchange="toggleOptions(this.value); updatePreview()">
+                        <option value="Text">Text — متنی ساده</option>
+                        <option value="Textarea">Textarea — چند خطی</option>
+                        <option value="Select">Select — انتخابی</option>
+                        <option value="Number">Number — عدد</option>
+                        <option value="Checkbox">Checkbox — بله/خیر</option>
+                        <option value="DatePicker">DatePicker — تاریخ</option>
+                    </select>
+                </div>
+                <div id="options-section" class="mb-2 d-none">
+                    <label class="form-label small">گزینه‌ها <small class="text-muted">(JSON)</small></label>
+                    <textarea asp-for="Form.Options" class="form-control form-control-sm" rows="3" dir="ltr"
+                              placeholder='[{"value":"fa","label":"فارسی"}]'></textarea>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small">Placeholder</label>
+                    <input asp-for="Form.Placeholder" class="form-control form-control-sm" />
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small">راهنما</label>
+                    <input asp-for="Form.HelpText" class="form-control form-control-sm" />
+                </div>
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <label class="form-label small">حداکثر طول</label>
+                        <input asp-for="Form.MaxLength" type="number" class="form-control form-control-sm" dir="ltr" />
+                    </div>
+                    <div class="col-6 d-flex align-items-end pb-1">
+                        <div class="form-check">
+                            <input asp-for="Form.IsRequired" class="form-check-input" type="checkbox" checked />
+                            <label class="form-check-label small" asp-for="Form.IsRequired">اجباری</label>
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm w-100">
+                    <i class="fas fa-plus me-1"></i>افزودن فیلد
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- لیست فیلدها -->
+    <div class="col-lg-5">
+        <h6 class="fw-semibold mb-3">فیلدهای تعریف شده (@Model.Fields.Count)</h6>
+        @if (!Model.Fields.Any())
+        {
+            <div class="text-center py-4 text-muted border rounded">
+                <i class="fas fa-list-ul fa-2x mb-2 opacity-25"></i>
+                <p class="small">هنوز فیلدی تعریف نشده.</p>
+            </div>
+        }
+        else
+        {
+            @foreach (var field in Model.Fields)
+            {
+                <div class="card border-0 shadow-sm mb-2 p-3">
+                    <div class="d-flex align-items-start justify-content-between">
+                        <div>
+                            <div class="fw-semibold small">@field.Label
+                                @if (field.IsRequired) { <span class="text-danger">*</span> }
+                            </div>
+                            <code class="small text-muted" style="font-size:.7rem;">{@field.Name}</code>
+                            <span class="badge bg-secondary-subtle text-secondary border ms-1" style="font-size:.65rem;">@field.Type</span>
+                        </div>
+                        <div class="d-flex gap-1">
+                            <form method="post" asp-page-handler="Move" asp-route-appId="@Model.App.Id" class="d-inline">
+                                <input type="hidden" name="fieldId" value="@field.Id" />
+                                <input type="hidden" name="dir" value="up" />
+                                <button type="submit" class="btn btn-sm btn-outline-secondary py-0 px-1">↑</button>
+                            </form>
+                            <form method="post" asp-page-handler="Move" asp-route-appId="@Model.App.Id" class="d-inline">
+                                <input type="hidden" name="fieldId" value="@field.Id" />
+                                <input type="hidden" name="dir" value="down" />
+                                <button type="submit" class="btn btn-sm btn-outline-secondary py-0 px-1">↓</button>
+                            </form>
+                            <form method="post" asp-page-handler="Delete" asp-route-appId="@Model.App.Id" class="d-inline"
+                                  onsubmit="return confirm('حذف شود؟')">
+                                <input type="hidden" name="fieldId" value="@field.Id" />
+                                <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-1">×</button>
+                            </form>
+                        </div>
+                    </div>
+                    @if (!string.IsNullOrEmpty(field.Placeholder))
+                    {
+                        <div class="text-muted mt-1" style="font-size:.72rem;">Placeholder: @field.Placeholder</div>
+                    }
+                </div>
+            }
+        }
+    </div>
+
+    <!-- پیش‌نمایش زنده -->
+    <div class="col-lg-3">
+        <div class="card border-0 shadow-sm p-3 sticky-top" style="top:80px;">
+            <h6 class="fw-semibold mb-3 small">پیش‌نمایش فرم</h6>
+            <div id="live-preview">
+                @foreach (var field in Model.Fields)
+                {
+                    <div class="mb-2">
+                        <label class="form-label small mb-1">@field.Label @(field.IsRequired ? "*" : "")</label>
+                        @if (field.Type == FieldType.Textarea) {
+                            <textarea class="form-control form-control-sm" rows="2" disabled placeholder="@field.Placeholder"></textarea>
+                        } else if (field.Type == FieldType.Select) {
+                            <select class="form-select form-select-sm" disabled><option>انتخاب...</option></select>
+                        } else if (field.Type == FieldType.Checkbox) {
+                            <div class="form-check"><input type="checkbox" class="form-check-input" disabled /><label class="form-check-label small">@field.HelpText</label></div>
+                        } else {
+                            <input type="text" class="form-control form-control-sm" disabled placeholder="@field.Placeholder" />
+                        }
+                    </div>
+                }
+                <div id="new-field-preview" class="mb-2 d-none border border-primary rounded p-2" style="background:rgba(249,115,22,.04);">
+                    <div id="preview-label" class="form-label small mb-1 text-primary fw-semibold">فیلد جدید *</div>
+                    <input type="text" id="preview-input" class="form-control form-control-sm" disabled />
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mt-4 d-flex gap-2">
+    <a asp-area="Creator" asp-page="/Apps/Showcase" asp-route-appId="@Model.App.Id"
+       class="btn btn-primary">بعدی: آپلود نمونه خروجی</a>
+    <a asp-area="Creator" asp-page="/Apps/Index" class="btn btn-outline-secondary">بازگشت به لیست</a>
+</div>
+
+@section Scripts {
+    <script src="~/js/pages/creator/apps/Fields.js"></script>
+}

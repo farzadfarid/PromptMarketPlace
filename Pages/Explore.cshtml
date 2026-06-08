@@ -1,0 +1,128 @@
+@page
+@model ExploreModel
+@{ ViewData["Title"] = "کشف ابزارها"; }
+
+<div class="container py-4">
+    <div class="row g-4">
+        <!-- Sidebar -->
+        <div class="col-lg-3">
+            <div class="card border-0 shadow-sm p-3">
+                <form method="get">
+                    <h6 class="fw-bold mb-3">فیلتر</h6>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">جستجو</label>
+                        <input type="text" name="Search" value="@Model.Search"
+                               class="form-control form-control-sm" placeholder="عنوان یا توضیح..." />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">دسته‌بندی</label>
+                        @foreach (var cat in Model.Categories)
+                        {
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="CategoryId"
+                                       value="@cat.Id" id="cat_@cat.Id"
+                                       checked="@(Model.CategoryId == cat.Id)" />
+                                <label class="form-check-label small" for="cat_@cat.Id">@cat.Name</label>
+                            </div>
+                        }
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="CategoryId" value=""
+                                   id="cat_all" checked="@(Model.CategoryId == null)" />
+                            <label class="form-check-label small" for="cat_all">همه دسته‌ها</label>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">نوع خروجی</label>
+                        <select name="OutputType" class="form-select form-select-sm">
+                            <option value="">همه</option>
+                            <option value="Text" selected="@(Model.OutputType == OutputType.Text)">متن</option>
+                            <option value="Image" selected="@(Model.OutputType == OutputType.Image)">تصویر</option>
+                            <option value="Video" selected="@(Model.OutputType == OutputType.Video)">ویدیو</option>
+                            <option value="Code" selected="@(Model.OutputType == OutputType.Code)">کد</option>
+                            <option value="Audio" selected="@(Model.OutputType == OutputType.Audio)">صدا</option>
+                            <option value="Form" selected="@(Model.OutputType == OutputType.Form)">فرم</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">حداکثر اعتبار</label>
+                        <input type="number" name="MaxCost" value="@Model.MaxCost"
+                               class="form-control form-control-sm" placeholder="مثلاً 10" dir="ltr" />
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label small fw-semibold">حداقل امتیاز</label>
+                        <select name="MinRating" class="form-select form-select-sm">
+                            <option value="">همه امتیازها</option>
+                            <option value="4" selected="@(Model.MinRating == 4)">۴+ ستاره</option>
+                            <option value="3" selected="@(Model.MinRating == 3)">۳+ ستاره</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-sm w-100">اعمال فیلتر</button>
+                    <a asp-page="/Explore" class="btn btn-outline-secondary btn-sm w-100 mt-2">پاک کردن</a>
+                </form>
+            </div>
+        </div>
+
+        <!-- Grid -->
+        <div class="col-lg-9">
+            <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+                <div class="text-muted small">@Model.Result.TotalCount ابزار یافت شد</div>
+                <form method="get" class="d-flex gap-2 align-items-center">
+                    <input type="hidden" name="CategoryId" value="@Model.CategoryId" />
+                    <input type="hidden" name="OutputType" value="@Model.OutputType" />
+                    <input type="hidden" name="Search" value="@Model.Search" />
+                    <select name="SortBy" class="form-select form-select-sm" style="width:auto"
+                            onchange="this.form.submit()">
+                        <option value="MostUsed" selected="@(Model.SortBy == AppSortBy.MostUsed)">پرکاربردترین</option>
+                        <option value="Newest" selected="@(Model.SortBy == AppSortBy.Newest)">جدیدترین</option>
+                        <option value="HighestRated" selected="@(Model.SortBy == AppSortBy.HighestRated)">بالاترین امتیاز</option>
+                        <option value="LowestCost" selected="@(Model.SortBy == AppSortBy.LowestCost)">کم‌هزینه‌ترین</option>
+                    </select>
+                </form>
+            </div>
+
+            @if (!Model.Result.Items.Any())
+            {
+                <div class="text-center py-5 text-muted">
+                    <i class="fas fa-search fa-3x mb-3 opacity-25"></i>
+                    <p>ابزاری با این مشخصات یافت نشد.</p>
+                    <a asp-page="/Explore" class="btn btn-outline-primary btn-sm">مشاهده همه ابزارها</a>
+                </div>
+            }
+            else
+            {
+                <div class="row g-3">
+                    @foreach (var app in Model.Result.Items)
+                    {
+                        <div class="col-md-6 col-xl-4">
+                            @await Html.PartialAsync("_AppCard", app)
+                        </div>
+                    }
+                </div>
+
+                @if (Model.Result.TotalPages > 1)
+                {
+                    <nav class="mt-4">
+                        <ul class="pagination justify-content-center">
+                            @for (int i = 1; i <= Model.Result.TotalPages; i++)
+                            {
+                                <li class="page-item @(i == Model.Result.PageNumber ? "active" : "")">
+                                    <a class="page-link" asp-page="/Explore"
+                                       asp-route-PageNumber="@i"
+                                       asp-route-CategoryId="@Model.CategoryId"
+                                       asp-route-SortBy="@Model.SortBy"
+                                       asp-route-Search="@Model.Search">@i</a>
+                                </li>
+                            }
+                        </ul>
+                    </nav>
+                }
+            }
+        </div>
+    </div>
+</div>

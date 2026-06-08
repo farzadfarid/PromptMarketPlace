@@ -1,0 +1,43 @@
+@page
+@model HistoryModel
+@using PromptMarketPlace.Models.Enums
+@{ ViewData["Title"] = "تاریخچه تراکنش‌ها"; }
+
+<div class="d-flex gap-2 mb-4 flex-wrap">
+    @foreach (var t in new[] { (TransactionType?)null, TransactionType.Purchase, TransactionType.Spend, TransactionType.Refund, TransactionType.Earn })
+    {
+        var label = t switch { TransactionType.Purchase => "خرید", TransactionType.Spend => "مصرف", TransactionType.Refund => "بازگشتی", TransactionType.Earn => "درآمد", _ => "همه" };
+        <a asp-page="/Wallet/History" asp-route-FilterType="@t"
+           class="btn btn-sm @(Model.FilterType == t ? "btn-primary" : "btn-outline-secondary")">@label</a>
+    }
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr><th>توضیح</th><th class="text-center">نوع</th><th class="text-center">اعتبار</th><th>تاریخ</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var t in Model.Transactions)
+                {
+                    var isPositive = t.Type is TransactionType.Purchase or TransactionType.Refund or TransactionType.Earn;
+                    <tr>
+                        <td class="small">@t.Description</td>
+                        <td class="text-center">
+                            <span class="badge bg-@(isPositive ? "success" : "secondary")-subtle text-@(isPositive ? "success" : "secondary") border" style="font-size:.65rem;">
+                                @(t.Type switch { TransactionType.Purchase => "خرید", TransactionType.Spend => "مصرف", TransactionType.Refund => "بازگشت", TransactionType.Earn => "درآمد", _ => t.Type.ToString() })
+                            </span>
+                        </td>
+                        <td class="text-center fw-semibold small @(isPositive ? "text-success" : "text-danger")">
+                            @(isPositive ? "+" : "")@t.CreditAmount
+                        </td>
+                        <td class="text-muted small">@t.CreatedAt.ToString("yy/MM/dd HH:mm")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        @if (!Model.Transactions.Any())
+        { <p class="text-center text-muted small py-4">تراکنشی یافت نشد.</p> }
+    </div>
+</div>

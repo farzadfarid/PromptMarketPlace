@@ -1,0 +1,301 @@
+﻿@page "/app/{slug}"
+@model DetailModel
+@using System.Security.Claims
+@{ ViewData["Title"] = Model.App.Title; }
+
+<div class="container py-4">
+    <div class="row g-4">
+
+        <!-- اطلاعات ابزار + فرم -->
+        <div class="col-lg-8">
+            <!-- هدر ابزار -->
+            <div class="d-flex gap-3 mb-4">
+                @if (!string.IsNullOrEmpty(Model.App.ThumbnailUrl))
+                {
+                    <img src="@Model.App.ThumbnailUrl" class="rounded" width="80" height="80" style="object-fit:cover;" />
+                }
+                <div class="flex-grow-1">
+                    <div class="d-flex align-items-start gap-2 flex-wrap">
+                        <h3 class="fw-bold mb-1">@Model.App.Title</h3>
+                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
+                            @Model.App.OutputType
+                        </span>
+                    </div>
+                    <p class="text-muted mb-2">@Model.App.ShortDescription</p>
+                    <div class="d-flex gap-3 small text-muted">
+                        <span><i class="fas fa-play-circle me-1"></i>@Model.App.ExecutionCount.N0Fa() اجرا</span>
+                        <span><i class="fas fa-star text-warning me-1"></i>@Model.App.AverageRating.ToFarsiDigits("0.0")</span>
+                        <span><i class="fas fa-coins text-primary me-1"></i>@Model.App.CreditCost اعتبار / اجرا</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- خطا -->
+            @if (!string.IsNullOrEmpty(Model.RunError))
+            {
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle me-2"></i>@Model.RunError
+                </div>
+            }
+
+            <!-- خروجی آخرین اجرا -->
+            @if (Model.LastExecution != null)
+            {
+                @await Html.PartialAsync("_OutputRenderer", Model.LastExecution)
+                <hr class="my-4" />
+            }
+
+            <!-- فرم اجرا -->
+            <div class="card border-0 shadow-sm p-4 mb-4">
+                <h5 class="fw-semibold mb-3">
+                    <i class="fas fa-play me-2 text-primary"></i>اجرای ابزار
+                </h5>
+
+                @if (!User.Identity!.IsAuthenticated)
+                {
+                    <div class="alert alert-info d-flex align-items-center gap-3">
+                        <i class="fas fa-info-circle fa-lg"></i>
+                        <div>
+                            برای استفاده از این ابزار باید وارد حساب خود شوید.
+                            <div class="mt-2">
+                                <a asp-page="/Auth/Login" asp-route-returnUrl="@($"/app/{Model.App.Slug}")"
+                                   class="btn btn-primary btn-sm me-2">ورود</a>
+                                <a asp-page="/Auth/Register" class="btn btn-outline-primary btn-sm">ثبت‌نام رایگان</a>
+                            </div>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <form method="post" asp-page-handler="Run">
+                        @foreach (var field in Model.App.InputFields)
+                        {
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">
+                                    @field.Label
+                                    @if (field.IsRequired) { <span class="text-danger">*</span> }
+                                </label>
+
+                                @{ var savedVal = Model.Inputs.GetValueOrDefault(field.Name, ""); }
+                                @if (field.Type == FieldType.Textarea)
+                                {
+                                    <textarea name="Inputs[@field.Name]" class="form-control"
+                                              rows="3" placeholder="@field.Placeholder"
+                                              @(field.IsRequired ? "required" : "")
+                                              maxlength="@(field.MaxLength ?? 2000)">@savedVal</textarea>
+                                }
+                                else if (field.Type == FieldType.Select && field.Options != null)
+                                {
+                                    var options = System.Text.Json.JsonSerializer.Deserialize<List<string>>(field.Options) ?? new();
+                                    <select name="Inputs[@field.Name]" class="form-select"
+                                            @(field.IsRequired ? "required" : "")>
+                                        <option value="">انتخاب کنید...</option>
+                                        @foreach (var opt in options)
+                                        {
+                                            if (opt == savedVal)
+                                            { <option value="@opt" selected>@opt</option> }
+                                            else
+                                            { <option value="@opt">@opt</option> }
+                                        }
+                                    </select>
+                                }
+                                else if (field.Type == FieldType.Number)
+                                {
+                                    <input type="number" name="Inputs[@field.Name]" class="form-control"
+                                           placeholder="@field.Placeholder" dir="ltr" value="@savedVal"
+                                           @(field.IsRequired ? "required" : "") />
+                                }
+                                else if (field.Type == FieldType.Checkbox)
+                                {
+                                    <div class="form-check">
+                                        <input type="checkbox" name="Inputs[@field.Name]" value="true"
+                                               class="form-check-input" id="field_@field.Id"
+                                               @(savedVal == "true" ? "checked" : "") />
+                                        <label class="form-check-label" for="field_@field.Id">@field.HelpText</label>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <input type="text" name="Inputs[@field.Name]" class="form-control"
+                                           placeholder="@field.Placeholder" value="@savedVal"
+                                           @(field.IsRequired ? "required" : "")
+                                           maxlength="@(field.MaxLength ?? 500)" />
+                                }
+
+                                @if (!string.IsNullOrEmpty(field.HelpText) && field.Type != FieldType.Checkbox)
+                                {
+                                    <div class="form-text text-muted">@field.HelpText</div>
+                                }
+                            </div>
+                        }
+
+                        <div class="d-flex align-items-center justify-content-between mt-3">
+                            <div class="small text-muted">
+                                موجودی: <strong>@Model.UserBalance اعتبار</strong>
+                                @if (Model.UserBalance < Model.App.CreditCost)
+                                {
+                                    <a asp-page="/Credits/Packages" class="text-danger ms-2 small">
+                                        <i class="fas fa-plus me-1"></i>شارژ کنید
+                                    </a>
+                                }
+                            </div>
+                            <button type="submit" class="btn btn-primary"
+                                    @(Model.UserBalance < Model.App.CreditCost ? "disabled" : "")>
+                                <i class="fas fa-play me-2"></i>اجرا (@Model.App.CreditCost اعتبار)
+                            </button>
+                        </div>
+                    </form>
+                }
+            </div>
+
+            <!-- توضیحات کامل -->
+            <div class="card border-0 shadow-sm p-4 mb-4">
+                <h5 class="fw-semibold mb-3">درباره این ابزار</h5>
+                <div style="white-space:pre-wrap;line-height:1.8;">@Model.App.Description</div>
+            </div>
+
+            <!-- نظرات -->
+            <div class="card border-0 shadow-sm p-4">
+                <h5 class="fw-semibold mb-3">نظرات کاربران</h5>
+
+                @if (User.Identity.IsAuthenticated && !Model.HasReviewed)
+                {
+                    <form method="post" asp-page-handler="Review" class="border rounded p-3 mb-4">
+                        <div class="mb-2">
+                            <label class="form-label small">امتیاز شما</label>
+                            <div class="d-flex gap-2">
+                                @for (int i = 1; i <= 5; i++)
+                                {
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="rating" value="@i" id="r@i" required />
+                                        <label class="form-check-label" for="r@i">@i</label>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                        <textarea name="comment" class="form-control form-control-sm mb-2"
+                                  rows="2" placeholder="نظر خود را بنویسید (اختیاری)"></textarea>
+                        <button type="submit" class="btn btn-sm btn-outline-primary">ثبت نظر</button>
+                    </form>
+                }
+
+                @foreach (var review in Model.Reviews)
+                {
+                    <div class="d-flex gap-3 mb-3 pb-3 border-bottom">
+                        <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0"
+                             style="width:40px;height:40px;">
+                            <i class="fas fa-user text-primary small"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <strong class="small">@review.User?.DisplayName</strong>
+                                <div>
+                                    @for (int i = 1; i <= 5; i++)
+                                    {
+                                        <i class="@(i <= review.Rating ? "fas" : "far") fa-star text-warning" style="font-size:.7rem;"></i>
+                                    }
+                                </div>
+                                @if (review.IsVerifiedPurchase)
+                                {
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size:.65rem;">
+                                        <i class="fas fa-check me-1"></i>خریدار تأیید شده
+                                    </span>
+                                }
+                                <span class="text-muted" style="font-size:.7rem;">@review.CreatedAt.ToShamsi("yy/MM/dd")</span>
+                            </div>
+                            @if (!string.IsNullOrEmpty(review.Comment))
+                            {
+                                <p class="mb-0 small text-muted">@review.Comment</p>
+                            }
+                        </div>
+                    </div>
+                }
+
+                @if (!Model.Reviews.Any())
+                {
+                    <p class="text-muted small text-center py-3">هنوز نظری ثبت نشده است.</p>
+                }
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- سازنده -->
+            <div class="card border-0 shadow-sm p-3 mb-3">
+                <h6 class="fw-semibold mb-3">سازنده ابزار</h6>
+                <a asp-page="/Creator/Profile"
+                   asp-route-username="@Model.App.Creator.User.UserName"
+                   class="d-flex align-items-center gap-3 text-decoration-none">
+                    <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0"
+                         style="width:48px;height:48px;">
+                        <i class="fas fa-user text-primary"></i>
+                    </div>
+                    <div>
+                        <div class="fw-semibold text-dark">@Model.App.Creator.User.DisplayName</div>
+                        @if (Model.App.Creator.IsVerified)
+                        {
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size:.65rem;">
+                                <i class="fas fa-check me-1"></i>تأیید شده
+                            </span>
+                        }
+                        @if (Model.App.Creator.IsFoundingCreator)
+                        {
+                            <span class="badge bg-warning-subtle text-warning border border-warning-subtle" style="font-size:.65rem;">
+                                <i class="fas fa-star me-1"></i>بنیان‌گذار
+                            </span>
+                        }
+                    </div>
+                </a>
+            </div>
+
+            <!-- گالری نمونه -->
+            @if (Model.App.ShowcaseItems.Any())
+            {
+                <div class="card border-0 shadow-sm p-3 mb-3">
+                    <h6 class="fw-semibold mb-3">نمونه خروجی‌ها</h6>
+                    @foreach (var item in Model.App.ShowcaseItems.Take(4))
+                    {
+                        @if (item.OutputType == OutputType.Image && !string.IsNullOrEmpty(item.OutputUrl))
+                        {
+                            <img src="@item.OutputUrl" class="img-fluid rounded mb-2"
+                                 alt="@item.Caption" style="max-height:200px;object-fit:cover;width:100%;" />
+                        }
+                        else if (!string.IsNullOrEmpty(item.OutputText))
+                        {
+                            <div class="bg-light rounded p-2 mb-2 small" style="white-space:pre-wrap;max-height:120px;overflow:hidden;">
+                                @item.OutputText
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(item.Caption))
+                        {
+                            <p class="text-muted small mb-2">@item.Caption</p>
+                        }
+                    }
+                </div>
+            }
+
+            <!-- تگ‌ها -->
+            @if (Model.App.Tags.Any())
+            {
+                <div class="card border-0 shadow-sm p-3">
+                    <h6 class="fw-semibold mb-2">تگ‌ها</h6>
+                    @foreach (var tag in Model.App.Tags)
+                    {
+                        <a asp-page="/Explore" asp-route-Search="@tag.TagName"
+                           class="badge bg-light text-secondary border me-1 mb-1 text-decoration-none">
+                            #@tag.TagName
+                        </a>
+                    }
+                </div>
+            }
+        </div>
+
+    </div>
+</div>
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/pages/public/Detail.css" />
+}
+@section Scripts {
+    <script src="~/js/pages/public/Detail.js"></script>
+}

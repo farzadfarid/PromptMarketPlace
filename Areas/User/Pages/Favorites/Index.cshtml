@@ -1,0 +1,32 @@
+@page
+@model IndexModel
+@{ ViewData["Title"] = "ابزارهای مورد علاقه"; }
+
+@if (!Model.Favorites.Any())
+{
+    <div class="card border-0 shadow-sm text-center py-5">
+        <i class="fas fa-heart fa-3x mb-3 text-muted opacity-25"></i>
+        <h6 class="fw-semibold mb-2">هنوز ابزاری اضافه نشده</h6>
+        <p class="text-muted small mb-3">ابزارهای مورد علاقه‌ات را با کلیک روی آیکون قلب ذخیره کن.</p>
+        <a asp-page="/Explore" class="btn btn-primary mx-auto" style="width:fit-content;">کشف ابزارها</a>
+    </div>
+}
+else
+{
+    <div class="row g-3">
+        @foreach (var fav in Model.Favorites)
+        {
+            <div class="col-md-6">
+                <div class="card border-0 shadow-sm h-100 position-relative hover-lift">
+                    <form method="post" asp-page-handler="Toggle" class="position-absolute top-0 end-0 m-2" style="z-index:1;">
+                        <input type="hidden" name="appId" value="@fav.AppId" />
+                        <button type="submit" class="btn btn-sm btn-danger py-1 px-2 rounded-3" title="حذف از علاقه‌مندی">
+                            <i class="fas fa-heart-crack"></i>
+                        </button>
+                    </form>
+                    @await Html.PartialAsync("_AppCard", fav.App)
+                </div>
+            </div>
+        }
+    </div>
+}

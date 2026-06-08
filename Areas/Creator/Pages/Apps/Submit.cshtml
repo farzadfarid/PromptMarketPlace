@@ -1,0 +1,71 @@
+@page
+@model SubmitModel
+@{ ViewData["Title"] = "ارسال برای بررسی"; }
+
+@if (TempData["Error"] != null) { <div class="alert alert-danger">@TempData["Error"]</div> }
+
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <h5 class="fw-bold mb-4">چک‌لیست قبل از ارسال</h5>
+
+        <div class="card border-0 shadow-sm p-4 mb-4">
+            <div class="d-flex align-items-center gap-3 mb-3 pb-3 border-bottom">
+                <i class="fas @(string.IsNullOrEmpty(Model.App.Title) ? "fa-times-circle text-danger" : "fa-check-circle text-success") fa-lg"></i>
+                <div>
+                    <div class="fw-semibold">عنوان ابزار</div>
+                    <div class="text-muted small">@Model.App.Title</div>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-3 mb-3 pb-3 border-bottom">
+                <i class="fas @(string.IsNullOrEmpty(Model.App.Description) ? "fa-times-circle text-danger" : "fa-check-circle text-success") fa-lg"></i>
+                <div>
+                    <div class="fw-semibold">توضیح کامل</div>
+                    <div class="text-muted small">@(Model.App.Description.Length > 60 ? Model.App.Description[..60] + "..." : Model.App.Description)</div>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-3 mb-3 pb-3 border-bottom">
+                <i class="fas @(!Model.HasFields ? "fa-times-circle text-danger" : "fa-check-circle text-success") fa-lg"></i>
+                <div>
+                    <div class="fw-semibold">فیلدهای ورودی</div>
+                    <div class="text-muted small">
+                        @if (Model.HasFields)
+                        { <span>@Model.App.InputFields.Count فیلد تعریف شده</span> }
+                        else
+                        { <a asp-area="Creator" asp-page="/Apps/Fields" asp-route-appId="@Model.App.Id">تعریف فیلد</a> }
+                    </div>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <i class="fas @(!Model.HasShowcase ? "fa-times-circle text-danger" : "fa-check-circle text-success") fa-lg"></i>
+                <div>
+                    <div class="fw-semibold">نمونه خروجی‌ها</div>
+                    <div class="text-muted small">
+                        @if (Model.HasShowcase)
+                        { <span>@Model.App.ShowcaseItems.Count نمونه آپلود شده</span> }
+                        else
+                        { <a asp-area="Creator" asp-page="/Apps/Showcase" asp-route-appId="@Model.App.Id">آپلود نمونه (حداقل ۳)</a> }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if (Model.CanSubmit)
+        {
+            <form method="post" asp-route-appId="@Model.App.Id">
+                <div class="alert alert-info small mb-3">
+                    <i class="fas fa-info-circle me-1"></i>
+                    پس از ارسال، ابزار توسط تیم ما بررسی می‌شود. معمولاً ۲۴-۴۸ ساعت طول می‌کشد.
+                </div>
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-paper-plane me-1"></i>ارسال برای بررسی
+                </button>
+            </form>
+        }
+        else
+        {
+            <div class="alert alert-warning">
+                برای ارسال، ابتدا تمام موارد بالا را تکمیل کنید.
+            </div>
+        }
+    </div>
+</div>

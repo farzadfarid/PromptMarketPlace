@@ -1,0 +1,41 @@
+﻿@page
+@model TopAppsModel
+@{ ViewData["Title"] = "پرکاربردترین ابزارها"; }
+
+<h5 class="mb-4">پرکاربردترین ابزارها (۵۰ ابزار برتر)</h5>
+
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th style="width:40px">#</th>
+                    <th>عنوان</th>
+                    <th>دسته</th>
+                    <th>سازنده</th>
+                    <th class="text-center">تعداد اجرا</th>
+                    <th class="text-center">امتیاز</th>
+                    <th class="text-center">هزینه</th>
+                </tr>
+            </thead>
+            <tbody>
+                @{int rank = 1;}
+                @foreach (var a in Model.Apps)
+                {
+                    <tr>
+                        <td class="text-muted fw-bold">@(rank++)</td>
+                        <td class="fw-semibold small">@a.Title</td>
+                        <td class="small text-muted">@a.Category?.Name</td>
+                        <td class="small">@a.Creator?.User?.DisplayName</td>
+                        <td class="text-center fw-semibold">@a.ExecutionCount.N0Fa()</td>
+                        <td class="text-center small">
+                            <i class="fas fa-star text-warning" style="font-size:.75rem"></i>
+                            @a.AverageRating.ToString("F1")
+                        </td>
+                        <td class="text-center small">@a.CreditCost</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

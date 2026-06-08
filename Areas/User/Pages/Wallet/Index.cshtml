@@ -1,0 +1,73 @@
+﻿@page
+@model IndexModel
+@using PromptMarketPlace.Models.Enums
+@{ ViewData["Title"] = "کیف‌پول"; }
+
+<div class="card border-0 mb-4 p-4" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;">
+    <div class="d-flex align-items-center justify-content-between">
+        <div>
+            <div class="small opacity-75 mb-1">موجودی اعتبار</div>
+            <div class="fs-2 fw-bold"><i class="fas fa-coins me-2 opacity-75"></i>@Model.CreditBalance</div>
+        </div>
+        <a asp-area="" asp-page="/Credits/Packages" class="btn btn-light fw-semibold text-primary px-4">
+            <i class="fas fa-plus me-2"></i>خرید اعتبار
+        </a>
+    </div>
+</div>
+
+@if (Model.RecentPayments.Any())
+{
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="d-flex justify-content-between align-items-center p-4 pb-3">
+            <h6 class="fw-bold mb-0">آخرین خریدها</h6>
+            <a asp-page="/Wallet/History" class="small text-primary">تاریخچه کامل</a>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <tbody>
+                    @foreach (var p in Model.RecentPayments)
+                    {
+                        <tr>
+                            <td class="small ps-4">@p.Package?.Name</td>
+                            <td class="text-center fw-semibold small text-primary">+@p.CreditAmount اعتبار</td>
+                            <td class="small text-muted">@p.Amount.N0Fa() ریال</td>
+                            <td class="small text-muted">@p.CreatedAt.ToShamsi("yy/MM/dd")</td>
+                            <td class="pe-4">
+                                @if (p.Status == PaymentStatus.Verified)
+                                { <span class="badge bg-success">موفق</span> }
+                                else
+                                { <span class="badge bg-secondary">@p.Status</span> }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+<div class="card border-0 shadow-sm">
+    <div class="d-flex justify-content-between align-items-center p-4 pb-3">
+        <h6 class="fw-bold mb-0">آخرین تراکنش‌ها</h6>
+        <a asp-page="/Wallet/History" class="small text-primary">مشاهده همه</a>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <tbody>
+                @foreach (var t in Model.RecentTransactions)
+                {
+                    var isPositive = t.Type is TransactionType.Purchase or TransactionType.Refund;
+                    <tr>
+                        <td class="small ps-4">@t.Description</td>
+                        <td class="text-center fw-semibold small @(isPositive ? "text-success" : "text-danger")">
+                            @(isPositive ? "+" : "")@t.CreditAmount اعتبار
+                        </td>
+                        <td class="small text-muted pe-4">@t.CreatedAt.ToString("yy/MM/dd HH:mm")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        @if (!Model.RecentTransactions.Any())
+        { <p class="text-center text-muted small py-4">هنوز تراکنشی ندارید.</p> }
+    </div>
+</div>

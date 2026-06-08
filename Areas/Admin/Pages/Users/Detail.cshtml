@@ -1,0 +1,211 @@
+﻿@page "{id}"
+@model DetailModel
+@using PromptMarketPlace.Models.Enums
+@{
+    ViewData["Title"] = "جزئیات کاربر";
+    var u = Model.TargetUser!;
+}
+
+@if (TempData["Success"] != null) { <div class="alert alert-success alert-dismissible fade show">@TempData["Success"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div> }
+@if (TempData["Error"] != null)   { <div class="alert alert-danger  alert-dismissible fade show">@TempData["Error"]  <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div> }
+
+<!-- Breadcrumb -->
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-area="Admin" asp-page="/Users/Index">کاربران</a></li>
+        <li class="breadcrumb-item active" style="color:#fff">@u.DisplayName</li>
+    </ol>
+</nav>
+
+<div class="row g-4">
+    <!-- اطلاعات کاربر -->
+    <div class="col-md-4">
+        <div class="card shadow-sm mb-3">
+            <div class="card-body">
+                <div class="text-center mb-3">
+                    @if (!string.IsNullOrEmpty(u.AvatarUrl))
+                    {
+                        <img src="@u.AvatarUrl" class="rounded-circle mb-2" style="width:72px;height:72px;object-fit:cover;" />
+                    }
+                    else
+                    {
+                        <div class="rounded-circle bg-secondary text-white d-inline-flex align-items-center justify-content-center mb-2"
+                             style="width:72px;height:72px;font-size:1.5rem;">
+                            @u.DisplayName.FirstOrDefault()
+                        </div>
+                    }
+                    <h6 class="fw-bold mb-0 text-white">@u.DisplayName</h6>
+                    <small class="text-secondary">@u.Email</small>
+                </div>
+                <hr />
+                <dl class="row mb-0 small">
+                    <dt class="col-5">نقش</dt>
+                    <dd class="col-7">
+                        @{
+                            var (rl, rc) = u.Role switch {
+                                UserRole.Admin   => ("ادمین",  "danger"),
+                                UserRole.Creator => ("سازنده", "primary"),
+                                _                => ("کاربر",  "secondary")
+                            };
+                        }
+                        <span class="badge bg-@rc">@rl</span>
+                    </dd>
+                    <dt class="col-5">وضعیت</dt>
+                    <dd class="col-7">@(u.IsActive ? "فعال" : "مسدود")</dd>
+                    <dt class="col-5">موجودی</dt>
+                    <dd class="col-7 fw-semibold">@Model.CreditBalance اعتبار</dd>
+                    <dt class="col-5">تاریخ ثبت</dt>
+                    <dd class="col-7">@u.CreatedAt.ToShamsi("yy/MM/dd")</dd>
+                </dl>
+            </div>
+        </div>
+
+        <!-- عملیات -->
+        <div class="card shadow-sm mb-3">
+            <div class="card-body">
+                <h6 class="fw-semibold mb-3">عملیات</h6>
+
+                <!-- مسدود / فعال -->
+                <form method="post" asp-page-handler="ToggleBlock" asp-route-id="@u.Id" class="mb-2">
+                    <button type="submit" class="btn btn-sm w-100 @(u.IsActive ? "btn-outline-danger" : "btn-outline-success")"
+                            onclick="return confirm('@(u.IsActive ? "کاربر مسدود شود؟" : "کاربر فعال شود؟")')">
+                        @(u.IsActive ? "مسدود کردن" : "فعال کردن")
+                    </button>
+                </form>
+
+                <!-- تغییر نقش -->
+                <form method="post" asp-page-handler="ChangeRole" asp-route-id="@u.Id" class="mb-2 d-flex gap-2">
+                    <select name="newRole" class="form-select form-select-sm">
+                        @foreach (var r in Enum.GetValues<UserRole>())
+                        {
+                            <option value="@r" selected="@(u.Role == r)">@r</option>
+                        }
+                    </select>
+                    <button type="submit" class="btn btn-sm btn-outline-primary text-nowrap">تغییر نقش</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- تنظیم اعتبار -->
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h6 class="fw-semibold mb-3">تنظیم دستی اعتبار</h6>
+                <form method="post" asp-page-handler="AdjustCredit" asp-route-id="@u.Id">
+                    <div class="mb-2">
+                        <input asp-for="CreditAdjustment" type="number" class="form-control form-control-sm"
+                               placeholder="مقدار (منفی برای کسر)" />
+                    </div>
+                    <div class="mb-2">
+                        <input asp-for="CreditReason" class="form-control form-control-sm" placeholder="دلیل" />
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-warning w-100">اعمال</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- تاریخچه‌ها -->
+    <div class="col-md-8">
+        <!-- اجراهای اخیر -->
+        <div class="card shadow-sm mb-3">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+                    <h6 class="fw-semibold mb-0">اجراها</h6>
+                    <div class="d-flex gap-1 flex-wrap">
+                        @foreach (var s in new[] { (ExecutionStatus?)null, ExecutionStatus.Completed, ExecutionStatus.Failed, ExecutionStatus.Refunded })
+                        {
+                            var lbl = s switch { ExecutionStatus.Completed => "موفق", ExecutionStatus.Failed => "ناموفق", ExecutionStatus.Refunded => "بازگشتی", _ => "همه" };
+                            <a asp-area="Admin" asp-page="/Users/Detail" asp-route-id="@u.Id"
+                               asp-route-FilterStatus="@s" asp-route-ExecPage="1"
+                               class="btn btn-sm @(Model.FilterStatus == s ? "btn-primary" : "btn-outline-secondary") py-0">@lbl</a>
+                        }
+                    </div>
+                    <small class="text-muted">@Model.ExecutionTotalCount.N0Fa() اجرا</small>
+                </div>
+                @{
+                    var totalExecPages = (int)Math.Ceiling(Model.ExecutionTotalCount / 15.0);
+                }
+                @if (!Model.RecentExecutions.Any())
+                {
+                    <p class="text-muted small text-center">اجرایی ثبت نشده.</p>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover mb-0">
+                            <thead class="table-light">
+                                <tr><th>ابزار</th><th class="text-center">وضعیت</th><th class="text-center">اعتبار</th><th>تاریخ</th><th></th></tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var e in Model.RecentExecutions)
+                                {
+                                    var (el, ec) = e.Status switch {
+                                        ExecutionStatus.Completed => ("موفق",     "success"),
+                                        ExecutionStatus.Failed    => ("ناموفق",   "danger"),
+                                        ExecutionStatus.Refunded  => ("بازگشتی", "info"),
+                                        _                         => ("در جریان", "warning")
+                                    };
+                                    <tr style="cursor:pointer"
+                                        onclick="window.location='/Admin/Executions/@e.Id?userId=@u.Id'">
+                                        <td class="small fw-semibold">@e.App?.Title</td>
+                                        <td class="text-center"><span class="badge bg-@ec">@el</span></td>
+                                        <td class="text-center small">@e.CreditUsed.N0Fa()</td>
+                                        <td class="small text-muted">@e.CreatedAt.ToShamsi("yy/MM/dd HH:mm")</td>
+                                        <td><i class="fas fa-chevron-left text-muted small"></i></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    @if (totalExecPages > 1)
+                    {
+                        <nav class="mt-3">
+                            <ul class="pagination pagination-sm justify-content-center mb-0">
+                                @for (int i = 1; i <= totalExecPages; i++)
+                                {
+                                    <li class="page-item @(i == Model.ExecPage ? "active" : "")">
+                                        <a class="page-link" asp-area="Admin" asp-page="/Users/Detail"
+                                           asp-route-id="@u.Id" asp-route-ExecPage="@i"
+                                           asp-route-FilterStatus="@Model.FilterStatus">@i.ToFarsiDigits()</a>
+                                    </li>
+                                }
+                            </ul>
+                        </nav>
+                    }
+                }
+            </div>
+        </div>
+
+        <!-- پرداخت‌های اخیر -->
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h6 class="fw-semibold mb-3">آخرین پرداخت‌ها</h6>
+                @if (!Model.RecentPayments.Any())
+                {
+                    <p class="text-muted small text-center">پرداختی ثبت نشده.</p>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover mb-0">
+                            <thead class="table-light"><tr><th>بسته</th><th class="text-center">اعتبار</th><th class="text-center">مبلغ</th><th class="text-center">وضعیت</th><th>تاریخ</th></tr></thead>
+                            <tbody>
+                                @foreach (var p in Model.RecentPayments)
+                                {
+                                    <tr>
+                                        <td class="small">@p.Package?.Name</td>
+                                        <td class="text-center small">@p.CreditAmount</td>
+                                        <td class="text-center small">@p.Amount.N0Fa()</td>
+                                        <td class="text-center"><span class="badge bg-@(p.Status == PaymentStatus.Verified ? "success" : "secondary")">@p.Status</span></td>
+                                        <td class="small text-muted">@p.CreatedAt.ToShamsi("yy/MM/dd")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

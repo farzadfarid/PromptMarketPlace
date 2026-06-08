@@ -1,0 +1,88 @@
+﻿@page
+@model IndexModel
+@{ ViewData["Title"] = "مدیریت نظرات"; }
+
+@if (TempData["Success"] != null) { <div class="alert alert-success alert-dismissible fade show">@TempData["Success"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div> }
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h5 class="mb-1">نظرات کاربران</h5>
+        <small class="text-muted">مجموع: @Model.TotalCount نظر</small>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-3">
+    <div class="card-body py-2">
+        <form method="get" class="d-flex gap-2 flex-wrap align-items-center">
+            <input type="text" name="Search" value="@Model.Search"
+                   class="form-control form-control-sm" placeholder="عنوان ابزار / نام کاربر / متن" style="width:250px" />
+            <select name="FilterRating" class="form-select form-select-sm" style="width:auto">
+                <option value="">همه امتیازها</option>
+                @for (int i = 5; i >= 1; i--)
+                { <option value="@i" selected="@(Model.FilterRating == i)">@i ستاره</option> }
+            </select>
+            <button type="submit" class="btn btn-outline-secondary btn-sm">جستجو</button>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>ابزار</th>
+                    <th>کاربر</th>
+                    <th class="text-center">امتیاز</th>
+                    <th>متن نظر</th>
+                    <th>تاریخ</th>
+                    <th class="text-center">عملیات</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in Model.Reviews)
+                {
+                    <tr>
+                        <td class="small fw-semibold">@r.App?.Title</td>
+                        <td class="small">@r.User?.DisplayName</td>
+                        <td class="text-center">
+                            @for (int i = 1; i <= 5; i++)
+                            {
+                                <i class="fas fa-star @(i <= r.Rating ? "text-warning" : "text-muted")" style="font-size:.7rem"></i>
+                            }
+                        </td>
+                        <td class="small text-muted" style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                            @(r.Comment ?? "-")
+                        </td>
+                        <td class="small text-muted">@r.CreatedAt.ToShamsi("yy/MM/dd")</td>
+                        <td class="text-center">
+                            <form method="post" asp-page-handler="Delete" class="d-inline">
+                                <input type="hidden" name="id" value="@r.Id" />
+                                <button type="submit" class="btn btn-sm btn-outline-danger"
+                                        onclick="return confirm('این نظر حذف شود؟')">حذف</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@{
+    var totalPages = (int)Math.Ceiling(Model.TotalCount / 30.0);
+}
+@if (totalPages > 1)
+{
+    <nav class="mt-3">
+        <ul class="pagination pagination-sm">
+            @for (int i = 1; i <= totalPages; i++)
+            {
+                <li class="page-item @(i == Model.PageNumber ? "active" : "")">
+                    <a class="page-link" asp-page="/Reviews/Index" asp-area="Admin"
+                       asp-all-route-data='@(new Dictionary<string,string>{{"Search",Model.Search??""}, {"FilterRating",Model.FilterRating?.ToString()??""}, {"PageNumber",i.ToString()}})'>@i</a>
+                </li>
+            }
+        </ul>
+    </nav>
+}

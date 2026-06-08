@@ -1,0 +1,73 @@
+﻿@page "/user/executions/{id:long}"
+@model DetailModel
+@using PromptMarketPlace.Models.Enums
+@{ ViewData["Title"] = "جزئیات اجرا"; }
+
+@if (TempData["Success"] != null)
+{ <div class="alert alert-success alert-dismissible fade show">@TempData["Success"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div> }
+
+<div class="d-flex align-items-center gap-3 mb-4">
+    <a asp-page="/Executions/Index" class="btn btn-sm btn-outline-secondary">
+        <i class="fas fa-arrow-right me-1"></i>بازگشت
+    </a>
+    <h5 class="fw-bold mb-0">@Model.Execution.App?.Title</h5>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm p-3 text-center">
+            <div class="small text-muted mb-1">تاریخ اجرا</div>
+            <div class="fw-semibold small">@Model.Execution.CreatedAt.ToString("yy/MM/dd HH:mm:ss")</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm p-3 text-center">
+            <div class="small text-muted mb-1">اعتبار مصرف‌شده</div>
+            <div class="fw-bold fs-5 text-primary">@Model.Execution.CreditUsed</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm p-3 text-center">
+            <div class="small text-muted mb-1">توکن‌ها</div>
+            <div class="fw-semibold">@(Model.Execution.TokensUsed?.N0Fa() ?? "-")</div>
+        </div>
+    </div>
+</div>
+
+@if (Model.Execution.InputValues.Any())
+{
+    <div class="card border-0 shadow-sm p-4 mb-4">
+        <h6 class="fw-semibold mb-3"><i class="fas fa-keyboard me-2 text-muted"></i>ورودی‌های شما</h6>
+        <dl class="row mb-0">
+            @foreach (var input in Model.Execution.InputValues)
+            {
+                var field = Model.Execution.App?.InputFields.FirstOrDefault(f => f.Name == input.FieldName);
+                <dt class="col-sm-4 small text-muted">@(field?.Label ?? input.FieldName)</dt>
+                <dd class="col-sm-8 small">@input.FieldValue</dd>
+            }
+        </dl>
+    </div>
+}
+
+@await Html.PartialAsync("_OutputRenderer", Model.Execution)
+
+<div class="mt-4 d-flex gap-2 flex-wrap">
+    @if (!string.IsNullOrEmpty(Model.Execution.App?.Slug))
+    {
+        <a asp-area="" asp-page="/App/Detail"
+           asp-route-slug="@Model.Execution.App.Slug"
+           asp-route-exec="@Model.Execution.Id"
+           class="btn btn-primary">
+            <i class="fas fa-redo me-1"></i>اجرای مجدد
+        </a>
+    }
+    @if (Model.Execution.Status == ExecutionStatus.Completed)
+    {
+        <form method="post" asp-page-handler="TogglePublic" asp-route-id="@Model.Execution.Id">
+            <button type="submit" class="btn @(Model.Execution.IsPublic ? "btn-warning" : "btn-outline-secondary")">
+                <i class="fas @(Model.Execution.IsPublic ? "fa-eye-slash" : "fa-share-alt") me-1"></i>
+                @(Model.Execution.IsPublic ? "خصوصی کن" : "عمومی کن")
+            </button>
+        </form>
+    }
+</div>

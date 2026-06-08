@@ -1,0 +1,99 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "تنظیمات سیستم";
+}
+
+@if (TempData["Success"] != null) { <div class="alert alert-success alert-dismissible fade show">@TempData["Success"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div> }
+@if (TempData["TestResult"] != null) { <div class="alert alert-info alert-dismissible fade show">@TempData["TestResult"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div> }
+
+<form method="post" asp-page-handler="Save">
+    <div class="row g-4">
+
+        <!-- ZarinPal -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0"><i class="fas fa-credit-card me-2 text-primary"></i>درگاه پرداخت — زرین‌پال</h6>
+                    <form method="post" asp-page-handler="TestZarinpal" class="d-inline">
+                        <button type="submit" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-plug me-1"></i>تست اتصال
+                        </button>
+                    </form>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Merchant ID</label>
+                        <input asp-for="Form.MerchantId" type="password" class="form-control" dir="ltr"
+                               placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
+                        <div class="form-text">برای مشاهده مقدار فعلی روی فیلد کلیک کنید</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">توضیح پیش‌فرض تراکنش</label>
+                        <input asp-for="Form.Description" class="form-control" />
+                    </div>
+                    <div class="form-check form-switch">
+                        <input asp-for="Form.IsSandbox" class="form-check-input" type="checkbox" />
+                        <label class="form-check-label" asp-for="Form.IsSandbox">
+                            حالت آزمایشی (Sandbox)
+                        </label>
+                    </div>
+                    @if (Model.Form.IsSandbox)
+                    {
+                        <div class="alert alert-warning small mt-2 mb-0">
+                            <i class="fas fa-exclamation-triangle me-1"></i>
+                            در حالت Sandbox پرداخت‌ها واقعی نیستند.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-success small mt-2 mb-0">
+                            <i class="fas fa-check-circle me-1"></i>
+                            درگاه در حالت واقعی (Live) است.
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- General -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-cog me-2 text-primary"></i>تنظیمات عمومی</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">نام سایت</label>
+                        <input asp-for="Form.SiteName" class="form-control" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">ایمیل پشتیبانی</label>
+                        <input asp-for="Form.SupportEmail" type="email" class="form-control" dir="ltr" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">حداقل مبلغ برداشت (ریال)</label>
+                        <input asp-for="Form.MinWithdrawal" type="number" class="form-control" dir="ltr" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">کمیسیون پلتفرم (%)</label>
+                        <input asp-for="Form.PlatformCommission" type="number" min="0" max="100" class="form-control" dir="ltr" />
+                    </div>
+                    <div class="form-check form-switch">
+                        <input asp-for="Form.AutoApproveCreator" class="form-check-input" type="checkbox" />
+                        <label class="form-check-label" asp-for="Form.AutoApproveCreator">
+                            تأیید خودکار سازندگان جدید
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="mt-4">
+        <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save me-1"></i>ذخیره تنظیمات
+        </button>
+    </div>
+</form>

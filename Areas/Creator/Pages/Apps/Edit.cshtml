@@ -1,0 +1,141 @@
+@page
+@model EditModel
+@{ ViewData["Title"] = "ویرایش: " + Model.App.Title; }
+
+@if (TempData["Error"] != null) { <div class="alert alert-danger">@TempData["Error"]</div> }
+
+@if (!Model.CanEditPrompt)
+{
+    <div class="alert alert-info mb-4">
+        <i class="fas fa-info-circle me-2"></i>
+        ابزار فعال است. فقط عنوان و توضیحات قابل ویرایش است.
+        برای ویرایش پرامپت، باید ابتدا ابزار را تعلیق کنید.
+    </div>
+}
+
+<form method="post" asp-route-appId="@Model.App.Id" enctype="multipart/form-data">
+    <div asp-validation-summary="All" class="alert alert-danger small py-2"></div>
+    <div class="card border-0 shadow-sm p-4 mb-4">
+        <div class="mb-3">
+            <label class="form-label">عنوان</label>
+            <input asp-for="Form.Title" class="form-control" />
+            <span asp-validation-for="Form.Title" class="text-danger small"></span>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">توضیح کوتاه</label>
+            <input asp-for="Form.ShortDescription" class="form-control" maxlength="160" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">توضیح کامل</label>
+            <textarea asp-for="Form.Description" class="form-control" rows="5"></textarea>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">تصویر کاور <small class="text-muted">(JPG، PNG، WEBP — اختیاری)</small></label>
+            <div class="thumbnail-upload-box" id="thumbnail-box" onclick="document.getElementById('thumbnail-input').click()">
+                @if (!string.IsNullOrEmpty(Model.App.ThumbnailUrl))
+                {
+                    <img id="thumbnail-preview" src="@Model.App.ThumbnailUrl" alt="thumbnail" style="width:100%;height:100%;object-fit:cover;" />
+                    <div id="thumbnail-placeholder" class="d-none">
+                        <i class="fas fa-cloud-upload-alt fa-2x mb-2"></i>
+                        <div class="small">کلیک برای تغییر تصویر</div>
+                    </div>
+                }
+                else
+                {
+                    <img id="thumbnail-preview" src="" class="d-none" alt="preview" />
+                    <div id="thumbnail-placeholder">
+                        <i class="fas fa-cloud-upload-alt fa-2x mb-2"></i>
+                        <div class="small">کلیک کنید یا تصویر را اینجا بکشید</div>
+                        <div class="text-muted" style="font-size:.72rem;">حداکثر ۲ مگابایت</div>
+                    </div>
+                }
+            </div>
+            <input type="file" asp-for="Form.Thumbnail" id="thumbnail-input" accept=".jpg,.jpeg,.png,.webp" class="d-none" />
+            <div class="form-text text-muted mt-1">
+                <i class="fas fa-info-circle me-1"></i>اندازه توصیه‌شده: <strong>۷۵۰ × ۴۰۴</strong> پیکسل — فرمت: JPG، PNG، WEBP — حداکثر ۲ مگابایت
+            </div>
+        </div>
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">دسته‌بندی</label>
+                <select asp-for="Form.CategoryId" asp-items="Model.CategoryList" class="form-select"></select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">هزینه اعتباری</label>
+                <input asp-for="Form.CreditCost" type="number" min="1" class="form-control" dir="ltr" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">تگ‌ها</label>
+                <input asp-for="Form.Tags" class="form-control" placeholder="با کاما جدا کنید" />
+            </div>
+        </div>
+    </div>
+
+    @if (Model.CanEditPrompt)
+    {
+        <div class="card border-0 shadow-sm p-4 mb-4">
+            <h6 class="fw-semibold mb-3">پرامپت</h6>
+            <div class="mb-3">
+                <label class="form-label">System Context</label>
+                <textarea asp-for="Form.SystemContext" class="form-control" rows="2" dir="ltr"></textarea>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">پرامپت جدید
+                    <small class="text-muted">(خالی بگذارید تا تغییر نکند)</small>
+                </label>
+                <textarea asp-for="Form.NewPrompt" class="form-control" rows="6"
+                          placeholder="پرامپت جدید یا خالی برای عدم تغییر..."></textarea>
+            </div>
+        </div>
+    }
+
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary">ذخیره تغییرات</button>
+        <a asp-area="Creator" asp-page="/Apps/Index" class="btn btn-outline-secondary">انصراف</a>
+    </div>
+</form>
+
+@section Styles {
+    <style>
+    .thumbnail-upload-box {
+        border: 2px dashed var(--dk-border2);
+        border-radius: 12px;
+        aspect-ratio: 750 / 404;
+        max-width: 480px;
+        position: relative;
+        cursor: pointer; overflow: hidden;
+        transition: border-color .2s;
+        background: var(--dk-surface2);
+        color: var(--dk-muted2);
+    }
+    .thumbnail-upload-box:hover { border-color: var(--creator-accent); color: var(--dk-text); }
+    .thumbnail-upload-box #thumbnail-preview {
+        position: absolute; inset: 0;
+        width: 100%; height: 100%; object-fit: cover;
+    }
+    .thumbnail-upload-box #thumbnail-placeholder {
+        position: absolute; inset: 0;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        text-align: center;
+    }
+    </style>
+}
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+    document.getElementById('thumbnail-input').addEventListener('change', function() {
+        var file = this.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            var img = document.getElementById('thumbnail-preview');
+            var ph  = document.getElementById('thumbnail-placeholder');
+            img.src = e.target.result;
+            img.classList.remove('d-none');
+            if (ph) ph.classList.add('d-none');
+        };
+        reader.readAsDataURL(file);
+    });
+    </script>
+}

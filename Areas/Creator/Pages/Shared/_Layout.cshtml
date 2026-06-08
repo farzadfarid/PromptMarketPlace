@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - پنل سازنده</title>
+    <link href="~/css/vazirmatn.css" rel="stylesheet" />
+    <link href="~/css/bootstrap5-3-3.css" rel="stylesheet" />
+    <link href="~/css/font-awesome.css" rel="stylesheet" />
+    <link href="~/css/site.css" rel="stylesheet" />
+    <link href="~/css/pages/creator/creator-layout.css" rel="stylesheet" />
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body class="creator-layout">
+<div class="creator-shell">
+
+    <!-- Sidebar -->
+    <aside class="creator-sidebar">
+        <div class="creator-sidebar__header">
+            <div class="creator-brand">
+                <div class="creator-brand__icon">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div>
+                    <div class="creator-brand__name">پرامپت مارکت</div>
+                    <div class="creator-brand__label">پنل سازنده</div>
+                </div>
+            </div>
+        </div>
+
+        <nav class="creator-nav">
+            <a class="creator-nav__item @(ViewContext.RouteData.Values["page"]?.ToString()?.Contains("Dashboard") == true ? "active" : "")"
+               asp-area="Creator" asp-page="/Dashboard/Index">
+                <i class="fas fa-chart-line"></i><span>داشبورد</span>
+            </a>
+
+            <div class="creator-nav__section">ابزارهای من</div>
+            <a class="creator-nav__item @(ViewContext.RouteData.Values["page"]?.ToString() == "/Apps/Index" ? "active" : "")"
+               asp-area="Creator" asp-page="/Apps/Index">
+                <i class="fas fa-th-large"></i><span>لیست ابزارها</span>
+            </a>
+            <a class="creator-nav__item @(ViewContext.RouteData.Values["page"]?.ToString()?.Contains("Create") == true ? "active" : "")"
+               asp-area="Creator" asp-page="/Apps/Create">
+                <i class="fas fa-plus-circle"></i><span>ابزار جدید</span>
+                <span class="creator-nav__badge">جدید</span>
+            </a>
+
+            <div class="creator-nav__section">مالی</div>
+            <a class="creator-nav__item @(ViewContext.RouteData.Values["page"]?.ToString()?.Contains("Earnings") == true ? "active" : "")"
+               asp-area="Creator" asp-page="/Earnings/Index">
+                <i class="fas fa-money-bill-wave"></i><span>درآمد و برداشت</span>
+            </a>
+
+            <div class="creator-nav__section">حساب کاربری</div>
+            <a class="creator-nav__item @(ViewContext.RouteData.Values["page"]?.ToString()?.Contains("Profile") == true ? "active" : "")"
+               asp-area="Creator" asp-page="/Profile/Edit">
+                <i class="fas fa-user-edit"></i><span>ویرایش پروفایل</span>
+            </a>
+        </nav>
+
+        <div class="creator-sidebar__footer">
+            <a href="/" class="creator-sidebar__back">
+                <i class="fas fa-arrow-right"></i>بازگشت به سایت
+            </a>
+            <form method="post" asp-area="" asp-page="/Auth/Logout" class="mt-2">
+                <button type="submit" class="creator-sidebar__logout">
+                    <i class="fas fa-arrow-right-from-bracket"></i>خروج از حساب
+                </button>
+            </form>
+        </div>
+    </aside>
+
+    <!-- Main -->
+    <div class="creator-main">
+        <header class="creator-topbar">
+            <div class="creator-topbar__title">
+                <h6 class="mb-0 fw-semibold">@ViewData["Title"]</h6>
+            </div>
+            <div class="creator-topbar__actions">
+                <a href="/" class="btn btn-sm btn-ghost d-none d-md-inline-flex align-items-center gap-2">
+                    <i class="fas fa-external-link-alt fa-xs"></i>مشاهده سایت
+                </a>
+                <div class="creator-topbar__badge">
+                    <i class="fas fa-star text-warning me-1"></i>
+                    <span class="small fw-medium">سازنده</span>
+                </div>
+            </div>
+        </header>
+
+        <main class="creator-content">
+            @RenderBody()
+        </main>
+    </div>
+</div>
+
+<script src="~/js/jquery-3.7.1.js"></script>
+<script src="~/js/bootstrap5-3-3.js"></script>
+<script src="~/js/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.validation-summary-valid').forEach(function (ul) {
+        var a = ul.closest('.alert'); if (a) a.style.display = 'none';
+    });
+});
+</script>
+@await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

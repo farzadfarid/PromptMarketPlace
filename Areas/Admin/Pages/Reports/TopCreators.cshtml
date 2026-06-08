@@ -1,0 +1,40 @@
+﻿@page
+@model TopCreatorsModel
+@{ ViewData["Title"] = "پردرآمدترین سازندگان"; }
+
+<h5 class="mb-4">پردرآمدترین سازندگان (۵۰ سازنده برتر)</h5>
+
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th style="width:40px">#</th>
+                    <th>نام</th>
+                    <th>ایمیل</th>
+                    <th class="text-center">کل درآمد (ت)</th>
+                    <th class="text-center">موجودی فعلی (ت)</th>
+                    <th class="text-center">ابزارهای فعال</th>
+                    <th class="text-center">کمیسیون</th>
+                    <th>عضویت از</th>
+                </tr>
+            </thead>
+            <tbody>
+                @{int rank = 1;}
+                @foreach (var c in Model.Creators)
+                {
+                    <tr>
+                        <td class="text-muted fw-bold">@(rank++)</td>
+                        <td class="fw-semibold small">@c.DisplayName</td>
+                        <td class="small text-muted">@c.Email</td>
+                        <td class="text-center fw-semibold text-success">@c.TotalEarned.N0Fa()</td>
+                        <td class="text-center small">@c.EarningBalance.N0Fa()</td>
+                        <td class="text-center small">@c.ActiveApps</td>
+                        <td class="text-center small">@c.CommissionPercent%</td>
+                        <td class="small text-muted">@c.JoinedAt.ToShamsi("yy/MM/dd")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

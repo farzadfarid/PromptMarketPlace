@@ -1,0 +1,143 @@
+@page
+@model ReviewModel
+@{ ViewData["Title"] = "صف بررسی ابزارها"; }
+
+@if (TempData["Success"] != null) { <div class="alert alert-success alert-dismissible fade show">@TempData["Success"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div> }
+@if (TempData["Warning"] != null) { <div class="alert alert-warning alert-dismissible fade show">@TempData["Warning"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div> }
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h5 class="mb-1">صف بررسی</h5>
+        <small class="text-muted">@Model.Apps.Count ابزار در انتظار بررسی</small>
+    </div>
+</div>
+
+@if (!Model.Apps.Any())
+{
+    <div class="card shadow-sm text-center py-5">
+        <div class="text-success fs-1 mb-3"><i class="fas fa-check-circle"></i></div>
+        <h6 class="fw-semibold">همه ابزارها بررسی شده‌اند</h6>
+        <p class="text-muted small">در حال حاضر هیچ ابزاری در صف انتظار نیست.</p>
+    </div>
+}
+
+@foreach (var item in Model.Apps)
+{
+    var a = item.App;
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <div>
+                <span class="fw-bold">@a.Title</span>
+                <span class="badge bg-secondary ms-2">@a.Category?.Name</span>
+                <span class="badge bg-info ms-1">@a.AiModel?.Name</span>
+            </div>
+            <div class="text-muted small">
+                سازنده: <strong>@a.Creator?.User?.DisplayName</strong> —
+                ثبت: @a.UpdatedAt.ToString("yy/MM/dd HH:mm")
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <!-- توضیحات -->
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <div class="text-muted small fw-semibold mb-1">خلاصه</div>
+                        <div class="small">@a.ShortDescription</div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="text-muted small fw-semibold mb-1">توضیحات کامل</div>
+                        <div class="small" style="max-height:100px;overflow-y:auto;">@a.Description</div>
+                    </div>
+                    <div class="mb-2">
+                        <div class="text-muted small fw-semibold mb-1">هزینه اجرا</div>
+                        <div class="small">@a.CreditCost اعتبار</div>
+                    </div>
+                </div>
+
+                <!-- فیلدهای ورودی -->
+                <div class="col-md-6">
+                    <div class="text-muted small fw-semibold mb-2">فیلدهای ورودی</div>
+                    @if (!a.InputFields.Any())
+                    {
+                        <p class="text-muted small">بدون ورودی</p>
+                    }
+                    else
+                    {
+                        <ul class="list-unstyled small">
+                            @foreach (var f in a.InputFields.OrderBy(f => f.SortOrder))
+                            {
+                                <li class="mb-1">
+                                    <span class="badge bg-light text-dark border">@f.Type</span>
+                                    <strong>@f.Label</strong>
+                                    @if (f.IsRequired) { <span class="text-danger">*</span> }
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+
+                <!-- پرامپت رمزگشایی شده -->
+                <div class="col-12">
+                    <div class="text-muted small fw-semibold mb-1">
+                        <i class="fas fa-lock-open me-1 text-warning"></i>پرامپت (رمزگشایی شده — فقط ادمین)
+                    </div>
+                    <pre class="bg-light border rounded p-3 small" style="max-height:150px;overflow-y:auto;white-space:pre-wrap;">@item.DecryptedPrompt</pre>
+                </div>
+
+                @if (!string.IsNullOrEmpty(a.SystemContext))
+                {
+                    <div class="col-12">
+                        <div class="text-muted small fw-semibold mb-1">System Context</div>
+                        <pre class="bg-light border rounded p-2 small" style="max-height:80px;overflow-y:auto;white-space:pre-wrap;">@a.SystemContext</pre>
+                    </div>
+                }
+            </div>
+        </div>
+        <div class="card-footer bg-white d-flex gap-2 justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-2">
+                <!-- تایید با تنظیم قیمت -->
+                <form method="post" asp-page-handler="Approve" class="d-flex align-items-center gap-2">
+                    <input type="hidden" name="id" value="@a.Id" />
+                    <div class="input-group input-group-sm" style="width:180px">
+                        <span class="input-group-text"><i class="fas fa-coins"></i></span>
+                        <input type="number" name="creditCost" value="@a.CreditCost" min="1" max="1000"
+                               class="form-control" title="هزینه اعتباری هر اجرا" />
+                        <span class="input-group-text">اعتبار</span>
+                    </div>
+                    <button type="submit" class="btn btn-success btn-sm">
+                        <i class="fas fa-check me-1"></i>تایید
+                    </button>
+                </form>
+            </div>
+            <!-- رد -->
+            <button type="button" class="btn btn-outline-danger btn-sm"
+                    data-bs-toggle="modal" data-bs-target="#rejectModal_@a.Id">
+                <i class="fas fa-times me-1"></i>رد
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal رد -->
+    <div class="modal fade" id="rejectModal_@a.Id" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title">رد ابزار: @a.Title</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="post" asp-page-handler="Reject">
+                    <input type="hidden" name="id" value="@a.Id" />
+                    <div class="modal-body">
+                        <label class="form-label fw-semibold">دلیل رد (اختیاری)</label>
+                        <textarea name="RejectReason" class="form-control" rows="3"
+                                  placeholder="توضیحاتی برای سازنده..."></textarea>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">انصراف</button>
+                        <button type="submit" class="btn btn-danger btn-sm">رد ابزار</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}

@@ -1,0 +1,68 @@
+﻿@page
+@model PackagesModel
+@{
+    ViewData["Title"] = "خرید اعتبار";
+}
+
+<div class="container py-5">
+    <div class="text-center mb-5">
+        <h2 class="fw-bold">خرید اعتبار</h2>
+        <p class="text-muted">اعتبار خریداری کنید و از تمام ابزارهای هوش مصنوعی استفاده کنید</p>
+        <div class="d-inline-flex align-items-center gap-2 bg-light rounded-pill px-4 py-2">
+            <i class="fas fa-coins text-warning"></i>
+            <span>موجودی فعلی شما: <strong>@Model.CurrentBalance.N0Fa() اعتبار</strong></span>
+        </div>
+    </div>
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger text-center">@TempData["Error"]</div>
+    }
+
+    <div class="row g-4 justify-content-center">
+        @foreach (var package in Model.Packages)
+        {
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 shadow-sm border-0 @(package.IsBestValue ? "border-primary border-2" : "") position-relative">
+                    @if (package.IsBestValue)
+                    {
+                        <div class="position-absolute top-0 start-50 translate-middle">
+                            <span class="badge bg-primary px-3 py-2 rounded-pill">بهترین انتخاب</span>
+                        </div>
+                    }
+                    <div class="card-body text-center p-4 @(package.IsBestValue ? "pt-5" : "")">
+                        <h5 class="fw-bold mb-1">@package.Name</h5>
+                        <div class="my-3">
+                            <span class="display-6 fw-bold text-primary">@package.CreditAmount.N0Fa()</span>
+                            <span class="text-muted">اعتبار</span>
+                        </div>
+                        <div class="text-muted small mb-1">
+                            هر اعتبار ≈ @((package.PriceRial / package.CreditAmount).N0Fa()) ریال
+                        </div>
+                        <div class="fs-5 fw-semibold mb-4">
+                            @package.PriceRial.N0Fa() <span class="small text-muted">ریال</span>
+                        </div>
+                        <form method="post" asp-page-handler="Buy">
+                            <input type="hidden" name="packageId" value="@package.Id" />
+                            <button type="submit"
+                                    class="btn w-100 @(package.IsBestValue ? "btn-primary" : "btn-outline-primary")">
+                                <i class="fas fa-shopping-cart me-1"></i> خرید
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="text-center mt-5">
+        <small class="text-muted">
+            <i class="fas fa-shield-alt me-1 text-success"></i>
+            پرداخت امن از طریق درگاه زرین‌پال
+        </small>
+    </div>
+</div>
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/pages/public/Packages.css" />
+}

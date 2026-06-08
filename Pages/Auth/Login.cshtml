@@ -1,0 +1,48 @@
+@page
+@model LoginModel
+@{ ViewData["Title"] = "ورود"; }
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-5">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-robot fa-2x text-primary mb-2"></i>
+                        <h5 class="fw-bold mb-0">ورود به پرامپت مارکت</h5>
+                    </div>
+
+                    <form method="post">
+                        <input type="hidden" name="returnUrl" value="@Model.ReturnUrl" />
+                        <div asp-validation-summary="All" class="alert alert-danger small py-2"></div>
+
+                        <div class="mb-3">
+                            <label class="form-label">ایمیل</label>
+                            <input asp-for="Form.Email" class="form-control" dir="ltr" autofocus />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label d-flex justify-content-between">
+                                رمز عبور
+                                <a asp-page="/Auth/ForgotPassword" class="small text-muted">فراموشی رمز؟</a>
+                            </label>
+                            <input asp-for="Form.Password" class="form-control" dir="ltr" />
+                        </div>
+                        <div class="form-check mb-4">
+                            <input asp-for="Form.RememberMe" class="form-check-input" type="checkbox" />
+                            <label class="form-check-label" asp-for="Form.RememberMe">مرا به خاطر بسپار</label>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">ورود</button>
+                    </form>
+
+                    <hr class="my-4" />
+                    <div class="text-center small">
+                        حساب ندارید؟
+                        <a asp-page="/Auth/Register">ثبت‌نام کنید</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

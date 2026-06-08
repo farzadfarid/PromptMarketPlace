@@ -1,0 +1,64 @@
+@page
+@model RegisterModel
+@{ ViewData["Title"] = "ثبت‌نام"; }
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-robot fa-2x text-primary mb-2"></i>
+                        <h5 class="fw-bold mb-0">ثبت‌نام در پرامپت مارکت</h5>
+                    </div>
+
+                    <form method="post">
+                        <div asp-validation-summary="All" class="alert alert-danger small py-2"></div>
+
+                        <div class="mb-3">
+                            <label class="form-label">نام نمایشی</label>
+                            <input asp-for="Form.DisplayName" class="form-control" placeholder="چه اسمی روی پروفایلت نشون داده بشه؟" />
+                            <span asp-validation-for="Form.DisplayName" class="text-danger small"></span>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">ایمیل</label>
+                            <input asp-for="Form.Email" class="form-control" dir="ltr" />
+                            <span asp-validation-for="Form.Email" class="text-danger small"></span>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">رمز عبور</label>
+                            <input asp-for="Form.Password" class="form-control" dir="ltr" />
+                            <span asp-validation-for="Form.Password" class="text-danger small"></span>
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label">تکرار رمز عبور</label>
+                            <input asp-for="Form.ConfirmPassword" class="form-control" dir="ltr" />
+                            <span asp-validation-for="Form.ConfirmPassword" class="text-danger small"></span>
+                        </div>
+
+                        <div class="card border-primary bg-primary-subtle mb-4 p-3">
+                            <div class="form-check mb-0">
+                                <input asp-for="Form.WantToBeCreator" class="form-check-input" type="checkbox" />
+                                <label class="form-check-label fw-semibold" asp-for="Form.WantToBeCreator">
+                                    می‌خواهم سازنده باشم
+                                </label>
+                                <div class="text-muted small mt-1">
+                                    ابزارهای AI بساز و از هر استفاده درآمد کسب کن
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100">ثبت‌نام</button>
+                    </form>
+
+                    <hr class="my-4" />
+                    <div class="text-center small">
+                        حساب دارید؟ <a asp-page="/Auth/Login">وارد شوید</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

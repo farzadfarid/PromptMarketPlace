@@ -1,0 +1,93 @@
+﻿@model AppExecution
+
+@if (Model == null) { return; }
+
+@if (Model.Status == ExecutionStatus.Failed)
+{
+    <div class="alert alert-danger mt-4">
+        <i class="fas fa-exclamation-circle me-2"></i>
+        <strong>اجرا ناموفق بود:</strong>
+        @(Model.ErrorMessage ?? "خطای ناشناخته")
+    </div>
+    return;
+}
+
+<div class="output-result mt-4">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <h6 class="mb-0 fw-semibold">
+            <i class="fas fa-check-circle text-success me-2"></i>نتیجه اجرا
+        </h6>
+        <small class="text-muted">@Model.CreatedAt.ToShamsi("HH:mm")</small>
+    </div>
+
+    @if (Model.OutputType == OutputType.Text || Model.OutputType == OutputType.Form)
+    {
+        <div class="bg-light rounded p-3 border">
+            <div class="output-text" style="white-space:pre-wrap;line-height:1.8;">@Model.OutputText</div>
+        </div>
+        <div class="mt-2 d-flex gap-2">
+            <button class="btn btn-outline-secondary btn-sm" onclick="copyOutput()">
+                <i class="fas fa-copy me-1"></i>کپی
+            </button>
+        </div>
+    }
+    else if (Model.OutputType == OutputType.Code)
+    {
+        <div class="position-relative">
+            <pre class="bg-dark text-light p-3 rounded" style="max-height:500px;overflow:auto;"><code id="outputCode">@Model.OutputText</code></pre>
+            <button class="btn btn-sm btn-outline-light position-absolute top-0 start-0 m-2"
+                    onclick="copyOutput()">
+                <i class="fas fa-copy me-1"></i>کپی کد
+            </button>
+        </div>
+    }
+    else if (Model.OutputType == OutputType.Image && !string.IsNullOrEmpty(Model.OutputImageUrl))
+    {
+        <div class="text-center">
+            <img src="@Model.OutputImageUrl" class="img-fluid rounded shadow-sm"
+                 alt="خروجی تصویر" style="max-height:600px;" />
+        </div>
+        <div class="mt-2 text-center">
+            <a href="@Model.OutputImageUrl" download class="btn btn-outline-primary btn-sm">
+                <i class="fas fa-download me-1"></i>دانلود تصویر
+            </a>
+        </div>
+    }
+    else if (Model.OutputType == OutputType.Video && !string.IsNullOrEmpty(Model.OutputVideoUrl))
+    {
+        <video controls class="w-100 rounded" style="max-height:500px;">
+            <source src="@Model.OutputVideoUrl" />
+            مرورگر شما از پخش ویدیو پشتیبانی نمی‌کند.
+        </video>
+    }
+    else if (Model.OutputType == OutputType.Audio && !string.IsNullOrEmpty(Model.OutputAudioUrl))
+    {
+        <audio controls class="w-100">
+            <source src="@Model.OutputAudioUrl" />
+        </audio>
+    }
+    else
+    {
+        <div class="alert alert-warning">خروجی در دسترس نیست.</div>
+    }
+
+    @if (Model.TokensUsed.HasValue)
+    {
+        <div class="mt-2 text-muted small">
+            <i class="fas fa-info-circle me-1"></i>توکن مصرفی: @Model.TokensUsed.Value.N0Fa()
+            &nbsp;|&nbsp; اعتبار مصرف شده: @Model.CreditUsed
+        </div>
+    }
+</div>
+
+<script>
+    function copyOutput() {
+        var text = document.querySelector('.output-text, #outputCode')?.innerText ?? '';
+        navigator.clipboard.writeText(text).then(() => {
+            var btn = document.querySelector('[onclick="copyOutput()"]');
+            var orig = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-check me-1"></i>کپی شد';
+            setTimeout(() => btn.innerHTML = orig, 2000);
+        });
+    }
+</script>

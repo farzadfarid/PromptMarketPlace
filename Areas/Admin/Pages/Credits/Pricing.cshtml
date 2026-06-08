@@ -1,0 +1,210 @@
+@page
+@model PricingModel
+@{ ViewData["Title"] = "تعرفه اعتبار"; }
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show">
+        @TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h5 class="mb-1">تعرفه اعتبار</h5>
+        <small class="text-muted">تنظیم هزینه اجرا به ازای هر نوع خروجی</small>
+    </div>
+</div>
+
+<!-- ─── راهنمای فرمول ─── -->
+<div class="alert alert-info mb-4">
+    <h6 class="fw-bold mb-2"><i class="fas fa-calculator me-2"></i>فرمول محاسبه اعتبار</h6>
+    <div class="font-monospace small lh-lg" dir="ltr" style="text-align:left">
+        هزینه پایه (دلار) = مصرف مدل AI<br>
+        هزینه به ریال = هزینه دلاری × نرخ دلار<br>
+        + مالیات بر ارزش افزوده = × (1 + VAT٪)<br>
+        + سود پلتفرم = × (1 + Margin٪)<br>
+        ÷ ارزش هر اعتبار (ریال)<br>
+        = <strong>تعداد اعتبار لازم</strong>
+    </div>
+    <hr class="my-2">
+    <div class="small">
+        <strong>منابع برای بروزرسانی قیمت‌ها:</strong>
+        <ul class="mb-0 mt-1">
+            <li>نرخ دلار: <a href="https://www.tgju.org" target="_blank" class="text-info">tgju.org</a> یا <a href="https://www.bonbast.com" target="_blank" class="text-info">bonbast.com</a></li>
+            <li>هزینه مدل‌های AI: <a href="https://openrouter.ai/models" target="_blank" class="text-info">openrouter.ai/models</a></li>
+            <li>مالیات بر ارزش افزوده: طبق قانون ایران <strong>۹٪</strong> ثابت است</li>
+        </ul>
+    </div>
+</div>
+
+<form method="post">
+    <div class="row g-4">
+
+        <!-- ─── فاکتورهای قیمت‌گذاری ─── -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm p-4">
+                <h6 class="fw-semibold mb-4"><i class="fas fa-sliders-h me-2 text-primary"></i>فاکتورهای محاسبه</h6>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">
+                        نرخ دلار به ریال
+                        <small class="text-muted fw-normal">— از <a href="https://www.tgju.org/profile/price_dollar_rl" target="_blank">tgju.org</a> بگیرید</small>
+                    </label>
+                    <div class="input-group">
+                        <input asp-for="UsdToIrrRate" type="number" class="form-control" dir="ltr" />
+                        <span class="input-group-text">ریال</span>
+                    </div>
+                    <div class="form-text">قیمت لحظه‌ای دلار آمریکا به ریال ایران</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">
+                        مالیات بر ارزش افزوده (VAT)
+                        <span class="badge bg-warning text-dark ms-1">ثابت ۹٪</span>
+                    </label>
+                    <div class="input-group" style="max-width:200px">
+                        <input asp-for="VatPercent" type="number" step="0.1" class="form-control" dir="ltr" />
+                        <span class="input-group-text">٪</span>
+                    </div>
+                    <div class="form-text">طبق قانون جمهوری اسلامی ایران — معمولاً تغییر نمی‌کند</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">سود پلتفرم</label>
+                    <div class="input-group" style="max-width:200px">
+                        <input asp-for="MarginPercent" type="number" step="1" class="form-control" dir="ltr" />
+                        <span class="input-group-text">٪</span>
+                    </div>
+                    <div class="form-text">درصد سود خالص پلتفرم روی هر تراکنش</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">ارزش هر ۱ اعتبار</label>
+                    <div class="input-group" style="max-width:200px">
+                        <input asp-for="CreditValueIrr" type="number" class="form-control" dir="ltr" />
+                        <span class="input-group-text">ریال</span>
+                    </div>
+                    <div class="form-text">هر یک اعتبار معادل چند ریال است</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">میانگین توکن مصرفی (متن/کد/فرم)</label>
+                    <div class="input-group" style="max-width:200px">
+                        <input asp-for="AvgTextTokens" type="number" class="form-control" dir="ltr" />
+                        <span class="input-group-text">توکن</span>
+                    </div>
+                    <div class="form-text">تعداد توکن تخمینی در هر اجرای متنی — از لاگ‌های اجرا بدست آورید</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">میانگین مدت ویدیو</label>
+                    <div class="input-group" style="max-width:200px">
+                        <input asp-for="AvgVideoSeconds" type="number" class="form-control" dir="ltr" />
+                        <span class="input-group-text">ثانیه</span>
+                    </div>
+                    <div class="form-text">مدت زمان تخمینی ویدیوی تولیدی</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─── تعرفه نهایی ─── -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm p-4">
+                <h6 class="fw-semibold mb-4"><i class="fas fa-coins me-2 text-primary"></i>تعرفه نهایی (اعتبار)</h6>
+                <p class="text-muted small mb-3">این مقادیر نهایی هستند که از کاربران کسر می‌شود. می‌توانید از پیشنهاد خودکار استفاده کنید یا دستی وارد کنید.</p>
+
+                @{
+                    var types = new[] {
+                        new { Label = "متن / کد / فرم", Icon = "fa-align-left", Color = "primary", Field = "TextCreditCost",  Val = Model.TextCreditCost },
+                        new { Label = "تصویر",          Icon = "fa-image",      Color = "success", Field = "ImageCreditCost", Val = Model.ImageCreditCost },
+                        new { Label = "ویدیو",           Icon = "fa-video",      Color = "danger",  Field = "VideoCreditCost", Val = Model.VideoCreditCost },
+                        new { Label = "صدا",             Icon = "fa-music",      Color = "warning", Field = "AudioCreditCost", Val = Model.AudioCreditCost },
+                    };
+                }
+
+                @foreach (var t in types)
+                {
+                    <div class="d-flex align-items-center gap-3 mb-3 p-3 rounded" style="background:var(--dk-surface2)">
+                        <div class="text-@t.Color" style="width:28px;text-align:center">
+                            <i class="fas @t.Icon"></i>
+                        </div>
+                        <div class="flex-grow-1 fw-semibold small">@t.Label</div>
+                        <div class="input-group" style="max-width:140px">
+                            <input name="@t.Field" type="number" min="1" value="@t.Val" class="form-control form-control-sm text-center" dir="ltr" />
+                            <span class="input-group-text">اعتبار</span>
+                        </div>
+                    </div>
+                }
+
+                <div class="alert alert-warning small mt-3 mb-0">
+                    <i class="fas fa-info-circle me-1"></i>
+                    تعرفه‌های پیشنهادی بر اساس محاسبه جدول زیر نمایش داده می‌شود.
+                    سازندگان <strong>نمی‌توانند</strong> این مقادیر را تغییر دهند.
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ─── جدول هزینه مدل‌ها ─── -->
+    @if (Model.ModelCosts.Any())
+    {
+        <div class="card border-0 shadow-sm mt-4">
+            <div class="card-header">
+                <h6 class="mb-0 fw-semibold"><i class="fas fa-microchip me-2"></i>هزینه مدل‌های فعال و پیشنهاد اعتبار</h6>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 small">
+                    <thead class="table-light">
+                        <tr>
+                            <th>مدل</th>
+                            <th class="text-center">هزینه / ۱K توکن ($)</th>
+                            <th class="text-center">هزینه / تصویر ($)</th>
+                            <th class="text-center">هزینه / ثانیه ($)</th>
+                            <th class="text-center text-primary">پیشنهاد متن</th>
+                            <th class="text-center text-success">پیشنهاد تصویر</th>
+                            <th class="text-center text-danger">پیشنهاد ویدیو</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var m in Model.ModelCosts)
+                        {
+                            <tr>
+                                <td class="fw-semibold">@m.Name</td>
+                                <td class="text-center">@(m.CostPer1KTokens.HasValue ? $"${m.CostPer1KTokens:F6}" : "—")</td>
+                                <td class="text-center">@(m.CostPerImage.HasValue ? $"${m.CostPerImage:F4}" : "—")</td>
+                                <td class="text-center">@(m.CostPerSecondVideo.HasValue ? $"${m.CostPerSecondVideo:F4}" : "—")</td>
+                                <td class="text-center">
+                                    @if (m.EstimatedTextCredit.HasValue)
+                                    { <span class="badge bg-primary">@m.EstimatedTextCredit اعتبار</span> }
+                                    else { <span class="text-muted">—</span> }
+                                </td>
+                                <td class="text-center">
+                                    @if (m.EstimatedImageCredit.HasValue)
+                                    { <span class="badge bg-success">@m.EstimatedImageCredit اعتبار</span> }
+                                    else { <span class="text-muted">—</span> }
+                                </td>
+                                <td class="text-center">
+                                    @if (m.EstimatedVideoCredit.HasValue)
+                                    { <span class="badge bg-danger">@m.EstimatedVideoCredit اعتبار</span> }
+                                    else { <span class="text-muted">—</span> }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div class="card-footer text-muted small">
+                محاسبه بر اساس: نرخ دلار × VAT × سود پلتفرم ÷ ارزش اعتبار
+            </div>
+        </div>
+    }
+
+    <div class="mt-4">
+        <button type="submit" class="btn btn-primary px-4">
+            <i class="fas fa-save me-2"></i>ذخیره تعرفه‌ها
+        </button>
+    </div>
+</form>

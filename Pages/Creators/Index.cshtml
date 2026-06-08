@@ -1,0 +1,30 @@
+﻿@page
+@model IndexModel
+@{ ViewData["Title"] = "برترین سازندگان"; }
+
+<div class="container py-5">
+    <h3 class="fw-bold text-center mb-5">برترین سازندگان</h3>
+    <div class="row g-3 justify-content-center">
+        @foreach (var creator in Model.Creators)
+        {
+            var totalExec = creator.Apps.Sum(a => a.ExecutionCount);
+            <div class="col-md-4 col-lg-3">
+                <a asp-page="/Creator/Profile" asp-route-username="@creator.User.UserName"
+                   class="card border-0 shadow-sm p-3 text-decoration-none text-center h-100">
+                    <div class="rounded-circle bg-primary bg-opacity-10 d-inline-flex align-items-center justify-content-center mx-auto mb-2"
+                         style="width:56px;height:56px;">
+                        <i class="fas fa-user text-primary"></i>
+                    </div>
+                    <div class="fw-semibold text-dark">@creator.User.DisplayName</div>
+                    <div class="text-muted small">@creator.Apps.Count ابزار · @totalExec.N0Fa() اجرا</div>
+                    @if (creator.IsFoundingCreator)
+                    {
+                        <span class="badge bg-warning text-dark mt-2" style="font-size:.65rem;">
+                            <i class="fas fa-star me-1"></i>بنیان‌گذار
+                        </span>
+                    }
+                </a>
+            </div>
+        }
+    </div>
+</div>

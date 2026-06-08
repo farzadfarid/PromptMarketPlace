@@ -1,0 +1,127 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
+using PromptMarketPlace.Data;
+using PromptMarketPlace.Models.Domain;
+using PromptMarketPlace.Models.Enums;
+using PromptMarketPlace.Services.Interfaces;
+
+namespace PromptMarketPlace.Areas.Admin.Pages.Apps;
+
+[Authorize(Roles = "Admin")]
+public class DetailModel : PageModel
+{
+    private readonly ApplicationDbContext _db;
+    private readonly IEncryptionService _encryption;
+
+    public DetailModel(ApplicationDbContext db, IEncryptionService encryption)
+    {
+        _db = db;
+        _encryption = encryption;
+    }
+
+    public AiApp App { get; set; } = null!;
+    public string DecryptedPrompt { get; set; } = string.Empty;
+
+    public List<AppExecution> RecentExecutions { get; set; } = new();
+    public int ExecutionTotalCount { get; set; }
+    [BindProperty(SupportsGet = true)] public ExecutionStatus? FilterStatus { get; set; }
+    [BindProperty(SupportsGet = true)] public int ExecPage { get; set; } = 1;
+    private const int ExecPageSize = 15;
+
+    public List<AppReview> Reviews { get; set; } = new();
+    public int ReviewTotalCount { get; set; }
+    [BindProperty(SupportsGet = true)] public int? FilterRating { get; set; }
+    [BindProperty(SupportsGet = true)] public int ReviewPage { get; set; } = 1;
+    private const int ReviewPageSize = 10;
+
+    public async Task<IActionResult> OnGetAsync(int id)
+    {
+        var app = await _db.Apps
+            .Include(a => a.Creator).ThenInclude(c => c.User)
+            .Include(a => a.Category)
+            .Include(a => a.AiModel)
+            .Include(a => a.InputFields)
+            .Include(a => a.Tags)
+            .FirstOrDefaultAsync(a => a.Id == id);
+
+        if (app == null) return NotFound();
+        App = app;
+
+        try { DecryptedPrompt = _encryption.Decrypt(app.EncryptedPrompt); }
+        catch { DecryptedPrompt = "[خطا در رمزگشایی]"; }
+
+        var execQuery = _db.Executions
+            .Include(e => e.User)
+            .Where(e => e.AppId == id)
+            .AsQueryable();
+
+        if (FilterStatus.HasValue)
+            execQuery = execQuery.Where(e => e.Status == FilterStatus.Value);
+
+        ExecutionTotalCount = await execQuery.CountAsync();
+        RecentExecutions = await execQuery
+            .OrderByDescending(e => e.CreatedAt)
+            .Skip((ExecPage - 1) * ExecPageSize)
+            .Take(ExecPageSize)
+            .ToListAsync();
+
+        var reviewQuery = _db.Reviews
+            .Include(r => r.User)
+            .Where(r => r.AppId == id)
+            .AsQueryable();
+
+        if (FilterRating.HasValue)
+            reviewQuery = reviewQuery.Where(r => r.Rating == FilterRating.Value);
+
+        ReviewTotalCount = await reviewQuery.CountAsync();
+        Reviews = await reviewQuery
+            .OrderByDescending(r => r.CreatedAt)
+            .Skip((ReviewPage - 1) * ReviewPageSize)
+            .Take(ReviewPageSize)
+            .ToListAsync();
+
+        return Page();
+    }
+
+    public async Task<IActionResult> OnPostToggleStatusAsync(int id, string targetStatus)
+    {
+        var app = await _db.Apps.FindAsync(id);
+        if (app == null) return NotFound();
+
+        if (!Enum.TryParse<AppStatus>(targetStatus, out var status)) return BadRequest();
+        app.Status = status;
+        app.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+
+        var adminId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
+        _db.AuditLogs.Add(new AdminAuditLog
+        {
+            AdminUserId = adminId,
+            Action = "ChangeAppStatus",
+            TargetType = "App",
+            TargetId = id.ToString(),
+            Details = $"وضعیت '{app.Title}' به {status} تغییر یافت",
+            IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString()
+        });
+        await _db.SaveChangesAsync();
+
+        TempData["Success"] = $"وضعیت ابزار به {status} تغییر یافت.";
+        return RedirectToPage(new { id });
+    }
+
+    public async Task<IActionResult> OnPostSetCreditCostAsync(int id, int creditCost)
+    {
+        var app = await _db.Apps.FindAsync(id);
+        if (app == null) return NotFound();
+
+        app.CreditCost = Math.Max(1, creditCost);
+        app.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+
+        TempData["Success"] = $"هزینه اجرا به {app.CreditCost} اعتبار تغییر یافت.";
+        return RedirectToPage(new { id });
+    }
+}

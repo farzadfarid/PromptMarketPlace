@@ -1,0 +1,120 @@
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Identity
+@inject UserManager<PromptMarketPlace.Models.Domain.ApplicationUser> UserManager
+@inject PromptMarketPlace.Services.Interfaces.ICreditService CreditService
+@{
+    var userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
+    var currentUser = await UserManager.GetUserAsync(User);
+    var creditBalance = userId != "" ? await CreditService.GetBalanceAsync(userId) : 0;
+    var currentPage = ViewContext.RouteData.Values["page"]?.ToString() ?? "";
+}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - پرامپت مارکت</title>
+    <link href="~/css/vazirmatn.css" rel="stylesheet" />
+    <link href="~/css/bootstrap5-3-3.css" rel="stylesheet" />
+    <link href="~/css/font-awesome.css" rel="stylesheet" />
+    <link href="~/css/site.css" rel="stylesheet" />
+    <link href="~/css/pages/user/user-layout.css" rel="stylesheet" />
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body class="user-layout">
+
+    @await Html.PartialAsync("_Navbar")
+
+    <div class="user-shell">
+        <aside class="user-sidebar">
+            <div class="user-sidebar__profile">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="user-avatar-lg">
+                        @if (currentUser?.AvatarUrl != null)
+                        { <img src="@currentUser.AvatarUrl" alt="avatar" /> }
+                        else
+                        { @(currentUser?.DisplayName?.FirstOrDefault().ToString() ?? "U") }
+                    </div>
+                    <div class="min-w-0">
+                        <div class="user-sidebar__name text-truncate">@(currentUser?.DisplayName ?? "کاربر")</div>
+                        <div class="user-sidebar__email text-truncate">@currentUser?.Email</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="user-credit-chip">
+                <div>
+                    <div class="user-credit-chip__label">موجودی اعتبار</div>
+                    <div class="user-credit-chip__value">
+                        <i class="fas fa-coins me-1" style="font-size:.8rem;"></i>@creditBalance
+                    </div>
+                </div>
+                <a asp-area="" asp-page="/Credits/Packages" class="user-credit-chip__btn">
+                    <i class="fas fa-plus me-1"></i>شارژ
+                </a>
+            </div>
+
+            <nav class="user-nav">
+                <a class="user-nav__item @(currentPage.Contains("Dashboard") ? "active" : "")"
+                   asp-page="/Dashboard/Index">
+                    <i class="fas fa-house"></i><span>داشبورد</span>
+                </a>
+                <a class="user-nav__item @(currentPage.Contains("Executions") ? "active" : "")"
+                   asp-page="/Executions/Index">
+                    <i class="fas fa-clock-rotate-left"></i><span>تاریخچه اجراها</span>
+                </a>
+                <a class="user-nav__item @(currentPage.Contains("Wallet") ? "active" : "")"
+                   asp-page="/Wallet/Index">
+                    <i class="fas fa-wallet"></i><span>کیف‌پول</span>
+                </a>
+                <a class="user-nav__item @(currentPage.Contains("Favorites") ? "active" : "")"
+                   asp-page="/Favorites/Index">
+                    <i class="fas fa-heart"></i><span>مورد علاقه</span>
+                </a>
+                <a class="user-nav__item @(currentPage.Contains("Profile") ? "active" : "")"
+                   asp-page="/Profile/Edit">
+                    <i class="fas fa-user-pen"></i><span>ویرایش پروفایل</span>
+                </a>
+                @if (User.IsInRole("Creator") || User.IsInRole("Admin"))
+                {
+                    <a class="user-nav__item user-nav__item--creator" asp-area="Creator" asp-page="/Dashboard/Index">
+                        <i class="fas fa-tools"></i><span>پنل سازنده</span>
+                    </a>
+                }
+                else
+                {
+                    <a class="user-nav__item @(currentPage.Contains("BecomeCreator") ? "active" : "")"
+                       asp-page="/BecomeCreator/Index">
+                        <i class="fas fa-star"></i><span>سازنده شو</span>
+                    </a>
+                }
+            </nav>
+
+            <div class="px-3 pb-3 mt-auto border-top pt-3">
+                <form method="post" asp-area="" asp-page="/Auth/Logout">
+                    <button type="submit" class="user-nav__item w-100 text-danger border-0 bg-transparent text-start">
+                        <i class="fas fa-arrow-right-from-bracket"></i><span>خروج از حساب</span>
+                    </button>
+                </form>
+            </div>
+        </aside>
+
+        <div class="user-main">
+            <div class="user-topbar">
+                <div class="user-topbar__title">@ViewData["Title"]</div>
+                <a asp-area="" asp-page="/Explore" class="btn btn-sm btn-ghost d-none d-md-inline-flex align-items-center gap-2">
+                    <i class="fas fa-compass fa-xs"></i>کشف ابزارها
+                </a>
+            </div>
+            <main class="user-content">
+                @RenderBody()
+            </main>
+        </div>
+    </div>
+
+    <script src="~/js/jquery-3.7.1.js"></script>
+    <script src="~/js/bootstrap5-3-3.js"></script>
+    <script src="~/js/shared/toast.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

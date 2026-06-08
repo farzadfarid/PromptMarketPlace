@@ -1,0 +1,67 @@
+@page "/Admin/Executions/{id:long}"
+@model DetailModel
+@using PromptMarketPlace.Models.Enums
+@{ ViewData["Title"] = "جزئیات اجرا"; }
+
+<div class="d-flex align-items-center gap-3 mb-4">
+    <a asp-area="Admin" asp-page="/Users/Detail" asp-route-id="@Model.ReturnUserId"
+       class="btn btn-sm btn-outline-secondary">
+        <i class="fas fa-arrow-right me-1"></i>بازگشت به کاربر
+    </a>
+    <h5 class="fw-bold mb-0">@Model.Execution.App?.Title</h5>
+    <span class="ms-auto">
+        @{
+            var (el, ec) = Model.Execution.Status switch {
+                ExecutionStatus.Completed => ("موفق",     "success"),
+                ExecutionStatus.Failed    => ("ناموفق",   "danger"),
+                ExecutionStatus.Refunded  => ("بازگشتی",  "info"),
+                _                         => ("در جریان", "warning")
+            };
+        }
+        <span class="badge bg-@ec fs-6">@el</span>
+    </span>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm p-3 text-center">
+            <div class="small text-muted mb-1">تاریخ اجرا</div>
+            <div class="fw-semibold small">@Model.Execution.CreatedAt.ToShamsi("yyyy/MM/dd HH:mm:ss")</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm p-3 text-center">
+            <div class="small text-muted mb-1">اعتبار مصرف‌شده</div>
+            <div class="fw-bold fs-5 text-primary">@Model.Execution.CreditUsed.N0Fa()</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm p-3 text-center">
+            <div class="small text-muted mb-1">توکن‌ها</div>
+            <div class="fw-semibold">@(Model.Execution.TokensUsed?.N0Fa() ?? "-")</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm p-3 text-center">
+            <div class="small text-muted mb-1">شناسه اجرا</div>
+            <div class="fw-semibold small text-muted">#@Model.Execution.Id</div>
+        </div>
+    </div>
+</div>
+
+@if (Model.Execution.InputValues.Any())
+{
+    <div class="card border-0 shadow-sm p-4 mb-4">
+        <h6 class="fw-semibold mb-3"><i class="fas fa-keyboard me-2 text-muted"></i>ورودی‌های کاربر</h6>
+        <dl class="row mb-0">
+            @foreach (var input in Model.Execution.InputValues)
+            {
+                var field = Model.Execution.App?.InputFields.FirstOrDefault(f => f.Name == input.FieldName);
+                <dt class="col-sm-3 small text-muted">@(field?.Label ?? input.FieldName)</dt>
+                <dd class="col-sm-9 small">@input.FieldValue</dd>
+            }
+        </dl>
+    </div>
+}
+
+@await Html.PartialAsync("_OutputRenderer", Model.Execution)

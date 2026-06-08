@@ -1,0 +1,169 @@
+﻿@page
+@model IndexModel
+@{ ViewData["Title"] = "داشبورد سازنده"; }
+
+@if (Model.Creator == null)
+{
+    <div class="alert alert-warning">پروفایل سازنده یافت نشد.</div>
+    return;
+}
+
+<!-- آمار کلی -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm p-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="rounded-circle bg-success bg-opacity-10 d-flex align-items-center justify-content-center"
+                     style="width:48px;height:48px;">
+                    <i class="fas fa-coins text-success"></i>
+                </div>
+                <div>
+                    <div class="small text-muted">موجودی قابل برداشت</div>
+                    <div class="fw-bold fs-5">@(Model.Wallet?.EarningBalance.N0Fa() ?? "0") ریال</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm p-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center"
+                     style="width:48px;height:48px;">
+                    <i class="fas fa-chart-line text-primary"></i>
+                </div>
+                <div>
+                    <div class="small text-muted">درآمد این ماه</div>
+                    <div class="fw-bold fs-5">@Model.MonthEarning.N0Fa() ریال</div>
+                    @if (Model.LastMonthEarning > 0)
+                    {
+                        var diff = Model.MonthEarning - Model.LastMonthEarning;
+                        <div class="small @(diff >= 0 ? "text-success" : "text-danger")">
+                            <i class="fas fa-@(diff >= 0 ? "arrow-up" : "arrow-down") me-1"></i>
+                            @Math.Abs(diff).N0Fa()
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm p-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="rounded-circle bg-info bg-opacity-10 d-flex align-items-center justify-content-center"
+                     style="width:48px;height:48px;">
+                    <i class="fas fa-play text-info"></i>
+                </div>
+                <div>
+                    <div class="small text-muted">اجراهای هفته</div>
+                    <div class="fw-bold fs-5">@Model.WeekExecutions.N0Fa()</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm p-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="rounded-circle bg-warning bg-opacity-10 d-flex align-items-center justify-content-center"
+                     style="width:48px;height:48px;">
+                    <i class="fas fa-th-large text-warning"></i>
+                </div>
+                <div>
+                    <div class="small text-muted">کل ابزارها</div>
+                    <div class="fw-bold fs-5">@Model.TopApps.Count</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- نمودار -->
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm p-4">
+            <h6 class="fw-semibold mb-3">اجراهای ۳۰ روز اخیر</h6>
+            <canvas id="execChart" height="100"></canvas>
+        </div>
+    </div>
+
+    <!-- برترین ابزارها -->
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm p-3 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-semibold mb-0">پربازدیدترین ابزارها</h6>
+                <a asp-area="Creator" asp-page="/Apps/Index" class="small text-primary">همه</a>
+            </div>
+            @if (!Model.TopApps.Any())
+            {
+                <div class="text-center py-4 text-muted small">
+                    <i class="fas fa-box-open fa-2x mb-2 opacity-25"></i>
+                    <p>هنوز ابزاری نساختید</p>
+                    <a asp-area="Creator" asp-page="/Apps/Create" class="btn btn-sm btn-primary">ساخت اولین ابزار</a>
+                </div>
+            }
+            else
+            {
+                @foreach (var app in Model.TopApps)
+                {
+                    <div class="d-flex align-items-center gap-2 mb-2 pb-2 border-bottom">
+                        <div class="flex-grow-1 min-w-0">
+                            <div class="fw-semibold small text-truncate">@app.Title</div>
+                            <div class="text-muted" style="font-size:.72rem;">@app.ExecutionCount.N0Fa() اجرا</div>
+                        </div>
+                        @{
+                            var (badge, color) = app.Status switch {
+                                AppStatus.Active      => ("فعال", "success"),
+                                AppStatus.UnderReview => ("بررسی", "primary"),
+                                AppStatus.Suspended   => ("تعلیق", "danger"),
+                                _                     => ("پیش‌نویس", "secondary")
+                            };
+                        }
+                        <span class="badge bg-@color">@badge</span>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+
+    <!-- جدیدترین نظرات -->
+    <div class="col-12">
+        <div class="card border-0 shadow-sm p-4">
+            <h6 class="fw-semibold mb-3">جدیدترین نظرات</h6>
+            @if (!Model.LatestReviews.Any())
+            {
+                <p class="text-muted small text-center py-2">هنوز نظری ثبت نشده است.</p>
+            }
+            else
+            {
+                <div class="row g-3">
+                    @foreach (var r in Model.LatestReviews)
+                    {
+                        <div class="col-md-6">
+                            <div class="border rounded p-3">
+                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                    <strong class="small">@r.User?.DisplayName</strong>
+                                    <div>
+                                        @for (int i = 1; i <= 5; i++)
+                                        { <i class="@(i <= r.Rating ? "fas" : "far") fa-star text-warning" style="font-size:.65rem;"></i> }
+                                    </div>
+                                </div>
+                                <div class="text-muted small mb-1">@r.App?.Title</div>
+                                @if (!string.IsNullOrEmpty(r.Comment))
+                                { <p class="small mb-0">@r.Comment</p> }
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        var creatorDashboardData = {
+            chartLabels: @Html.Raw(Model.ChartLabels),
+            chartData: @Html.Raw(Model.ChartData)
+        };
+    </script>
+    <script src="~/js/pages/creator/Dashboard.js"></script>
+}

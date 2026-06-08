@@ -1,0 +1,124 @@
+@using Microsoft.AspNetCore.Identity
+@inject SignInManager<PromptMarketPlace.Models.Domain.ApplicationUser> SignInManager
+@inject UserManager<PromptMarketPlace.Models.Domain.ApplicationUser> UserManager
+
+<nav class="pm-navbar navbar navbar-expand-lg">
+    <div class="container">
+        <a class="pm-navbar__brand" asp-area="" asp-page="/Index">
+            <div class="pm-navbar__logo">
+                <i class="fas fa-robot"></i>
+            </div>
+            <span>پرامپت مارکت</span>
+        </a>
+
+        <button class="navbar-toggler border-0 d-lg-none" type="button"
+                data-bs-toggle="collapse" data-bs-target="#navMain">
+            <i class="fas fa-bars text-muted"></i>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navMain">
+            <ul class="navbar-nav me-auto mb-0 align-items-lg-center gap-lg-1">
+                <li class="nav-item">
+                    <a class="pm-nav-link" asp-area="" asp-page="/Index">
+                        خانه
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="pm-nav-link" asp-area="" asp-page="/Explore">
+                        کشف ابزارها
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="pm-nav-link" asp-area="" asp-page="/Creators/Index">
+                        سازندگان
+                    </a>
+                </li>
+            </ul>
+
+            <ul class="navbar-nav ms-auto mb-0 align-items-lg-center gap-2">
+                @if (SignInManager.IsSignedIn(User))
+                {
+                    var user = await UserManager.GetUserAsync(User);
+
+                    <li class="nav-item">
+                        <a class="btn btn-outline-primary btn-sm px-3" asp-area="" asp-page="/Credits/Packages">
+                            <i class="fas fa-coins me-1 text-warning"></i>خرید اعتبار
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="pm-user-btn dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                            <div class="pm-user-avatar">
+                                @if (user?.AvatarUrl != null)
+                                {
+                                    <img src="@user.AvatarUrl" alt="avatar" />
+                                }
+                                else
+                                {
+                                    <span>@(user?.DisplayName?.FirstOrDefault().ToString() ?? "U")</span>
+                                }
+                            </div>
+                            <span class="d-none d-lg-inline fw-medium">@(user?.DisplayName ?? user?.Email)</span>
+                            <i class="fas fa-chevron-down fa-xs text-muted ms-1"></i>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end pm-user-menu">
+                            <li class="px-3 py-2 border-bottom mb-1">
+                                <div class="fw-semibold small">@user?.DisplayName</div>
+                                <div class="text-muted" style="font-size:.78rem;">@user?.Email</div>
+                            </li>
+                            @if (User.IsInRole("Admin"))
+                            {
+                                <li>
+                                    <a class="dropdown-item pm-menu-item pm-menu-item--admin"
+                                       asp-area="Admin" asp-page="/Dashboard/Index">
+                                        <i class="fas fa-shield-halved me-2"></i>پنل ادمین
+                                    </a>
+                                </li>
+                            }
+                            else if (User.IsInRole("Creator"))
+                            {
+                                <li>
+                                    <a class="dropdown-item pm-menu-item"
+                                       asp-area="Creator" asp-page="/Dashboard/Index">
+                                        <i class="fas fa-tools me-2 text-success"></i>پنل سازنده
+                                    </a>
+                                </li>
+                            }
+                            else
+                            {
+                                <li>
+                                    <a class="dropdown-item pm-menu-item" asp-area="User" asp-page="/Dashboard/Index">
+                                        <i class="fas fa-home me-2 text-primary"></i>داشبورد من
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item pm-menu-item" asp-area="User" asp-page="/Wallet/Index">
+                                        <i class="fas fa-wallet me-2 text-warning"></i>کیف‌پول
+                                    </a>
+                                </li>
+                            }
+                            <li><hr class="dropdown-divider my-1" /></li>
+                            <li>
+                                <form method="post" asp-area="" asp-page="/Auth/Logout">
+                                    <button type="submit" class="dropdown-item pm-menu-item text-danger">
+                                        <i class="fas fa-arrow-right-from-bracket me-2"></i>خروج
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                    </li>
+                }
+                else
+                {
+                    <li class="nav-item">
+                        <a class="btn btn-ghost btn-sm" asp-area="" asp-page="/Auth/Login">ورود</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="btn btn-primary btn-sm px-4" asp-area="" asp-page="/Auth/Register">
+                            ثبت‌نام رایگان
+                        </a>
+                    </li>
+                }
+            </ul>
+        </div>
+    </div>
+</nav>

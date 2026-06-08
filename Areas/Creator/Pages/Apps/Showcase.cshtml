@@ -1,0 +1,154 @@
+@page
+@model ShowcaseModel
+@{ ViewData["Title"] = "گالری نمونه — " + Model.App.Title; }
+
+@if (TempData["Success"] != null) { <div class="alert alert-success alert-dismissible fade show">@TempData["Success"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div> }
+@if (TempData["Error"] != null) { <div class="alert alert-danger alert-dismissible fade show">@TempData["Error"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div> }
+
+@{
+    var minItems = 3;
+    var hasEnough = Model.Items.Count >= minItems;
+}
+
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <h5 class="fw-bold mb-0">گالری نمونه خروجی</h5>
+    @if (!hasEnough)
+    {
+        <div class="badge bg-warning text-dark">
+            @Model.Items.Count / @minItems نمونه — حداقل @minItems لازم است
+        </div>
+    }
+    else
+    {
+        <div class="badge bg-success">
+            <i class="fas fa-check me-1"></i>@Model.Items.Count نمونه — کافی است
+        </div>
+    }
+</div>
+
+<div class="alert alert-info mb-4">
+    <h6 class="fw-bold mb-2"><i class="fas fa-lightbulb me-2"></i>این صفحه چیست؟</h6>
+    <p class="mb-2 small">
+        کاربران قبل از اجرا می‌خواهند بدانند ابزار شما <strong>چه نوع خروجی</strong> تولید می‌کند.
+        اینجا باید حداقل <strong>۳ نمونه واقعی</strong> از خروجی ابزارتان اضافه کنید.
+    </p>
+    <hr class="my-2">
+    <p class="mb-1 small fw-semibold">برای ابزار <strong>@Model.App.Title</strong> (نوع: @(Model.App.OutputType switch {
+        OutputType.Form => "فرم/تحلیل متنی",
+        OutputType.Text => "متن",
+        OutputType.Code => "کد",
+        OutputType.Image => "تصویر",
+        OutputType.Audio => "صدا",
+        OutputType.Video => "ویدیو",
+        _ => Model.App.OutputType.ToString()
+    })):</p>
+    <ul class="mb-0 small">
+        @if (Model.App.OutputType == OutputType.Form || Model.App.OutputType == OutputType.Text)
+        {
+            <li>یک نمونه خروجی کامل که AI برای یک کاربر فرضی تولید کرده را اینجا بنویسید</li>
+            <li>هر نمونه می‌تواند یک سناریو/شخصیت متفاوت باشد (مثلاً پاسخ‌های مختلف)</li>
+            <li>متن باید واقعی و نشان‌دهنده کیفیت ابزار شما باشد</li>
+        }
+        else if (Model.App.OutputType == OutputType.Code)
+        {
+            <li>یک نمونه کد واقعی که ابزار تولید می‌کند</li>
+            <li>می‌توانید از ورودی‌های مختلف برای نشان دادن تنوع استفاده کنید</li>
+        }
+        else if (Model.App.OutputType == OutputType.Image)
+        {
+            <li>تصاویری که ابزار شما تولید کرده را آپلود کنید</li>
+            <li>تصاویر باید نماینده خروجی واقعی باشند</li>
+        }
+    </ul>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-5">
+        <div class="card border-0 shadow-sm p-4">
+            <h6 class="fw-semibold mb-3">افزودن نمونه</h6>
+            <form method="post" asp-page-handler="Add" asp-route-appId="@Model.App.Id" enctype="multipart/form-data">
+                <div class="mb-3">
+                    <label class="form-label small">نوع خروجی</label>
+                    <select asp-for="Form.OutputType" class="form-select form-select-sm" onchange="toggleShowcaseInput(this.value)">
+                        <option value="Text">متن</option>
+                        <option value="Image">تصویر</option>
+                        <option value="Code">کد</option>
+                    </select>
+                </div>
+                <div id="image-input" class="mb-3 d-none">
+                    <label class="form-label small">آپلود تصویر</label>
+                    <input type="file" asp-for="Form.ImageFile" class="form-control form-control-sm" accept="image/*" />
+                </div>
+                <div id="text-input" class="mb-3">
+                    <label class="form-label small">متن خروجی نمونه</label>
+                    @{
+                        var ph = Model.App.OutputType switch {
+                            OutputType.Form => "مثال: نتیجه تحلیل شخصیت:\nرنگ مورد علاقه شما آبی نشان می‌دهد که فردی آرام، قابل اعتماد و تحلیلگر هستید. شما در موقعیت‌های پرفشار خونسردی خود را حفظ می‌کنید...",
+                            OutputType.Code => "مثال:\ndef sort_list(items):\n    return sorted(items)",
+                            _ => "یک نمونه واقعی از خروجی ابزار خود را اینجا بنویسید..."
+                        };
+                    }
+                    <textarea asp-for="Form.TextOutput" class="form-control form-control-sm" rows="6"
+                              placeholder="@ph"></textarea>
+                    <div class="form-text">این متن دقیقاً همان چیزی است که کاربران به عنوان نمونه خروجی می‌بینند.</div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small">توضیح <small class="text-muted">(اختیاری)</small></label>
+                    <input asp-for="Form.Caption" class="form-control form-control-sm"
+                           placeholder="مثال: نتیجه برای کسی که رنگ آبی را انتخاب کرده" />
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm w-100">افزودن</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="col-lg-7">
+        <h6 class="fw-semibold mb-3">نمونه‌ها (@Model.Items.Count)</h6>
+        @if (!Model.Items.Any())
+        {
+            <div class="text-center py-5 text-muted border rounded">
+                <i class="fas fa-images fa-3x mb-2 opacity-25"></i>
+                <p class="small">هنوز نمونه‌ای اضافه نشده.</p>
+            </div>
+        }
+        <div class="row g-2">
+            @foreach (var item in Model.Items)
+            {
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm h-100">
+                        @if (!string.IsNullOrEmpty(item.OutputUrl))
+                        {
+                            <img src="@item.OutputUrl" class="card-img-top" style="height:140px;object-fit:cover;" />
+                        }
+                        else if (!string.IsNullOrEmpty(item.OutputText))
+                        {
+                            <div class="p-2 bg-light" style="height:100px;overflow:hidden;font-size:.75rem;">
+                                @item.OutputText[..Math.Min(item.OutputText.Length, 200)]
+                            </div>
+                        }
+                        <div class="card-body p-2 d-flex align-items-center justify-content-between">
+                            <small class="text-muted">@item.Caption</small>
+                            <form method="post" asp-page-handler="Delete" asp-route-appId="@Model.App.Id"
+                                  onsubmit="return confirm('حذف شود؟')">
+                                <input type="hidden" name="itemId" value="@item.Id" />
+                                <button type="submit" class="btn btn-sm btn-outline-danger py-0">×</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<div class="mt-4 d-flex gap-2">
+    <a asp-area="Creator" asp-page="/Apps/Submit" asp-route-appId="@Model.App.Id"
+       class="btn @(hasEnough ? "btn-primary" : "btn-outline-secondary")">
+        بعدی: ارسال برای بررسی
+    </a>
+    <a asp-area="Creator" asp-page="/Apps/Index" class="btn btn-outline-secondary">بازگشت</a>
+</div>
+
+@section Scripts {
+    <script src="~/js/pages/creator/apps/Showcase.js"></script>
+}

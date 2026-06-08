@@ -1,0 +1,347 @@
+@page "/Admin/Apps/{id:int}"
+@model DetailModel
+@using PromptMarketPlace.Models.Enums
+@{
+    ViewData["Title"] = Model.App.Title;
+    var a = Model.App;
+    var statusLabels = new Dictionary<AppStatus, (string label, string color)> {
+        { AppStatus.Draft,       ("پیش‌نویس",  "secondary") },
+        { AppStatus.UnderReview, ("در بررسی",  "warning")   },
+        { AppStatus.Active,      ("فعال",       "success")   },
+        { AppStatus.Suspended,   ("تعلیق شده", "danger")    },
+    };
+    var (sl, sc) = statusLabels[a.Status];
+}
+
+@if (TempData["Success"] != null) { <div class="alert alert-success alert-dismissible fade show">@TempData["Success"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div> }
+
+<!-- Breadcrumb -->
+<div class="d-flex align-items-center mb-3">
+    <nav aria-label="breadcrumb" class="mb-0">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a asp-area="Admin" asp-page="/Apps/Index">ابزارها</a></li>
+            <li class="breadcrumb-item active" style="color:#fff">@a.Title</li>
+        </ol>
+    </nav>
+    <a asp-area="Admin" asp-page="/Apps/Index" class="btn btn-sm btn-outline-secondary ms-auto">
+        <i class="fas fa-arrow-right me-1"></i>بازگشت به لیست
+    </a>
+</div>
+
+<!-- Header -->
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <div class="d-flex gap-3 align-items-start">
+            @if (!string.IsNullOrEmpty(a.ThumbnailUrl))
+            {
+                <img src="@a.ThumbnailUrl" class="rounded" style="width:80px;height:80px;object-fit:cover;flex-shrink:0" />
+            }
+            else
+            {
+                <div class="rounded bg-secondary d-flex align-items-center justify-content-center text-white"
+                     style="width:80px;height:80px;flex-shrink:0;font-size:2rem">
+                    <i class="fas fa-robot"></i>
+                </div>
+            }
+            <div class="flex-grow-1">
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <h5 class="fw-bold mb-0 text-white">@a.Title</h5>
+                    <span class="badge bg-@sc">@sl</span>
+                    @{
+                        var outIcon = a.OutputType switch {
+                            OutputType.Text  => ("fa-align-left",  "secondary"),
+                            OutputType.Image => ("fa-image",       "info"),
+                            OutputType.Video => ("fa-video",       "danger"),
+                            OutputType.Audio => ("fa-music",       "warning"),
+                            _                => ("fa-file",        "secondary")
+                        };
+                    }
+                    <span class="badge bg-@outIcon.Item2"><i class="fas @outIcon.Item1 me-1"></i>@a.OutputType</span>
+                </div>
+                <div class="text-muted small mt-1">@a.ShortDescription</div>
+                <div class="mt-2 d-flex gap-2 flex-wrap">
+                    <a href="/app/@a.Slug" target="_blank" class="btn btn-sm btn-outline-secondary">
+                        <i class="fas fa-external-link-alt me-1"></i>مشاهده عمومی
+                    </a>
+                    @if (a.Status != AppStatus.Suspended)
+                    {
+                        <form method="post" asp-page-handler="ToggleStatus" asp-route-id="@a.Id" class="d-inline">
+                            <input type="hidden" name="targetStatus" value="Suspended" />
+                            <button type="submit" class="btn btn-sm btn-outline-danger"
+                                    onclick="return confirm('ابزار تعلیق شود؟')">
+                                <i class="fas fa-ban me-1"></i>تعلیق
+                            </button>
+                        </form>
+                    }
+                    @if (a.Status == AppStatus.Suspended)
+                    {
+                        <form method="post" asp-page-handler="ToggleStatus" asp-route-id="@a.Id" class="d-inline">
+                            <input type="hidden" name="targetStatus" value="Active" />
+                            <button type="submit" class="btn btn-sm btn-outline-success">
+                                <i class="fas fa-check me-1"></i>فعال‌سازی
+                            </button>
+                        </form>
+                    }
+                    @if (a.Status == AppStatus.UnderReview)
+                    {
+                        <a asp-area="Admin" asp-page="/Apps/Review" class="btn btn-sm btn-warning">
+                            <i class="fas fa-eye me-1"></i>بررسی در صف
+                        </a>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- ستون چپ: اطلاعات -->
+    <div class="col-lg-4">
+        <!-- اطلاعات کلی -->
+        <div class="card shadow-sm mb-3">
+            <div class="card-body">
+                <h6 class="fw-semibold mb-3">اطلاعات ابزار</h6>
+                <dl class="row mb-0 small">
+                    <dt class="col-5 text-muted">سازنده</dt>
+                    <dd class="col-7">
+                        <a asp-area="Admin" asp-page="/Users/Detail" asp-route-id="@a.Creator.UserId"
+                           class="text-decoration-none">@a.Creator.User?.DisplayName</a>
+                    </dd>
+                    <dt class="col-5 text-muted">دسته‌بندی</dt>
+                    <dd class="col-7">@a.Category?.Name</dd>
+                    <dt class="col-5 text-muted">مدل AI</dt>
+                    <dd class="col-7">@a.AiModel?.Name</dd>
+                    <dt class="col-5 text-muted">Slug</dt>
+                    <dd class="col-7 text-muted" dir="ltr">@a.Slug</dd>
+                    <dt class="col-5 text-muted">ایجاد</dt>
+                    <dd class="col-7">@a.CreatedAt.ToShamsi("yyyy/MM/dd")</dd>
+                    <dt class="col-5 text-muted">آخرین تغییر</dt>
+                    <dd class="col-7">@a.UpdatedAt.ToShamsi("yyyy/MM/dd")</dd>
+                    <dt class="col-5 text-muted">تگ‌ها</dt>
+                    <dd class="col-7">
+                        @foreach (var t in a.Tags)
+                        { <span class="badge bg-secondary me-1">@t.TagName</span> }
+                        @if (!a.Tags.Any()) { <span class="text-muted">—</span> }
+                    </dd>
+                </dl>
+            </div>
+        </div>
+
+        <!-- آمار -->
+        <div class="card shadow-sm mb-3">
+            <div class="card-body">
+                <h6 class="fw-semibold mb-3">آمار</h6>
+                <div class="row g-2 text-center">
+                    <div class="col-4">
+                        <div class="fw-bold fs-5 text-primary">@a.ExecutionCount.N0Fa()</div>
+                        <div class="text-muted" style="font-size:.7rem">اجرا</div>
+                    </div>
+                    <div class="col-4">
+                        <div class="fw-bold fs-5 text-warning">@a.AverageRating.ToString("F1")</div>
+                        <div class="text-muted" style="font-size:.7rem">امتیاز</div>
+                    </div>
+                    <div class="col-4">
+                        <div class="fw-bold fs-5">@Model.ReviewTotalCount.N0Fa()</div>
+                        <div class="text-muted" style="font-size:.7rem">نظر</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- هزینه اجرا -->
+        <div class="card shadow-sm mb-3">
+            <div class="card-body">
+                <h6 class="fw-semibold mb-3">هزینه اجرا</h6>
+                <form method="post" asp-page-handler="SetCreditCost" asp-route-id="@a.Id"
+                      class="d-flex gap-2 align-items-center">
+                    <input type="number" name="creditCost" value="@a.CreditCost" min="1"
+                           class="form-control form-control-sm" style="width:90px" dir="ltr" />
+                    <span class="text-muted small">اعتبار</span>
+                    <button type="submit" class="btn btn-sm btn-outline-primary">ذخیره</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- فیلدهای ورودی -->
+        @if (a.InputFields.Any())
+        {
+            <div class="card shadow-sm mb-3">
+                <div class="card-body">
+                    <h6 class="fw-semibold mb-3">فیلدهای ورودی (@a.InputFields.Count.N0Fa())</h6>
+                    @foreach (var f in a.InputFields.OrderBy(f => f.SortOrder))
+                    {
+                        <div class="d-flex justify-content-between align-items-center border-bottom py-1 small">
+                            <span>@f.Label</span>
+                            <span class="badge bg-secondary">@f.Type</span>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+        <!-- پرامپت -->
+        <div class="card shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center py-2">
+                <h6 class="mb-0 small fw-semibold">پرامپت سیستمی</h6>
+                <button class="btn btn-sm btn-outline-secondary py-0"
+                        onclick="document.getElementById('promptBox').classList.toggle('d-none')">
+                    نمایش/پنهان
+                </button>
+            </div>
+            <div class="card-body d-none" id="promptBox">
+                <pre class="small mb-0" style="white-space:pre-wrap;max-height:300px;overflow-y:auto">@Model.DecryptedPrompt</pre>
+                @if (!string.IsNullOrEmpty(a.SystemContext))
+                {
+                    <hr />
+                    <div class="small text-muted fw-semibold mb-1">System Context:</div>
+                    <pre class="small mb-0" style="white-space:pre-wrap">@a.SystemContext</pre>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- ستون راست: اجراها و نظرات -->
+    <div class="col-lg-8">
+        <!-- اجراها -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+                    <h6 class="fw-semibold mb-0">اجراها</h6>
+                    <div class="d-flex gap-1 flex-wrap">
+                        @foreach (var s in new[] { (ExecutionStatus?)null, ExecutionStatus.Completed, ExecutionStatus.Failed, ExecutionStatus.Refunded })
+                        {
+                            var lbl = s switch { ExecutionStatus.Completed => "موفق", ExecutionStatus.Failed => "ناموفق", ExecutionStatus.Refunded => "بازگشتی", _ => "همه" };
+                            <a asp-area="Admin" asp-page="/Apps/Detail" asp-route-id="@a.Id"
+                               asp-route-FilterStatus="@s" asp-route-ExecPage="1"
+                               class="btn btn-sm @(Model.FilterStatus == s ? "btn-primary" : "btn-outline-secondary") py-0">@lbl</a>
+                        }
+                    </div>
+                    <small class="text-muted">@Model.ExecutionTotalCount.N0Fa() اجرا</small>
+                </div>
+
+                @{
+                    var totalExecPages = (int)Math.Ceiling(Model.ExecutionTotalCount / 15.0);
+                }
+                @if (!Model.RecentExecutions.Any())
+                {
+                    <p class="text-muted small text-center mb-0">اجرایی ثبت نشده.</p>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover mb-0">
+                            <thead class="table-light">
+                                <tr><th>کاربر</th><th class="text-center">وضعیت</th><th class="text-center">اعتبار</th><th>تاریخ</th><th></th></tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var e in Model.RecentExecutions)
+                                {
+                                    var (el, ec) = e.Status switch {
+                                        ExecutionStatus.Completed => ("موفق",     "success"),
+                                        ExecutionStatus.Failed    => ("ناموفق",   "danger"),
+                                        ExecutionStatus.Refunded  => ("بازگشتی", "info"),
+                                        _                         => ("در جریان", "warning")
+                                    };
+                                    <tr style="cursor:pointer"
+                                        onclick="window.location='/Admin/Executions/@e.Id?userId=@e.UserId'">
+                                        <td class="small">@e.User?.DisplayName</td>
+                                        <td class="text-center"><span class="badge bg-@ec">@el</span></td>
+                                        <td class="text-center small">@e.CreditUsed.N0Fa()</td>
+                                        <td class="small text-muted">@e.CreatedAt.ToShamsi("yy/MM/dd HH:mm")</td>
+                                        <td><i class="fas fa-chevron-left text-muted small"></i></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    @if (totalExecPages > 1)
+                    {
+                        <nav class="mt-3">
+                            <ul class="pagination pagination-sm justify-content-center mb-0">
+                                @for (int i = 1; i <= totalExecPages; i++)
+                                {
+                                    <li class="page-item @(i == Model.ExecPage ? "active" : "")">
+                                        <a class="page-link" asp-area="Admin" asp-page="/Apps/Detail"
+                                           asp-route-id="@a.Id" asp-route-ExecPage="@i"
+                                           asp-route-FilterStatus="@Model.FilterStatus">@i.ToFarsiDigits()</a>
+                                    </li>
+                                }
+                            </ul>
+                        </nav>
+                    }
+                }
+            </div>
+        </div>
+
+        <!-- نظرات -->
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+                    <h6 class="fw-semibold mb-0">نظرات</h6>
+                    <div class="d-flex gap-1 flex-wrap">
+                        <a asp-area="Admin" asp-page="/Apps/Detail" asp-route-id="@a.Id"
+                           asp-route-ReviewPage="1" asp-route-ExecPage="@Model.ExecPage"
+                           asp-route-FilterStatus="@Model.FilterStatus"
+                           class="btn btn-sm @(Model.FilterRating == null ? "btn-primary" : "btn-outline-secondary") py-0">همه</a>
+                        @for (int star = 5; star >= 1; star--)
+                        {
+                            var s = star;
+                            <a asp-area="Admin" asp-page="/Apps/Detail" asp-route-id="@a.Id"
+                               asp-route-FilterRating="@s" asp-route-ReviewPage="1"
+                               asp-route-ExecPage="@Model.ExecPage" asp-route-FilterStatus="@Model.FilterStatus"
+                               class="btn btn-sm @(Model.FilterRating == s ? "btn-warning" : "btn-outline-secondary") py-0">
+                                @s.ToFarsiDigits() <i class="fas fa-star" style="font-size:.7rem"></i>
+                            </a>
+                        }
+                    </div>
+                    <small class="text-muted">@Model.ReviewTotalCount.N0Fa() نظر</small>
+                </div>
+
+                @{
+                    var totalReviewPages = (int)Math.Ceiling(Model.ReviewTotalCount / 10.0);
+                }
+                @if (!Model.Reviews.Any())
+                {
+                    <p class="text-muted small text-center mb-0">نظری ثبت نشده.</p>
+                }
+                else
+                {
+                    @foreach (var r in Model.Reviews)
+                    {
+                        <div class="border-bottom pb-2 mb-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="small fw-semibold">@r.User?.DisplayName</span>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="text-warning small">
+                                        @for (int s = 1; s <= 5; s++)
+                                        { <i class="fas fa-star@(s <= r.Rating ? "" : " text-muted opacity-25")"></i> }
+                                    </span>
+                                    <span class="text-muted" style="font-size:.7rem">@r.CreatedAt.ToShamsi("yy/MM/dd")</span>
+                                </div>
+                            </div>
+                            @if (!string.IsNullOrEmpty(r.Comment))
+                            { <p class="small text-muted mb-0 mt-1">@r.Comment</p> }
+                        </div>
+                    }
+                    @if (totalReviewPages > 1)
+                    {
+                        <nav class="mt-3">
+                            <ul class="pagination pagination-sm justify-content-center mb-0">
+                                @for (int i = 1; i <= totalReviewPages; i++)
+                                {
+                                    <li class="page-item @(i == Model.ReviewPage ? "active" : "")">
+                                        <a class="page-link" asp-area="Admin" asp-page="/Apps/Detail"
+                                           asp-route-id="@a.Id" asp-route-ReviewPage="@i"
+                                           asp-route-FilterRating="@Model.FilterRating"
+                                           asp-route-ExecPage="@Model.ExecPage"
+                                           asp-route-FilterStatus="@Model.FilterStatus">@i.ToFarsiDigits()</a>
+                                    </li>
+                                }
+                            </ul>
+                        </nav>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+</div>

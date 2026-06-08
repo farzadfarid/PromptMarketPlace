@@ -1,0 +1,105 @@
+﻿@page
+@model IndexModel
+@{ ViewData["Title"] = "تبدیل به سازنده"; }
+
+@if (TempData["Pending"] != null)
+{
+    <div class="alert alert-info alert-dismissible fade show mb-4">
+        <i class="fas fa-clock me-2"></i>@TempData["Pending"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- هدر -->
+<div class="card border-0 mb-4 p-5 text-center text-white"
+     style="background:linear-gradient(135deg,#6366f1,#8b5cf6);">
+    <i class="fas fa-star fa-3x mb-3 opacity-75"></i>
+    <h4 class="fw-bold mb-2">سازنده شو و درآمد کسب کن</h4>
+    <p class="opacity-75 mb-0">ابزارهای هوش مصنوعی بساز، به هزاران کاربر دسترسی داشته باش و از هر اجرا درآمد کسب کن.</p>
+</div>
+
+<!-- آمار -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm p-4 text-center">
+            <div class="fs-2 fw-bold text-primary">@Model.ActiveCreatorsCount</div>
+            <div class="small text-muted mt-1">سازنده فعال</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm p-4 text-center">
+            <div class="fs-2 fw-bold text-success">@Model.DefaultCommissionPercent%</div>
+            <div class="small text-muted mt-1">سهم شما از هر اجرا</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm p-4 text-center">
+            <div class="fs-2 fw-bold text-warning">
+                @(Model.AverageMonthlyEarning > 0 ? Model.AverageMonthlyEarning.N0Fa() + " ت" : "رایگان")
+            </div>
+            <div class="small text-muted mt-1">میانگین درآمد سازندگان</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- مزایا -->
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm p-4 h-100">
+            <h6 class="fw-bold mb-4">مزایای سازنده شدن</h6>
+            <div class="d-flex flex-column gap-3">
+                @foreach (var (icon, color, title, desc) in new[] {
+                    ("fa-percentage","success",$"{Model.DefaultCommissionPercent}٪ کمیسیون","از هر اجرای ابزارت درآمد کسب می‌کنی"),
+                    ("fa-sliders-h","primary","کنترل قیمت‌گذاری","تعداد اعتبار مورد نیاز هر اجرا را خودت تنظیم کن"),
+                    ("fa-chart-line","info","پنل آنالیتیک","آمار اجراها، درآمد و بازخورد کاربران"),
+                    ("fa-robot","warning","دسترسی به مدل‌های AI","ساخت ابزار با مدل‌های مختلف بدون نیاز به API key")
+                })
+                {
+                    <div class="d-flex gap-3 align-items-start">
+                        <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0 text-@color bg-@color bg-opacity-10"
+                             style="width:38px;height:38px;">
+                            <i class="fas @icon"></i>
+                        </div>
+                        <div>
+                            <div class="fw-semibold small">@title</div>
+                            <div class="text-muted small">@desc</div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- فرم -->
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm p-4 h-100">
+            <h6 class="fw-bold mb-1">فرم درخواست</h6>
+            <p class="text-muted small mb-4">اطلاعات زیر کمک می‌کند تا ابزارهای بهتری بسازی.</p>
+
+            <form method="post">
+                @if (!ViewData.ModelState.IsValid)
+                {
+                    <div class="alert alert-danger small"><div asp-validation-summary="All"></div></div>
+                }
+
+                <div class="mb-3">
+                    <label asp-for="Experience" class="form-label">توضیح مختصر از تجربه <span class="text-danger">*</span></label>
+                    <textarea asp-for="Experience" class="form-control" rows="3"
+                              placeholder="چند سال تجربه در طراحی پرامپت..."></textarea>
+                    <span asp-validation-for="Experience" class="text-danger small"></span>
+                </div>
+
+                <div class="mb-4">
+                    <label asp-for="ToolTypes" class="form-label">نوع ابزارهایی که قصد ساخت دارید <span class="text-danger">*</span></label>
+                    <textarea asp-for="ToolTypes" class="form-control" rows="2"
+                              placeholder="ابزارهای نوشتاری، ترجمه، تولید کد..."></textarea>
+                    <span asp-validation-for="ToolTypes" class="text-danger small"></span>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-star me-2"></i>ثبت درخواست
+                </button>
+            </form>
+        </div>
+    </div>
+</div>

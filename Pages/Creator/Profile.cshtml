@@ -1,0 +1,50 @@
+﻿@page "/creator/{username}"
+@model ProfileModel
+@{ ViewData["Title"] = Model.Creator.User.DisplayName; }
+
+<div class="container py-5">
+    <div class="row g-4">
+        <div class="col-md-3 text-center">
+            <div class="rounded-circle bg-primary bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3"
+                 style="width:80px;height:80px;">
+                <i class="fas fa-user fa-2x text-primary"></i>
+            </div>
+            <h5 class="fw-bold">@Model.Creator.User.DisplayName</h5>
+            @if (Model.Creator.IsFoundingCreator)
+            {
+                <span class="badge bg-warning text-dark mb-2">
+                    <i class="fas fa-star me-1"></i>بنیان‌گذار
+                </span>
+            }
+            @if (!string.IsNullOrEmpty(Model.Creator.Bio))
+            {
+                <p class="text-muted small">@Model.Creator.Bio</p>
+            }
+            <div class="d-flex justify-content-center gap-3 small text-muted mt-3">
+                <div class="text-center">
+                    <div class="fw-bold fs-5">@Model.Apps.Count</div>
+                    <div>ابزار</div>
+                </div>
+                <div class="text-center">
+                    <div class="fw-bold fs-5">@Model.TotalExecutions.N0Fa()</div>
+                    <div>اجرا</div>
+                </div>
+                <div class="text-center">
+                    <div class="fw-bold fs-5">@Model.AvgRating.ToFarsiDigits("0.0")</div>
+                    <div>امتیاز</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-9">
+            <h5 class="fw-bold mb-4">ابزارهای منتشر شده</h5>
+            <div class="row g-3">
+                @foreach (var app in Model.Apps)
+                {
+                    <div class="col-md-6">
+                        @await Html.PartialAsync("_AppCard", app)
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

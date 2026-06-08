@@ -1,0 +1,243 @@
+@page
+@model CreateModel
+@{ ViewData["Title"] = "ساخت ابزار جدید"; }
+
+<div class="row justify-content-center">
+    <div class="col-lg-9">
+        <!-- Wizard Steps -->
+        <div class="d-flex gap-0 mb-4" id="wizard-steps">
+            @foreach (var (num, title) in new[] {(1,"اطلاعات پایه"),(2,"تنظیمات AI"),(3,"پرامپت")})
+            {
+                <div class="wizard-step flex-fill text-center py-2 px-3 border @(num==1?"border-primary bg-primary fw-semibold":"text-muted")"
+                     id="step-indicator-@num" style="cursor:pointer" onclick="goToStep(@num)">
+                    <span class="badge @(num==1?"bg-white text-primary":"bg-secondary") me-1">@num</span>
+                    @title
+                </div>
+            }
+        </div>
+
+        <form method="post" enctype="multipart/form-data">
+            <div asp-validation-summary="All" class="alert alert-danger py-2 small"></div>
+
+            <!-- مرحله ۱ -->
+            <div id="step-1" class="wizard-step-content">
+                <div class="card border-0 shadow-sm p-4 mb-3">
+                    <h6 class="fw-semibold mb-4">اطلاعات پایه</h6>
+                    <div class="mb-3">
+                        <label class="form-label">عنوان ابزار <span class="text-danger">*</span></label>
+                        <input asp-for="Form.Title" class="form-control" placeholder="مثال: تولید متن تبلیغاتی" />
+                        <span asp-validation-for="Form.Title" class="text-danger small"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">توضیح کوتاه <span class="text-danger">*</span>
+                            <small class="text-muted">(حداکثر ۱۶۰ کاراکتر)</small>
+                        </label>
+                        <input asp-for="Form.ShortDescription" class="form-control"
+                               placeholder="یک جمله که ابزار شما را توصیف کند" maxlength="160" />
+                        <span asp-validation-for="Form.ShortDescription" class="text-danger small"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">توضیح کامل <span class="text-danger">*</span></label>
+                        <textarea asp-for="Form.Description" class="form-control" rows="5"
+                                  placeholder="توضیح کامل ابزار، موارد استفاده، نمونه‌ها..."></textarea>
+                        <span asp-validation-for="Form.Description" class="text-danger small"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">تصویر کاور ابزار <small class="text-muted">(اختیاری — JPG، PNG، WEBP)</small></label>
+                        <div class="thumbnail-upload-box" id="thumbnail-box" onclick="document.getElementById('thumbnail-input').click()">
+                            <img id="thumbnail-preview" src="" class="d-none" alt="preview" />
+                            <div id="thumbnail-placeholder">
+                                <i class="fas fa-cloud-upload-alt fa-2x mb-2"></i>
+                                <div class="small">کلیک کنید یا تصویر را اینجا بکشید</div>
+                                <div class="text-muted" style="font-size:.72rem;">حداکثر ۲ مگابایت</div>
+                            </div>
+                        </div>
+                        <input type="file" asp-for="Form.Thumbnail" id="thumbnail-input" accept=".jpg,.jpeg,.png,.webp" class="d-none" />
+                        <div class="form-text text-muted mt-1">
+                            <i class="fas fa-info-circle me-1"></i>اندازه توصیه‌شده: <strong>۷۵۰ × ۴۰۴</strong> پیکسل — فرمت: JPG، PNG، WEBP — حداکثر ۲ مگابایت
+                        </div>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">دسته‌بندی <span class="text-danger">*</span></label>
+                            <select asp-for="Form.CategoryId" asp-items="Model.CategoryList"
+                                    class="form-select">
+                                <option value="0">انتخاب دسته‌بندی</option>
+                            </select>
+                            <span asp-validation-for="Form.CategoryId" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">تگ‌ها <small class="text-muted">(با کاما جدا کنید)</small></label>
+                            <input asp-for="Form.Tags" class="form-control" placeholder="تبلیغات، مارکتینگ، محتوا" />
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-end">
+                    <button type="button" class="btn btn-primary" onclick="goToStep(2)">
+                        بعدی <i class="fas fa-arrow-left ms-1"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- مرحله ۲ -->
+            <div id="step-2" class="wizard-step-content d-none">
+                <div class="card border-0 shadow-sm p-4 mb-3">
+                    <h6 class="fw-semibold mb-4">تنظیمات هوش مصنوعی</h6>
+                    <div class="mb-3">
+                        <label class="form-label">نوع خروجی <span class="text-danger">*</span></label>
+                        <div class="row g-2" id="output-type-selector">
+                            @foreach (var (type, icon, label) in new[] {
+                                (OutputType.Text,"fa-align-left","متن"),
+                                (OutputType.Image,"fa-image","تصویر"),
+                                (OutputType.Video,"fa-video","ویدیو"),
+                                (OutputType.Code,"fa-code","کد"),
+                                (OutputType.Audio,"fa-music","صدا"),
+                                (OutputType.Form,"fa-file-alt","فرم")
+                            })
+                            {
+                                <div class="col-4 col-md-2">
+                                    <input type="radio" asp-for="Form.OutputType" value="@type"
+                                           id="ot_@type" class="btn-check" onchange="filterModels('@type')" />
+                                    <label for="ot_@type" class="btn btn-outline-secondary w-100 py-3">
+                                        <i class="fas @icon d-block mb-1"></i>
+                                        <small>@label</small>
+                                    </label>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">مدل هوش مصنوعی <span class="text-danger">*</span></label>
+                        <select asp-for="Form.AiModelId" class="form-select" id="ai-model-select">
+                            <option value="0">ابتدا نوع خروجی را انتخاب کنید</option>
+                        </select>
+                        <span asp-validation-for="Form.AiModelId" class="text-danger small"></span>
+                    </div>
+                    <div class="alert alert-info small">
+                        <i class="fas fa-info-circle me-1"></i>
+                        هزینه اعتباری هر اجرا توسط <strong>ادمین</strong> هنگام تایید ابزار تعیین می‌شود.
+                        <hr class="my-2">
+                        <div>پیشنهاد سیستم بر اساس نوع خروجی انتخابی:</div>
+                        <div class="fw-bold mt-1" id="pricing-hint">
+                            <i class="fas fa-coins me-1"></i>
+                            <span id="pricing-value">—</span> اعتبار به ازای هر اجرا
+                        </div>
+                        <div class="text-muted mt-1" style="font-size:.75rem;">ادمین می‌تواند این مقدار را تغییر دهد.</div>
+                    </div>
+                    <script>
+                        var pricingMap = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PricingByType));
+                        function updatePricingHint() {
+                            var selected = document.querySelector('input[name="Form.OutputType"]:checked');
+                            if (selected) {
+                                var val = pricingMap[selected.value] || '?';
+                                document.getElementById('pricing-value').textContent = val;
+                            }
+                        }
+                        document.addEventListener('DOMContentLoaded', function() {
+                            document.querySelectorAll('input[name="Form.OutputType"]').forEach(function(r) {
+                                r.addEventListener('change', updatePricingHint);
+                            });
+                            updatePricingHint();
+                        });
+                    </script>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-secondary" onclick="goToStep(1)">
+                        <i class="fas fa-arrow-right me-1"></i>قبلی
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="goToStep(3)">
+                        بعدی <i class="fas fa-arrow-left ms-1"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- مرحله ۳ -->
+            <div id="step-3" class="wizard-step-content d-none">
+                <div class="card border-0 shadow-sm p-4 mb-3">
+                    <h6 class="fw-semibold mb-4">پرامپت</h6>
+                    <div class="alert alert-info small mb-3">
+                        <i class="fas fa-info-circle me-1"></i>
+                        برای تعریف متغیر از قالب <code dir="ltr">{variable_name}</code> استفاده کنید.
+                        مثال: <code dir="ltr">یک متن تبلیغاتی برای {brand_name} بنویس</code>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">System Context <small class="text-muted">(اختیاری)</small></label>
+                        <textarea asp-for="Form.SystemContext" class="form-control" rows="2" dir="ltr"
+                                  placeholder="You are a professional marketing copywriter..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">پرامپت اصلی <span class="text-danger">*</span></label>
+                        <textarea asp-for="Form.Prompt" class="form-control" rows="8" id="prompt-textarea"
+                                  placeholder="پرامپت خود را اینجا بنویسید...&#10;&#10;از {variable_name} برای تعریف ورودی‌ها استفاده کنید."></textarea>
+                        <div class="d-flex justify-content-between">
+                            <span asp-validation-for="Form.Prompt" class="text-danger small"></span>
+                            <small class="text-muted" id="variable-list"></small>
+                        </div>
+                    </div>
+                    <div class="alert alert-warning small">
+                        <i class="fas fa-lock me-1"></i>
+                        پرامپت با رمزنگاری AES-256 ذخیره می‌شود و هرگز به کاربران نمایش داده نخواهد شد.
+                    </div>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-secondary" onclick="goToStep(2)">
+                        <i class="fas fa-arrow-right me-1"></i>قبلی
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save me-1"></i>ذخیره و رفتن به تنظیم فیلدها
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+    .thumbnail-upload-box {
+        border: 2px dashed var(--dk-border2);
+        border-radius: 12px;
+        aspect-ratio: 750 / 404;
+        max-width: 480px;
+        position: relative;
+        cursor: pointer; overflow: hidden;
+        transition: border-color .2s;
+        background: var(--dk-surface2);
+        color: var(--dk-muted2);
+    }
+    .thumbnail-upload-box:hover { border-color: var(--creator-accent); color: var(--dk-text); }
+    .thumbnail-upload-box #thumbnail-preview {
+        position: absolute; inset: 0;
+        width: 100%; height: 100%; object-fit: cover;
+    }
+    .thumbnail-upload-box #thumbnail-placeholder {
+        position: absolute; inset: 0;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        text-align: center;
+    }
+    </style>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        var createPageData = { allModels: @Html.Raw(Model.ModelsJson) };
+    </script>
+    <script src="~/js/pages/creator/apps/Create.js"></script>
+    <script>
+    document.getElementById('thumbnail-input').addEventListener('change', function() {
+        var file = this.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            var img = document.getElementById('thumbnail-preview');
+            var ph  = document.getElementById('thumbnail-placeholder');
+            img.src = e.target.result;
+            img.classList.remove('d-none');
+            ph.classList.add('d-none');
+        };
+        reader.readAsDataURL(file);
+    });
+    </script>
+}

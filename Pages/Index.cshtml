@@ -1,0 +1,355 @@
+@page
+@model IndexModel
+@using PromptMarketPlace.Helpers
+@{
+    ViewData["Title"] = "پرامپت مارکت — بازار ابزارهای هوش مصنوعی";
+}
+
+<!-- Custom cursor + Film grain -->
+<div id="cursor-dot"></div>
+<div id="cursor-ring"></div>
+<div class="film-grain" aria-hidden="true"></div>
+<!-- Persistent abstract background -->
+<canvas id="bg-canvas" aria-hidden="true"></canvas>
+
+<!-- ══════════════════════════════════════════════════════════
+     HERO — Full Viewport 3D
+══════════════════════════════════════════════════════════ -->
+<section class="hero" id="hero">
+    <canvas id="hero-canvas"></canvas>
+    <div class="hero-overlay"></div>
+
+    <div class="hero-content w-100">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-lg-8 col-xl-7">
+
+                    <div class="hero-badge mb-4">
+                        <span class="badge-pulse"></span>
+                        هوش مصنوعی ایرانی، برای همه
+                    </div>
+
+                    <h1 class="hero-title fw-black">
+                        ابزارهای <span class="grad-text">هوش مصنوعی</span><br />
+                        که واقعاً کار می‌کنن
+                    </h1>
+
+                    <p class="hero-sub">
+                        هزاران ابزار AI ساخته‌شده توسط متخصصان ایرانی.<br />
+                        بدون نیاز به دانش فنی، نتیجه واقعی بگیر.
+                    </p>
+
+                    <div class="hero-btns d-flex gap-3 justify-content-center flex-wrap">
+                        <a asp-page="/Explore" class="btn btn-primary btn-xl btn-magnetic">
+                            <i class="fas fa-th-large me-2"></i>کشف ابزارها
+                        </a>
+                        <a asp-page="/Auth/Register" class="btn btn-glass btn-xl btn-magnetic">
+                            <i class="fas fa-bolt me-2"></i>شروع رایگان
+                        </a>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="hero-scroll">
+        <span>اسکرول کن</span>
+        <div class="scroll-line"></div>
+    </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     STATS
+══════════════════════════════════════════════════════════ -->
+<section class="stats-section section-dark2 position-relative overflow-hidden">
+    <div class="blob blob-orange" style="top:-40%;left:10%;width:500px;height:500px;opacity:.18"></div>
+    <div class="blob blob-purple" style="top:-20%;right:5%;width:400px;height:400px;opacity:.14"></div>
+    <div class="container" style="position:relative;z-index:1">
+        <div class="row g-3 justify-content-center">
+            <div class="col-4 col-md-3">
+                <div class="stat-card glass-card rounded-4 p-4 text-center">
+                    <div class="grad-text counter-num counter" data-target="@Model.TotalApps">۰</div>
+                    <div class="text-muted small mt-1">ابزار فعال</div>
+                </div>
+            </div>
+            <div class="col-4 col-md-3">
+                <div class="stat-card glass-card rounded-4 p-4 text-center">
+                    <div class="grad-text counter-num counter" data-target="@Model.TotalExecutions">۰</div>
+                    <div class="text-muted small mt-1">اجرای موفق</div>
+                </div>
+            </div>
+            <div class="col-4 col-md-3">
+                <div class="stat-card glass-card rounded-4 p-4 text-center">
+                    <div class="grad-text counter-num counter" data-target="@Model.TotalCreators">۰</div>
+                    <div class="text-muted small mt-1">سازنده</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ══════════════════════════════════════════════════════════
+     FEATURES
+══════════════════════════════════════════════════════════ -->
+<section class="py-6 section-dark position-relative overflow-hidden">
+    <div class="container">
+        <div class="blob blob-blue"   style="top:10%;right:-5%;width:450px;height:450px;opacity:.15;animation-delay:-3s"></div>
+        <div class="blob blob-orange" style="bottom:0;left:-5%;width:380px;height:380px;opacity:.12;animation-delay:-6s"></div>
+        <div class="text-center mb-5 reveal" style="position:relative;z-index:1">
+            <span class="section-label">چرا پرامپت مارکت؟</span>
+            <h2 class="display-6 fw-bold mt-3 text-white">قدرت AI، بدون پیچیدگی</h2>
+            <p class="text-muted mt-2">پلتفرمی که متخصصان ابزار می‌سازند، شما نتیجه می‌گیرید</p>
+        </div>
+
+        <div class="row g-4 stagger-group" style="position:relative;z-index:1">
+            <div class="col-md-4 stagger-item">
+                <div class="glass-card feature-card tilt-card rounded-4 p-4 h-100">
+                    <div class="feature-icon">
+                        <i class="fas fa-robot text-primary fa-xl"></i>
+                    </div>
+                    <h5 class="fw-bold text-white mb-2">هزاران ابزار AI</h5>
+                    <p class="text-muted mb-0">از تولید متن تا تصویر، ویدیو و صدا — همه در یک پلتفرم ایرانی</p>
+                </div>
+            </div>
+            <div class="col-md-4 stagger-item">
+                <div class="glass-card feature-card tilt-card rounded-4 p-4 h-100">
+                    <div class="feature-icon">
+                        <i class="fas fa-coins text-primary fa-xl"></i>
+                    </div>
+                    <h5 class="fw-bold text-white mb-2">پرداخت به ریال</h5>
+                    <p class="text-muted mb-0">خرید اعتبار با درگاه ایرانی، بدون نیاز به ارز یا کارت خارجی</p>
+                </div>
+            </div>
+            <div class="col-md-4 stagger-item">
+                <div class="glass-card feature-card tilt-card rounded-4 p-4 h-100">
+                    <div class="feature-icon">
+                        <i class="fas fa-chart-line text-primary fa-xl"></i>
+                    </div>
+                    <h5 class="fw-bold text-white mb-2">درآمد بساز</h5>
+                    <p class="text-muted mb-0">ابزار AI خودت رو بساز و از هر اجرا درآمد واقعی کسب کن</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ══════════════════════════════════════════════════════════
+     HOW IT WORKS
+══════════════════════════════════════════════════════════ -->
+<section class="py-6 section-dark2">
+    <div class="container">
+        <div class="text-center mb-5 reveal">
+            <span class="section-label">نحوه کار</span>
+            <h2 class="display-6 fw-bold mt-3 text-white">سه قدم تا نتیجه</h2>
+        </div>
+
+        <div class="row g-4 text-center stagger-group position-relative">
+            <div class="col-md-4 stagger-item">
+                <div class="position-relative">
+                    @if (true) {
+                        <div class="step-connector d-none d-md-block"></div>
+                    }
+                    <div class="step-number">۱</div>
+                    <h5 class="fw-bold text-white mb-2">ابزار انتخاب کن</h5>
+                    <p class="text-muted">از بین صدها ابزار AI، ابزار مناسب کارت رو پیدا کن</p>
+                </div>
+            </div>
+            <div class="col-md-4 stagger-item">
+                <div class="position-relative">
+                    <div class="step-connector d-none d-md-block"></div>
+                    <div class="step-number">۲</div>
+                    <h5 class="fw-bold text-white mb-2">ورودی بده</h5>
+                    <p class="text-muted">فرم ساده رو پر کن — بدون دانش فنی و پرامپت‌نویسی</p>
+                </div>
+            </div>
+            <div class="col-md-4 stagger-item">
+                <div class="step-number">۳</div>
+                <h5 class="fw-bold text-white mb-2">نتیجه بگیر</h5>
+                <p class="text-muted">خروجی متن، تصویر، ویدیو یا صدا — فوری و آماده استفاده</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ══════════════════════════════════════════════════════════
+     CATEGORIES
+══════════════════════════════════════════════════════════ -->
+@if (Model.Categories.Any())
+{
+    <section class="py-6 section-dark">
+        <div class="container">
+            <div class="text-center mb-5 reveal">
+                <span class="section-label">دسته‌بندی‌ها</span>
+                <h2 class="display-6 fw-bold mt-3 text-white">هر کاری که داری</h2>
+            </div>
+            <div class="row g-3 justify-content-center stagger-group">
+                @foreach (var (cat, count) in Model.Categories)
+                {
+                    <div class="col-6 col-sm-4 col-md-3 col-lg-2 stagger-item">
+                        <a asp-page="/Category/Index" asp-route-slug="@cat.Slug"
+                           class="cat-chip glass-card rounded-4 d-block text-decoration-none">
+                            <div class="cat-icon mx-auto">
+                                <i class="@(cat.IconClass ?? "fas fa-cube")"></i>
+                            </div>
+                            <div class="cat-name">@cat.Name</div>
+                            <div class="cat-count">@count.N0Fa() ابزار</div>
+                        </a>
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+    <div class="section-divider"></div>
+}
+
+<!-- ══════════════════════════════════════════════════════════
+     FEATURED APPS
+══════════════════════════════════════════════════════════ -->
+@if (Model.FeaturedApps.Any())
+{
+    <section class="py-6 section-dark2">
+        <div class="container">
+            <div class="d-flex align-items-end justify-content-between mb-5">
+                <div class="reveal">
+                    <span class="section-label">محبوب‌ترین‌ها</span>
+                    <h2 class="display-6 fw-bold mt-2 mb-0 text-white">پرکاربردترین ابزارها</h2>
+                </div>
+                <a asp-page="/Explore" class="btn btn-glass btn-sm reveal">
+                    مشاهده همه <i class="fas fa-arrow-left ms-1"></i>
+                </a>
+            </div>
+            <div class="row g-3 dark-app-grid stagger-group">
+                @foreach (var app in Model.FeaturedApps)
+                {
+                    <div class="col-md-6 col-lg-3 stagger-item">
+                        @await Html.PartialAsync("_AppCard", app)
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+    <div class="section-divider"></div>
+}
+
+<!-- ══════════════════════════════════════════════════════════
+     NEW APPS
+══════════════════════════════════════════════════════════ -->
+@if (Model.NewApps.Any())
+{
+    <section class="py-6 section-dark">
+        <div class="container">
+            <div class="d-flex align-items-end justify-content-between mb-5">
+                <div class="reveal">
+                    <span class="section-label">تازه رسیده</span>
+                    <h2 class="display-6 fw-bold mt-2 mb-0 text-white">جدیدترین ابزارها</h2>
+                </div>
+                <a asp-page="/Explore" asp-route-SortBy="Newest" class="btn btn-glass btn-sm reveal">
+                    بیشتر <i class="fas fa-arrow-left ms-1"></i>
+                </a>
+            </div>
+            <div class="row g-3 dark-app-grid stagger-group">
+                @foreach (var app in Model.NewApps)
+                {
+                    <div class="col-md-6 col-lg-4 stagger-item">
+                        @await Html.PartialAsync("_AppCard", app)
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+    <div class="section-divider"></div>
+}
+
+<!-- ══════════════════════════════════════════════════════════
+     TOP CREATORS
+══════════════════════════════════════════════════════════ -->
+@if (Model.TopCreators.Any())
+{
+    <section class="py-6 section-dark2">
+        <div class="container">
+            <div class="text-center mb-5 reveal">
+                <span class="section-label">سازندگان</span>
+                <h2 class="display-6 fw-bold mt-3 text-white">برترین سازندگان</h2>
+                <p class="text-muted mt-2">متخصصانی که ابزارهای AI می‌سازند</p>
+            </div>
+            <div class="row g-3 justify-content-center stagger-group">
+                @foreach (var creator in Model.TopCreators)
+                {
+                    <div class="col-6 col-sm-4 col-md-3 col-lg-2 stagger-item">
+                        <a asp-page="/Creator/Profile" asp-route-username="@creator.User.UserName"
+                           class="creator-card glass-card rounded-4 d-flex">
+                            <div class="creator-avatar">
+                                @if (!string.IsNullOrEmpty(creator.User.AvatarUrl))
+                                {
+                                    <img src="@creator.User.AvatarUrl" class="w-100 h-100 object-fit-cover" alt="@creator.User.DisplayName" />
+                                }
+                                else
+                                {
+                                    <i class="fas fa-user"></i>
+                                }
+                            </div>
+                            <div class="fw-semibold text-white small">@creator.User.DisplayName</div>
+                            <div class="text-muted" style="font-size:.75rem">@creator.Apps.Count.N0Fa() ابزار</div>
+                            @if (creator.IsFoundingCreator)
+                            {
+                                <span class="badge mt-1" style="background:rgba(255,170,0,.15);color:#ffaa00;font-size:.68rem;border:1px solid rgba(255,170,0,.3)">
+                                    <i class="fas fa-star me-1"></i>بنیان‌گذار
+                                </span>
+                            }
+                        </a>
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+    <div class="section-divider"></div>
+}
+
+<!-- ══════════════════════════════════════════════════════════
+     CTA
+══════════════════════════════════════════════════════════ -->
+<section class="cta-section text-center position-relative overflow-hidden">
+    <div class="blob blob-purple" style="top:-20%;left:20%;width:600px;height:600px;opacity:.22;animation-delay:-2s"></div>
+    <div class="blob blob-orange" style="bottom:-10%;right:15%;width:500px;height:500px;opacity:.18;animation-delay:-5s"></div>
+    <div class="blob blob-blue"   style="top:30%;left:-5%;width:350px;height:350px;opacity:.15;animation-delay:-8s"></div>
+    <div class="cta-glow"></div>
+    <div class="container position-relative" style="z-index:1">
+        <div class="reveal">
+            <span class="section-label mb-4 d-inline-block">همین الان</span>
+            <h2 class="display-5 fw-black text-white mt-3 mb-3">
+                آماده‌ای از دانشت<br />
+                <span class="grad-text">درآمد کسب کنی؟</span>
+            </h2>
+            <p class="text-muted lead mb-5">
+                ابزار AI خودت رو بساز و از هر بار اجرا درآمد واقعی بگیر.<br />
+                ثبت‌نام رایگانه — شروع فوری.
+            </p>
+            <div class="d-flex gap-3 justify-content-center flex-wrap">
+                <a asp-page="/Auth/Register" class="btn btn-primary btn-xl">
+                    <i class="fas fa-rocket me-2"></i>همین الان شروع کن
+                </a>
+                <a asp-page="/Explore" class="btn btn-glass btn-xl">
+                    <i class="fas fa-search me-2"></i>ابزارها رو ببین
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/pages/public/Index.css" />
+}
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/three@0.134.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+    <script src="~/js/pages/public/landing.js"></script>
+}

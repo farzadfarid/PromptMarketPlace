@@ -1,0 +1,57 @@
+﻿@model AiApp
+
+@{
+    var stars = (int)Math.Round(Model.AverageRating);
+
+    var (cardIcon, cardType, cardGradient) = Model.OutputType switch {
+        OutputType.Image => ("fa-image",    "تصویر", "linear-gradient(135deg,#f97316 0%,#fb923c 100%)"),
+        OutputType.Video => ("fa-video",    "ویدیو",  "linear-gradient(135deg,#ea6c0a 0%,#f97316 100%)"),
+        OutputType.Code  => ("fa-code",     "کد",    "linear-gradient(135deg,#c2410c 0%,#ea580c 100%)"),
+        OutputType.Audio => ("fa-music",    "صدا",   "linear-gradient(135deg,#fb923c 0%,#fbbf24 100%)"),
+        OutputType.Form  => ("fa-file-alt", "فرم",   "linear-gradient(135deg,#d97706 0%,#f59e0b 100%)"),
+        _                => ("fa-robot",    "متن",   "linear-gradient(135deg,#f97316 0%,#ea6c0a 100%)")
+    };
+}
+
+<div class="app-card h-100">
+    <a asp-page="/App/Detail" asp-route-slug="@Model.Slug" class="text-decoration-none d-block h-100">
+
+        <!-- Thumbnail -->
+        <div class="app-card__thumb">
+            @if (!string.IsNullOrEmpty(Model.ThumbnailUrl))
+            {
+                <img src="@Model.ThumbnailUrl" alt="@Model.Title" class="app-card__img" />
+            }
+            else
+            {
+                <div class="app-card__placeholder" style="background:@cardGradient">
+                    <i class="fas @cardIcon app-card__placeholder-icon"></i>
+                </div>
+            }
+            <span class="app-card__type-badge">
+                <i class="fas @cardIcon me-1"></i>@cardType
+            </span>
+        </div>
+
+        <!-- Body -->
+        <div class="app-card__body">
+            <h6 class="app-card__title">@Model.Title</h6>
+            <p class="app-card__desc">@Model.ShortDescription</p>
+
+            <div class="app-card__footer">
+                <div class="app-card__stars">
+                    @for (int i = 1; i <= 5; i++)
+                    {
+                        <i class="@(i <= stars ? "fas" : "far") fa-star"></i>
+                    }
+                    <span class="app-card__exec">(@Model.ExecutionCount.N0Fa())</span>
+                </div>
+                <div class="app-card__credit">
+                    <i class="fas fa-coins"></i>
+                    <span>@Model.CreditCost</span>
+                </div>
+            </div>
+        </div>
+
+    </a>
+</div>

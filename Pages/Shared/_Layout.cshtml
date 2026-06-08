@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - پرامپت مارکت</title>
+
+    @{
+        var metaDesc = ViewData["Description"]?.ToString() ?? "پرامپت مارکت — کشف و اجرای ابزارهای هوش مصنوعی";
+        var ogImage = ViewData["OgImage"]?.ToString() ?? "/images/og-default.jpg";
+        var canonical = $"{Context.Request.Scheme}://{Context.Request.Host}{Context.Request.Path}";
+    }
+    <meta name="description" content="@metaDesc" />
+    <meta property="og:title" content="@(ViewData["Title"]) - پرامپت مارکت" />
+    <meta property="og:description" content="@metaDesc" />
+    <meta property="og:image" content="@ogImage" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="fa_IR" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="@(ViewData["Title"]) - پرامپت مارکت" />
+    <meta name="twitter:description" content="@metaDesc" />
+    <link rel="canonical" href="@canonical" />
+
+    <link href="~/css/vazirmatn.css" rel="stylesheet" />
+    <link href="~/css/bootstrap5-3-3.css" rel="stylesheet" />
+    <link href="~/css/font-awesome.css" rel="stylesheet" />
+    <link href="~/css/site.css" rel="stylesheet" />
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body>
+    <header>
+        @await Html.PartialAsync("_Navbar")
+    </header>
+
+    <main>
+        @RenderBody()
+    </main>
+
+    @await Html.PartialAsync("_Footer")
+
+    <!-- Toast Container -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index:9999">
+        @if (TempData["ToastSuccess"] != null)
+        {
+            <div class="toast align-items-center text-bg-success border-0 show" role="alert">
+                <div class="d-flex">
+                    <div class="toast-body"><i class="fas fa-check-circle me-2"></i>@TempData["ToastSuccess"]</div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            </div>
+        }
+        @if (TempData["ToastError"] != null)
+        {
+            <div class="toast align-items-center text-bg-danger border-0 show" role="alert">
+                <div class="d-flex">
+                    <div class="toast-body"><i class="fas fa-exclamation-circle me-2"></i>@TempData["ToastError"]</div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            </div>
+        }
+        @if (TempData["ToastInfo"] != null)
+        {
+            <div class="toast align-items-center text-bg-primary border-0 show" role="alert">
+                <div class="d-flex">
+                    <div class="toast-body"><i class="fas fa-info-circle me-2"></i>@TempData["ToastInfo"]</div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            </div>
+        }
+    </div>
+
+    <script src="~/js/jquery-3.7.1.js"></script>
+    <script src="~/js/bootstrap5-3-3.js"></script>
+    <script src="~/js/shared/toast.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

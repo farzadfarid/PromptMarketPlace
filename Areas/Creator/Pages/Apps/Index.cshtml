@@ -1,0 +1,142 @@
+﻿@page
+@model IndexModel
+@{ ViewData["Title"] = "ابزارهای من"; }
+
+@if (TempData["Success"] != null) { <div class="alert alert-success alert-dismissible fade show">@TempData["Success"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div> }
+@if (TempData["Error"] != null) { <div class="alert alert-danger alert-dismissible fade show">@TempData["Error"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div> }
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h5 class="mb-1">ابزارهای من</h5>
+        <small class="text-muted">@Model.Result.TotalCount ابزار</small>
+    </div>
+    <a asp-area="Creator" asp-page="/Apps/Create" class="btn btn-primary btn-sm">
+        <i class="fas fa-plus me-1"></i>ابزار جدید
+    </a>
+</div>
+
+<!-- فیلتر -->
+<div class="d-flex gap-2 mb-3 flex-wrap">
+    @foreach (var s in new[] { (AppStatus?)null, AppStatus.Draft, AppStatus.UnderReview, AppStatus.Active, AppStatus.Suspended })
+    {
+        var label = s switch { AppStatus.Draft => "پیش‌نویس", AppStatus.UnderReview => "در بررسی", AppStatus.Active => "فعال", AppStatus.Suspended => "تعلیق", _ => "همه" };
+        <a asp-area="Creator" asp-page="/Apps/Index" asp-route-FilterStatus="@s"
+           class="btn btn-sm @(Model.FilterStatus == s ? "btn-primary" : "btn-outline-secondary")">@label</a>
+    }
+</div>
+
+@if (!Model.Result.Items.Any())
+{
+    <div class="text-center py-5">
+        <i class="fas fa-box-open fa-3x text-muted opacity-25 mb-3"></i>
+        <p class="text-muted">هنوز ابزاری ندارید.</p>
+        <a asp-area="Creator" asp-page="/Apps/Create" class="btn btn-primary">ساخت اولین ابزار</a>
+    </div>
+}
+else
+{
+    <div class="card shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>عنوان</th>
+                        <th class="text-center">وضعیت</th>
+                        <th class="text-center">اجراها</th>
+                        <th class="text-center">امتیاز</th>
+                        <th>آخرین ویرایش</th>
+                        <th class="text-center">عملیات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var app in Model.Result.Items)
+                    {
+                        var isDraftOld = app.Status == AppStatus.Draft && (DateTime.UtcNow - app.UpdatedAt).TotalDays > 30;
+                        <tr @(isDraftOld ? "class=table-warning" : "")>
+                            <td>
+                                <div class="d-flex align-items-center gap-3">
+                                    @{
+                                        var thumbIcon = app.OutputType switch {
+                                            OutputType.Image => "fa-image",
+                                            OutputType.Video => "fa-video",
+                                            OutputType.Code  => "fa-code",
+                                            OutputType.Audio => "fa-music",
+                                            OutputType.Form  => "fa-file-alt",
+                                            _                => "fa-robot"
+                                        };
+                                        var thumbGrad = app.OutputType switch {
+                                            OutputType.Image => "#f97316,#fb923c",
+                                            OutputType.Video => "#ea6c0a,#f97316",
+                                            OutputType.Code  => "#c2410c,#ea580c",
+                                            OutputType.Audio => "#fb923c,#fbbf24",
+                                            OutputType.Form  => "#d97706,#f59e0b",
+                                            _                => "#f97316,#ea6c0a"
+                                        };
+                                    }
+                                    <div style="width:48px;height:48px;border-radius:10px;overflow:hidden;flex-shrink:0;">
+                                        @if (!string.IsNullOrEmpty(app.ThumbnailUrl))
+                                        {
+                                            <img src="@app.ThumbnailUrl" alt="@app.Title"
+                                                 style="width:100%;height:100%;object-fit:cover;" />
+                                        }
+                                        else
+                                        {
+                                            <div style="width:100%;height:100%;background:linear-gradient(135deg,@thumbGrad);display:flex;align-items:center;justify-content:center;">
+                                                <i class="fas @thumbIcon text-white" style="font-size:.85rem;"></i>
+                                            </div>
+                                        }
+                                    </div>
+                                    <div>
+                                        <div class="fw-semibold">@app.Title</div>
+                                        <small class="text-muted">@app.Category?.Name</small>
+                                        @if (isDraftOld) { <div class="badge bg-warning text-dark" style="font-size:.6rem;">بیش از ۳۰ روز در پیش‌نویس</div> }
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="text-center">
+                                @{
+                                    var (badge, color) = app.Status switch {
+                                        AppStatus.Active      => ("فعال", "success"),
+                                        AppStatus.UnderReview => ("در بررسی", "primary"),
+                                        AppStatus.Suspended   => ("تعلیق", "danger"),
+                                        _                     => ("پیش‌نویس", "secondary")
+                                    };
+                                }
+                                <span class="badge bg-@color">@badge</span>
+                            </td>
+                            <td class="text-center">@app.ExecutionCount.N0Fa()</td>
+                            <td class="text-center">
+                                <i class="fas fa-star text-warning me-1" style="font-size:.75rem;"></i>@app.AverageRating.ToFarsiDigits("0.0")
+                            </td>
+                            <td class="text-muted small">@app.UpdatedAt.ToShamsi("yy/MM/dd")</td>
+                            <td class="text-center">
+                                <a asp-area="Creator" asp-page="/Apps/Edit" asp-route-appId="@app.Id"
+                                   class="btn btn-sm btn-outline-primary me-1" title="ویرایش">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a asp-area="Creator" asp-page="/Apps/Fields" asp-route-appId="@app.Id"
+                                   class="btn btn-sm btn-outline-info me-1" title="فیلدها">
+                                    <i class="fas fa-list-ul"></i>
+                                </a>
+                                <a asp-area="Creator" asp-page="/Apps/Showcase" asp-route-appId="@app.Id"
+                                   class="btn btn-sm btn-outline-secondary me-1" title="گالری">
+                                    <i class="fas fa-images"></i>
+                                </a>
+                                @if (app.Status == AppStatus.Draft || app.Status == AppStatus.Suspended)
+                                {
+                                    <form method="post" asp-page-handler="Delete" class="d-inline"
+                                          onsubmit="return confirm('حذف شود؟')">
+                                        <input type="hidden" name="appId" value="@app.Id" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="حذف">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
