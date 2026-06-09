@@ -44,6 +44,7 @@ public class CreateModel : PageModel
         if (!ModelState.IsValid)
         {
             await LoadSelectListsAsync();
+            await LoadPricingAsync();
             return Page();
         }
 
@@ -80,6 +81,7 @@ public class CreateModel : PageModel
     private async Task<string?> SaveThumbnailAsync(IFormFile? file)
     {
         if (file == null || file.Length == 0) return null;
+        if (file.Length > 5 * 1024 * 1024) return null; // max 5MB
         var allowed = new[] { ".jpg", ".jpeg", ".png", ".webp" };
         var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
         if (!allowed.Contains(ext)) return null;

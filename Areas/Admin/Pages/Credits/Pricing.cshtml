@@ -17,25 +17,82 @@
     </div>
 </div>
 
-<!-- ─── راهنمای فرمول ─── -->
-<div class="alert alert-info mb-4">
-    <h6 class="fw-bold mb-2"><i class="fas fa-calculator me-2"></i>فرمول محاسبه اعتبار</h6>
-    <div class="font-monospace small lh-lg" dir="ltr" style="text-align:left">
-        هزینه پایه (دلار) = مصرف مدل AI<br>
-        هزینه به ریال = هزینه دلاری × نرخ دلار<br>
-        + مالیات بر ارزش افزوده = × (1 + VAT٪)<br>
-        + سود پلتفرم = × (1 + Margin٪)<br>
-        ÷ ارزش هر اعتبار (ریال)<br>
-        = <strong>تعداد اعتبار لازم</strong>
+<!-- ─── ماشین‌حساب داینامیک ─── -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header">
+        <h6 class="mb-0 fw-semibold"><i class="fas fa-calculator me-2 text-warning"></i>ماشین‌حساب زنده اعتبار</h6>
     </div>
-    <hr class="my-2">
-    <div class="small">
-        <strong>منابع برای بروزرسانی قیمت‌ها:</strong>
-        <ul class="mb-0 mt-1">
-            <li>نرخ دلار: <a href="https://www.tgju.org" target="_blank" class="text-info">tgju.org</a> یا <a href="https://www.bonbast.com" target="_blank" class="text-info">bonbast.com</a></li>
-            <li>هزینه مدل‌های AI: <a href="https://openrouter.ai/models" target="_blank" class="text-info">openrouter.ai/models</a></li>
-            <li>مالیات بر ارزش افزوده: طبق قانون ایران <strong>۹٪</strong> ثابت است</li>
-        </ul>
+    <div class="card-body">
+        <div class="row g-4">
+
+            <!-- ورودی‌ها -->
+            <div class="col-md-5">
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold mb-1">حالت محاسبه</label>
+                    <div class="d-flex gap-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="calcMode" id="modeDirect" value="direct" checked onchange="calcUpdate()">
+                            <label class="form-check-label small" for="modeDirect">هزینه مستقیم ($)</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="calcMode" id="modeToken" value="token" onchange="calcUpdate()">
+                            <label class="form-check-label small" for="modeToken">بر اساس توکن</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="directMode">
+                    <div class="mb-2">
+                        <label class="form-label small">هزینه هر اجرا (دلار)</label>
+                        <input type="number" id="calc_direct" class="form-control form-control-sm"
+                               dir="ltr" step="0.000001" value="0.002" oninput="calcUpdate()">
+                    </div>
+                </div>
+                <div id="tokenMode" class="d-none">
+                    <div class="mb-2">
+                        <label class="form-label small">هزینه هر ۱K توکن (دلار)</label>
+                        <input type="number" id="calc_token_cost" class="form-control form-control-sm"
+                               dir="ltr" step="0.000001" value="0.000002" oninput="calcUpdate()">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">تعداد توکن در هر اجرا</label>
+                        <input type="number" id="calc_tokens" class="form-control form-control-sm"
+                               dir="ltr" value="1000" oninput="calcUpdate()">
+                    </div>
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label small">نرخ دلار (ریال)</label>
+                    <input type="number" id="calc_usd" class="form-control form-control-sm"
+                           dir="ltr" value="@Model.UsdToIrrRate" oninput="calcUpdate()">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small">مالیات (٪)</label>
+                    <input type="number" id="calc_vat" class="form-control form-control-sm"
+                           dir="ltr" step="0.1" value="@Model.VatPercent" oninput="calcUpdate()">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small">سود پلتفرم (٪)</label>
+                    <input type="number" id="calc_margin" class="form-control form-control-sm"
+                           dir="ltr" step="1" value="@Model.MarginPercent" oninput="calcUpdate()">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small">ارزش هر اعتبار (ریال)</label>
+                    <input type="number" id="calc_credit_val" class="form-control form-control-sm"
+                           dir="ltr" value="@Model.CreditValueIrr" oninput="calcUpdate()">
+                </div>
+            </div>
+
+            <!-- نتیجه گام‌به‌گام -->
+            <div class="col-md-7 d-flex flex-column">
+                <div id="calcResult" class="font-monospace small lh-lg p-3 rounded flex-grow-1"
+                     style="background:rgba(0,0,0,.25); min-height:220px; direction:rtl"></div>
+                <div class="mt-2 small text-muted">
+                    <i class="fas fa-info-circle me-1"></i>
+                    مقادیر از فرم اصلی پیش‌پر شده‌اند. برای دقت بیشتر ابتدا فرم را ذخیره کنید.
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -202,9 +259,65 @@
         </div>
     }
 
-    <div class="mt-4">
+    <div class="mt-4 d-flex align-items-center gap-3 flex-wrap">
         <button type="submit" class="btn btn-primary px-4">
             <i class="fas fa-save me-2"></i>ذخیره تعرفه‌ها
         </button>
+        <small class="text-muted">
+            منابع نرخ دلار:
+            <a href="https://www.tgju.org" target="_blank" class="text-info">tgju.org</a> ·
+            <a href="https://www.bonbast.com" target="_blank" class="text-info">bonbast.com</a>
+            &nbsp;|&nbsp; هزینه مدل‌ها:
+            <a href="https://openrouter.ai/models" target="_blank" class="text-info">openrouter.ai/models</a>
+        </small>
     </div>
 </form>
+
+@section Scripts {
+<script>
+function calcUpdate() {
+    const mode = document.querySelector('input[name="calcMode"]:checked').value;
+    document.getElementById('directMode').classList.toggle('d-none', mode !== 'direct');
+    document.getElementById('tokenMode').classList.toggle('d-none', mode !== 'token');
+
+    let aiCost;
+    if (mode === 'direct') {
+        aiCost = parseFloat(document.getElementById('calc_direct').value) || 0;
+    } else {
+        const perK  = parseFloat(document.getElementById('calc_token_cost').value) || 0;
+        const toks  = parseFloat(document.getElementById('calc_tokens').value) || 0;
+        aiCost = (perK / 1000) * toks;
+    }
+
+    const usd       = parseFloat(document.getElementById('calc_usd').value)        || 0;
+    const vat       = parseFloat(document.getElementById('calc_vat').value)        || 0;
+    const margin    = parseFloat(document.getElementById('calc_margin').value)     || 0;
+    const creditVal = parseFloat(document.getElementById('calc_credit_val').value) || 1;
+
+    const irr        = aiCost * usd;
+    const withVat    = irr * (1 + vat / 100);
+    const withMargin = withVat * (1 + margin / 100);
+    const credits    = Math.ceil(withMargin / creditVal);
+
+    const fa  = n => n.toLocaleString('fa-IR', { maximumFractionDigits: 0 });
+    const usdFmt = n => '$' + n.toFixed(6);
+    const row = (label, val, cls = '') =>
+        `<div class="d-flex justify-content-between border-bottom py-1" style="border-color:rgba(255,255,255,.07)!important">
+            <span class="text-muted">${label}</span>
+            <span class="${cls}">${val}</span>
+         </div>`;
+
+    document.getElementById('calcResult').innerHTML =
+        row('هزینه پایه AI', usdFmt(aiCost)) +
+        row(`× نرخ دلار (${fa(usd)} ریال)`, fa(irr) + ' ریال') +
+        row(`× مالیات (${vat}٪)`, fa(withVat) + ' ریال') +
+        row(`× سود پلتفرم (${margin}٪)`, fa(withMargin) + ' ریال') +
+        row(`÷ ارزش اعتبار (${fa(creditVal)} ریال)`, '') +
+        `<div class="text-center mt-3">
+            <div class="fw-bold text-warning" style="font-size:2rem">${fa(credits)}</div>
+            <div class="text-muted small">اعتبار لازم (گرد شده به بالا)</div>
+         </div>`;
+}
+document.addEventListener('DOMContentLoaded', calcUpdate);
+</script>
+}

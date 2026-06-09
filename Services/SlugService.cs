@@ -42,17 +42,17 @@ public class SlugService : ISlugService
         if (excludeAppId.HasValue)
             query = query.Where(a => a.Id != excludeAppId.Value);
 
-        var exists = await query.AnyAsync(a => a.Slug == slug);
-        if (!exists) return slug;
+        var existing = await query
+            .Where(a => a.Slug == slug || a.Slug.StartsWith(slug + "-"))
+            .Select(a => a.Slug)
+            .ToListAsync();
+
+        if (!existing.Contains(slug)) return slug;
 
         var counter = 2;
-        string candidate;
-        do
-        {
-            candidate = $"{slug}-{counter++}";
-            exists = await query.AnyAsync(a => a.Slug == candidate);
-        } while (exists && counter < 1000);
+        while (existing.Contains($"{slug}-{counter}"))
+            counter++;
 
-        return candidate;
+        return $"{slug}-{counter}";
     }
 }

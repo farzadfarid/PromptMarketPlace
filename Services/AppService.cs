@@ -249,17 +249,15 @@ public class AppService : IAppService
 
     public async Task RecalculateRatingAsync(int appId)
     {
-        var reviews = await _db.Reviews
+        var avg = await _db.Reviews
             .Where(r => r.AppId == appId)
-            .ToListAsync();
+            .AverageAsync(r => (double?)r.Rating);
 
-        if (!reviews.Any()) return;
-
-        var avg = reviews.Average(r => r.Rating);
+        if (avg == null) return;
 
         await _db.Apps
             .Where(a => a.Id == appId)
-            .ExecuteUpdateAsync(s => s.SetProperty(a => a.AverageRating, avg));
+            .ExecuteUpdateAsync(s => s.SetProperty(a => a.AverageRating, avg.Value));
     }
 
     public async Task<List<AppCategory>> GetCategoriesAsync()

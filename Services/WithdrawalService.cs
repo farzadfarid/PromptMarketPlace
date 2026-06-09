@@ -94,16 +94,12 @@ public class WithdrawalService : IWithdrawalService
         request.ProcessedAt = DateTime.UtcNow;
 
         // اگر رد شد، موجودی را برگردان
-        if (newStatus == WithdrawalStatus.Rejected && request.Creator.User.Wallet != null)
-        {
+        if (newStatus == WithdrawalStatus.Rejected && request.Creator?.User?.Wallet != null)
             request.Creator.User.Wallet.EarningBalance += request.Amount;
-        }
 
         // اگر پرداخت شد، TotalWithdrawn را بروز کن
-        if (newStatus == WithdrawalStatus.Paid && request.Creator.User.Wallet != null)
-        {
+        if (newStatus == WithdrawalStatus.Paid && request.Creator?.User?.Wallet != null)
             request.Creator.User.Wallet.TotalWithdrawn += request.Amount;
-        }
 
         await _db.SaveChangesAsync();
         return ExecutionResult.Success(null!);

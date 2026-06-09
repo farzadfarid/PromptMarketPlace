@@ -33,8 +33,14 @@ public class IndexModel : PageModel
             .OrderByDescending(a => a.CreatedAt)
             .Take(6).ToListAsync();
 
-        foreach (var cat in await _db.Categories.OrderBy(c => c.SortOrder).Take(8).ToListAsync())
-            Categories.Add((cat, await activeApps.CountAsync(a => a.CategoryId == cat.Id)));
+        var cats = await _db.Categories.OrderBy(c => c.SortOrder).Take(8).ToListAsync();
+        var catCounts = await _db.Apps
+            .Where(a => a.Status == AppStatus.Active)
+            .GroupBy(a => a.CategoryId)
+            .Select(g => new { CategoryId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.CategoryId, x => x.Count);
+        foreach (var cat in cats)
+            Categories.Add((cat, catCounts.GetValueOrDefault(cat.Id, 0)));
 
         TopCreators = await _db.CreatorProfiles
             .Include(c => c.User)
