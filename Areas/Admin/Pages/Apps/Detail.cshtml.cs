@@ -19,6 +19,7 @@ public class DetailModel : PageModel
     private readonly IAiProviderService _providers;
 
     public SelectList? ModelSelectList { get; set; }
+    public SelectList? CategorySelectList { get; set; }
 
     public DetailModel(ApplicationDbContext db, IEncryptionService encryption, IAiProviderService providers)
     {
@@ -62,6 +63,9 @@ public class DetailModel : PageModel
         ModelSelectList = new SelectList(
             allModels.Select(m => new { m.Id, Display = $"{m.Name} ({m.Provider?.Name})" }),
             "Id", "Display", app.AiModelId);
+
+        var categories = await _db.Categories.OrderBy(c => c.Name).ToListAsync();
+        CategorySelectList = new SelectList(categories, "Id", "Name", app.CategoryId);
 
         var execQuery = _db.Executions
             .Include(e => e.User)
@@ -132,6 +136,19 @@ public class DetailModel : PageModel
         await _db.SaveChangesAsync();
 
         TempData["Success"] = $"هزینه اجرا به {app.CreditCost} اعتبار تغییر یافت.";
+        return RedirectToPage(new { id });
+    }
+
+    public async Task<IActionResult> OnPostChangeCategoryAsync(int id, int newCategoryId)
+    {
+        var app = await _db.Apps.FindAsync(id);
+        if (app == null) return NotFound();
+
+        app.CategoryId = newCategoryId;
+        app.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+
+        TempData["Success"] = "دسته‌بندی ابزار تغییر یافت.";
         return RedirectToPage(new { id });
     }
 

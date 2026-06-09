@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using PromptMarketPlace.Data;
 using PromptMarketPlace.Models.Domain;
 using PromptMarketPlace.Models.Enums;
+using PromptMarketPlace.Services;
 
 namespace PromptMarketPlace.Pages.Auth;
 
@@ -13,13 +14,15 @@ public class RegisterModel : PageModel
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SignInManager<ApplicationUser> _signIn;
     private readonly ApplicationDbContext _db;
+    private readonly ICaptchaService _captcha;
 
     public RegisterModel(UserManager<ApplicationUser> userManager,
-        SignInManager<ApplicationUser> signIn, ApplicationDbContext db)
+        SignInManager<ApplicationUser> signIn, ApplicationDbContext db, ICaptchaService captcha)
     {
         _userManager = userManager;
         _signIn = signIn;
         _db = db;
+        _captcha = captcha;
     }
 
     [BindProperty] public RegisterForm Form { get; set; } = new();
@@ -29,6 +32,12 @@ public class RegisterModel : PageModel
     public async Task<IActionResult> OnPostAsync()
     {
         if (!ModelState.IsValid) return Page();
+
+        if (!_captcha.Validate(HttpContext.Session, Form.CaptchaInput))
+        {
+            ModelState.AddModelError("", "کد امنیتی اشتباه است. لطفاً دوباره تلاش کنید.");
+            return Page();
+        }
 
         var user = new ApplicationUser
         {
@@ -86,5 +95,8 @@ public class RegisterModel : PageModel
         public string ConfirmPassword { get; set; } = string.Empty;
 
         public bool WantToBeCreator { get; set; }
+
+        [Required(ErrorMessage = "کد امنیتی الزامی است")]
+        public string CaptchaInput { get; set; } = string.Empty;
     }
 }

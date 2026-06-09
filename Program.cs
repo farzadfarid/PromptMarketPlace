@@ -77,6 +77,15 @@ try
     builder.Services.AddScoped<ICreatorHelper, CreatorHelper>();
     builder.Services.AddScoped<IEmailService, SmtpEmailService>();
     builder.Services.AddMemoryCache();
+    builder.Services.AddDistributedMemoryCache();
+    builder.Services.AddSession(options =>
+    {
+        options.IdleTimeout = TimeSpan.FromMinutes(10);
+        options.Cookie.HttpOnly = true;
+        options.Cookie.IsEssential = true;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+    });
+    builder.Services.AddSingleton<ICaptchaService, CaptchaService>();
 
     builder.Services.AddRazorPages(options =>
     {
@@ -131,6 +140,7 @@ try
     app.UseHttpsRedirection();
     app.UseSerilogRequestLogging();
     app.UseRouting();
+    app.UseSession();
     app.UseAuthentication();
     app.UseAuthorization();
     app.MapStaticAssets();

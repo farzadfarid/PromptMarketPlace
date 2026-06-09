@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using PromptMarketPlace.Models.Domain;
+using PromptMarketPlace.Services;
 
 namespace PromptMarketPlace.Pages.Auth;
 
@@ -10,11 +11,14 @@ public class LoginModel : PageModel
 {
     private readonly SignInManager<ApplicationUser> _signIn;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly ICaptchaService _captcha;
 
-    public LoginModel(SignInManager<ApplicationUser> signIn, UserManager<ApplicationUser> userManager)
+    public LoginModel(SignInManager<ApplicationUser> signIn, UserManager<ApplicationUser> userManager,
+        ICaptchaService captcha)
     {
         _signIn = signIn;
         _userManager = userManager;
+        _captcha = captcha;
     }
 
     [BindProperty] public LoginForm Form { get; set; } = new();
@@ -25,6 +29,12 @@ public class LoginModel : PageModel
     public async Task<IActionResult> OnPostAsync(string? returnUrl = null)
     {
         if (!ModelState.IsValid) return Page();
+
+        if (!_captcha.Validate(HttpContext.Session, Form.CaptchaInput))
+        {
+            ModelState.AddModelError("", "کد امنیتی اشتباه است. لطفاً دوباره تلاش کنید.");
+            return Page();
+        }
 
         var result = await _signIn.PasswordSignInAsync(Form.Email, Form.Password,
             Form.RememberMe, lockoutOnFailure: true);
@@ -64,5 +74,8 @@ public class LoginModel : PageModel
         public string Password { get; set; } = string.Empty;
 
         public bool RememberMe { get; set; }
+
+        [Required(ErrorMessage = "کد امنیتی الزامی است")]
+        public string CaptchaInput { get; set; } = string.Empty;
     }
 }

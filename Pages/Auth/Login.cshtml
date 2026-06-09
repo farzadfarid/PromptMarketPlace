@@ -27,10 +27,25 @@
                             </label>
                             <input asp-for="Form.Password" class="form-control" dir="ltr" />
                         </div>
-                        <div class="form-check mb-4">
+                        <div class="form-check mb-3">
                             <input asp-for="Form.RememberMe" class="form-check-input" type="checkbox" />
                             <label class="form-check-label" asp-for="Form.RememberMe">مرا به خاطر بسپار</label>
                         </div>
+
+                        <div class="mb-4">
+                            <label class="form-label">کد امنیتی</label>
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <img src="/Auth/CaptchaImage" id="captchaImg"
+                                     alt="کد امنیتی" style="height:50px; border-radius:6px; border:1px solid #dee2e6;" />
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="refreshCaptcha()" title="کد جدید">
+                                    <i class="fas fa-redo-alt"></i>
+                                </button>
+                            </div>
+                            <input asp-for="Form.CaptchaInput" class="form-control" dir="rtl"
+                                   placeholder="کد بالا را وارد کنید" autocomplete="off" maxlength="5" />
+                            <span asp-validation-for="Form.CaptchaInput" class="text-danger small"></span>
+                        </div>
+
                         <button type="submit" class="btn btn-primary w-100">ورود</button>
                     </form>
 
@@ -45,4 +60,11 @@
     </div>
 </div>
 
-@section Scripts { <partial name="_ValidationScriptsPartial" /> }
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        function refreshCaptcha() {
+            document.getElementById('captchaImg').src = '/Auth/CaptchaImage?t=' + Date.now();
+        }
+    </script>
+}
