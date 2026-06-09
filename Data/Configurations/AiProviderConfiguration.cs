@@ -10,6 +10,13 @@ public class AiProviderConfiguration : IEntityTypeConfiguration<AiProvider>
     {
         builder.Property(p => p.Name).HasMaxLength(100).IsRequired();
         builder.Property(p => p.BaseUrl).HasMaxLength(500).IsRequired();
+        builder.Property(p => p.BalanceUrl).HasMaxLength(500);
+        builder.Property(p => p.BalanceJsonPath).HasMaxLength(200);
+        builder.Property(p => p.BalanceCurrency).HasMaxLength(20);
+        builder.Property(p => p.IsActiveForText).HasDefaultValue(false);
+        builder.Property(p => p.IsActiveForImage).HasDefaultValue(false);
+        builder.Property(p => p.IsActiveForVideo).HasDefaultValue(false);
+        builder.Property(p => p.IsActiveForAudio).HasDefaultValue(false);
 
         builder.HasData(new AiProvider
         {

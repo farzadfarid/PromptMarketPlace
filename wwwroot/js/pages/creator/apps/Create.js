@@ -33,14 +33,19 @@ function filterModels(outputType) {
     var cap = capabilityMap[outputType];
     var select = document.getElementById('ai-model-select');
     select.innerHTML = '<option value="0">انتخاب مدل...</option>';
-    (createPageData.allModels || [])
-        .filter(function (m) { return m.Capabilities.includes(cap); })
-        .forEach(function (m) {
-            var opt = document.createElement('option');
-            opt.value = m.Id;
-            opt.textContent = m.Name;
-            select.appendChild(opt);
-        });
+    var compatible = (createPageData.allModels || []).filter(function (m) {
+        return m.Capabilities.includes(cap);
+    });
+    var defaultId = null;
+    compatible.forEach(function (m) {
+        var opt = document.createElement('option');
+        opt.value = m.Id;
+        opt.textContent = m.IsDefault ? m.Name + ' ★' : m.Name;
+        select.appendChild(opt);
+        if (m.IsDefault) defaultId = m.Id;
+    });
+    // انتخاب خودکار مدل پیش‌فرض این نوع خروجی
+    if (defaultId) select.value = defaultId;
 }
 
 document.addEventListener('DOMContentLoaded', function () {

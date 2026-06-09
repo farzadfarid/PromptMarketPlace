@@ -43,14 +43,25 @@
     }
     else if (Model.OutputType == OutputType.Image && !string.IsNullOrEmpty(Model.OutputImageUrl))
     {
-        <div class="text-center">
-            <img src="@Model.OutputImageUrl" class="img-fluid rounded shadow-sm"
-                 alt="خروجی تصویر" style="max-height:600px;" />
+        <div class="text-center position-relative" id="imgWrapper">
+            <img src="@Model.OutputImageUrl"
+                 class="img-fluid rounded shadow-sm"
+                 alt="خروجی تصویر"
+                 loading="lazy"
+                 style="max-height:600px;"
+                 onerror="this.closest('#imgWrapper').innerHTML='<div class=\'alert alert-warning py-2\'><i class=\'fas fa-image-slash me-1\'></i>تصویر در دسترس نیست یا منقضی شده است.</div>'" />
         </div>
         <div class="mt-2 text-center">
             <a href="@Model.OutputImageUrl" download class="btn btn-outline-primary btn-sm">
                 <i class="fas fa-download me-1"></i>دانلود تصویر
             </a>
+        </div>
+    }
+    else if (Model.OutputType == OutputType.Image && string.IsNullOrEmpty(Model.OutputImageUrl))
+    {
+        <div class="alert alert-warning py-2">
+            <i class="fas fa-exclamation-triangle me-1"></i>
+            تصویر ذخیره نشد. لطفاً ابزار را مجدداً اجرا کنید.
         </div>
     }
     else if (Model.OutputType == OutputType.Video && !string.IsNullOrEmpty(Model.OutputVideoUrl))

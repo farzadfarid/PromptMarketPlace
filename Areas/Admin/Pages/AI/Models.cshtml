@@ -167,114 +167,219 @@
     </div>
 </div>
 
-<!-- Modal -->
+<!-- ═══════════════════════════════════════════════════
+     Modal یکپارچه — افزودن مدل جدید
+════════════════════════════════════════════════════ -->
 <div class="modal fade" id="modelModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <form method="post" asp-page-handler="Save">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h6 class="modal-title" id="modalTitle">مدل جدید</h6>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <input type="hidden" asp-for="Form.Id" id="formId" />
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content border-0 rounded-4">
 
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label">سرویس‌دهنده <span class="text-danger">*</span></label>
-                            <select asp-for="Form.AiProviderId" asp-items="Model.ProviderSelectList" class="form-select" id="formProviderId">
-                                <option value="">انتخاب کنید</option>
-                            </select>
+            <!-- Header -->
+            <div class="modal-header border-0 pb-0">
+                <div>
+                    <h6 class="modal-title fw-bold mb-1" id="modalTitle">مدل جدید</h6>
+                    <small class="text-muted" id="modalSubtitle">روش افزودن را انتخاب کنید</small>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <!-- Tabs — فقط در حالت create نمایش داده می‌شوند -->
+            <div class="px-3 pt-2" id="modalTabs">
+                <ul class="nav nav-tabs nav-tabs-bordered" id="modelTabs">
+                    <li class="nav-item">
+                        <button class="nav-link active px-4" id="tab-auto-btn" onclick="switchTab('auto')">
+                            <i class="fas fa-cloud-download-alt me-1"></i> بارگذاری از API
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link px-4" id="tab-manual-btn" onclick="switchTab('manual')">
+                            <i class="fas fa-keyboard me-1"></i> افزودن دستی
+                        </button>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="modal-body pt-2">
+
+                <!-- ── Tab خودکار ─────────────────────────────── -->
+                <div id="tab-auto">
+
+                    <!-- انتخاب سرویس‌دهنده و بارگذاری -->
+                    <div class="card bg-light border-0 rounded-3 p-3 mb-3">
+                        <div class="row g-2 align-items-end">
+                            <div class="col">
+                                <label class="form-label small fw-semibold mb-1">سرویس‌دهنده</label>
+                                <select class="form-select form-select-sm" id="importProviderId">
+                                    <option value="">انتخاب کنید...</option>
+                                    @foreach (var p in Model.Providers)
+                                    {
+                                        <option value="@p.Id">@p.Name</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-auto">
+                                <button type="button" class="btn btn-primary btn-sm" onclick="loadProviderModels()">
+                                    <i class="fas fa-sync me-1"></i> بارگذاری مدل‌ها
+                                </button>
+                            </div>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label">نام نمایشی <span class="text-danger">*</span></label>
-                            <input asp-for="Form.Name" class="form-control" id="formName" placeholder="مثال: Claude Sonnet 4.6" />
+                    </div>
+
+                    <!-- راهنما -->
+                    <div class="alert alert-warning border-0 rounded-3 py-2 px-3 mb-3 small">
+                        <div class="fw-bold mb-1"><i class="fas fa-lightbulb me-1"></i>روش صحیح — باید ۴ بار انجام شود:</div>
+                        <div class="d-flex flex-column gap-1 mt-1">
+                            <div><span class="badge bg-primary me-1">دور ۱</span> مدل‌های <strong>متنی</strong> (GPT, Claude, Gemini...) → فقط <span class="badge bg-secondary">متن + کد</span></div>
+                            <div><span class="badge bg-success me-1">دور ۲</span> مدل‌های <strong>تصویرساز</strong> (GPT-Image, Imagen...) → فقط <span class="badge bg-secondary">تصویر</span></div>
+                            <div><span class="badge bg-danger me-1">دور ۳</span> مدل‌های <strong>ویدیوساز</strong> (Sora, Veo...) → فقط <span class="badge bg-secondary">ویدیو</span></div>
+                            <div><span class="badge bg-warning text-dark me-1">دور ۴</span> مدل‌های <strong>صوتی</strong> (TTS-1...) → فقط <span class="badge bg-secondary">صدا</span></div>
                         </div>
-                        <div class="col-md-8">
-                            <label class="form-label">شناسه مدل <span class="text-danger">*</span></label>
-                            <input asp-for="Form.ModelId" class="form-control" id="formModelId" dir="ltr" placeholder="anthropic/claude-sonnet-4-6" />
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">ترتیب نمایش</label>
-                            <input asp-for="Form.SortOrder" type="number" class="form-control" id="formSortOrder" value="0" />
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label">قابلیت‌ها <span class="text-danger">*</span></label>
-                            <div class="d-flex flex-wrap gap-3" id="capabilitiesContainer">
+                        <div class="text-danger mt-2 small"><i class="fas fa-times-circle me-1"></i>همه قابلیت‌ها را با هم تیک نزنید — هر بار فقط قابلیت مربوط به آن دسته را انتخاب کنید.</div>
+                    </div>
+
+                    <!-- Loading -->
+                    <div id="importLoading" class="text-center py-3 d-none">
+                        <div class="spinner-border spinner-border-sm text-primary me-2"></div>
+                        <span class="text-muted">در حال دریافت مدل‌ها...</span>
+                    </div>
+                    <!-- Error -->
+                    <div id="importError" class="d-none alert alert-danger py-2 small"></div>
+
+                    <!-- نتایج -->
+                    <div id="importContent" class="d-none">
+                        <!-- انتخاب قابلیت -->
+                        <div class="card border-2 border-primary rounded-3 p-3 mb-2">
+                            <div class="small fw-bold text-primary mb-2"><i class="fas fa-tag me-1"></i>قابلیت مدل‌های انتخابی در این دور:</div>
+                            <div class="d-flex flex-wrap gap-3">
                                 @foreach (var cap in Model.AllCapabilities)
                                 {
                                     <div class="form-check">
-                                        <input class="form-check-input capability-check" type="checkbox"
-                                               name="Form.SelectedCapabilities" value="@cap" id="cap_@cap" />
-                                        <label class="form-check-label" for="cap_@cap">@capLabels[cap]</label>
+                                        <input class="form-check-input import-cap-check" type="checkbox"
+                                               value="@cap" id="importCap_@cap" />
+                                        <label class="form-check-label small fw-semibold" for="importCap_@cap">@capLabels[cap]</label>
                                     </div>
                                 }
                             </div>
                         </div>
-                        <div class="col-12">
-                            <div id="pricingGuide" class="alert alert-info py-2 px-3 mb-0 small d-none">
-                                <div class="d-flex align-items-start gap-2">
-                                    <i class="fas fa-info-circle mt-1 flex-shrink-0"></i>
-                                    <div>
-                                        <strong>چطور قیمت پیدا کنم؟</strong>
-                                        <div id="pricingGuideText" class="mt-1"></div>
-                                        <div class="mt-1 text-muted">
-                                            نکته: اگر قیمت به صورت «per 1M token» نوشته شده، عدد را تقسیم بر ۱۰۰۰ کنید.
-                                            مثال: $5 / 1M token = $0.005 / 1K token
+                        <!-- دکمه‌های انتخاب -->
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="d-flex gap-1">
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="selectAllImport(true)">انتخاب همه</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="selectAllImport(false)">حذف انتخاب‌ها</button>
+                            </div>
+                            <span class="text-muted small" id="importCountLabel"></span>
+                        </div>
+                        <!-- لیست مدل‌ها -->
+                        <div id="importModelList" class="border rounded-3" style="max-height:260px;overflow-y:auto"></div>
+                    </div>
+                </div>
+
+                <!-- ── Tab دستی ────────────────────────────────── -->
+                <div id="tab-manual" class="d-none">
+                    <form method="post" asp-page-handler="Save" id="manualForm">
+                        <input type="hidden" asp-for="Form.Id" id="formId" />
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">سرویس‌دهنده <span class="text-danger">*</span></label>
+                                <select asp-for="Form.AiProviderId" asp-items="Model.ProviderSelectList" class="form-select" id="formProviderId">
+                                    <option value="">انتخاب کنید</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">نام نمایشی <span class="text-danger">*</span></label>
+                                <input asp-for="Form.Name" class="form-control" id="formName" placeholder="مثال: Claude Sonnet 4.6" />
+                            </div>
+                            <div class="col-md-8">
+                                <label class="form-label">شناسه مدل <span class="text-danger">*</span></label>
+                                <input asp-for="Form.ModelId" class="form-control" id="formModelId" dir="ltr" placeholder="anthropic/claude-sonnet-4-6" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">ترتیب نمایش</label>
+                                <input asp-for="Form.SortOrder" type="number" class="form-control" id="formSortOrder" value="0" />
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">قابلیت‌ها <span class="text-danger">*</span></label>
+                                <div class="d-flex flex-wrap gap-3">
+                                    @foreach (var cap in Model.AllCapabilities)
+                                    {
+                                        <div class="form-check">
+                                            <input class="form-check-input capability-check" type="checkbox"
+                                                   name="Form.SelectedCapabilities" value="@cap" id="cap_@cap" />
+                                            <label class="form-check-label" for="cap_@cap">@capLabels[cap]</label>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div id="pricingGuide" class="alert alert-info py-2 px-3 mb-0 small">
+                                    <div class="d-flex align-items-start gap-2">
+                                        <i class="fas fa-info-circle mt-1 flex-shrink-0"></i>
+                                        <div>
+                                            <strong>چطور قیمت پیدا کنم؟</strong>
+                                            <div id="pricingGuideText" class="mt-1"></div>
+                                            <div class="mt-1 text-muted">نکته: اگر قیمت به صورت «per 1M token» نوشته شده، عدد را تقسیم بر ۱۰۰۰ کنید. مثال: $5 / 1M = $0.005 / 1K</div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label d-flex align-items-center gap-1">
-                                هزینه / ۱K توکن ($)
-                                <i class="fas fa-question-circle text-muted small"
-                                   data-bs-toggle="tooltip"
-                                   title="هزینه هر ۱۰۰۰ توکن (input+output). برای مدل‌های متنی و کد. اختیاری — فقط برای گزارش مالی استفاده می‌شود."></i>
-                            </label>
-                            <input asp-for="Form.CostPer1KTokens" type="number" step="0.000001" class="form-control" id="formCostToken" dir="ltr" placeholder="مثال: 0.005" />
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label d-flex align-items-center gap-1">
-                                هزینه / تصویر ($)
-                                <i class="fas fa-question-circle text-muted small"
-                                   data-bs-toggle="tooltip"
-                                   title="هزینه تولید هر تصویر. برای مدل‌های image generation. اختیاری."></i>
-                            </label>
-                            <input asp-for="Form.CostPerImage" type="number" step="0.000001" class="form-control" id="formCostImage" dir="ltr" placeholder="مثال: 0.04" />
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label d-flex align-items-center gap-1">
-                                هزینه / ثانیه ویدیو ($)
-                                <i class="fas fa-question-circle text-muted small"
-                                   data-bs-toggle="tooltip"
-                                   title="هزینه تولید هر ثانیه ویدیو. برای مدل‌های video generation. اختیاری."></i>
-                            </label>
-                            <input asp-for="Form.CostPerSecondVideo" type="number" step="0.000001" class="form-control" id="formCostVideo" dir="ltr" placeholder="مثال: 0.1" />
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">حداکثر توکن</label>
-                            <input asp-for="Form.MaxTokens" type="number" class="form-control" id="formMaxTokens" dir="ltr" />
-                        </div>
-                        <div class="col-md-4 d-flex align-items-end">
-                            <div class="form-check">
-                                <input asp-for="Form.IsDefault" class="form-check-input" type="checkbox" id="formIsDefault" />
-                                <label class="form-check-label" asp-for="Form.IsDefault">مدل پیش‌فرض</label>
+                            <div class="col-md-4">
+                                <label class="form-label d-flex align-items-center gap-1">
+                                    هزینه / ۱K توکن ($)
+                                    <i class="fas fa-question-circle text-muted small" data-bs-toggle="tooltip"
+                                       title="هزینه هر ۱۰۰۰ توکن. برای مدل‌های متنی و کد. اختیاری."></i>
+                                </label>
+                                <input asp-for="Form.CostPer1KTokens" type="number" step="0.000001" class="form-control" id="formCostToken" dir="ltr" placeholder="مثال: 0.005" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label d-flex align-items-center gap-1">
+                                    هزینه / تصویر ($)
+                                    <i class="fas fa-question-circle text-muted small" data-bs-toggle="tooltip"
+                                       title="هزینه تولید هر تصویر. اختیاری."></i>
+                                </label>
+                                <input asp-for="Form.CostPerImage" type="number" step="0.000001" class="form-control" id="formCostImage" dir="ltr" placeholder="مثال: 0.04" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label d-flex align-items-center gap-1">
+                                    هزینه / ثانیه ویدیو ($)
+                                    <i class="fas fa-question-circle text-muted small" data-bs-toggle="tooltip"
+                                       title="هزینه تولید هر ثانیه ویدیو. اختیاری."></i>
+                                </label>
+                                <input asp-for="Form.CostPerSecondVideo" type="number" step="0.000001" class="form-control" id="formCostVideo" dir="ltr" placeholder="مثال: 0.1" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">حداکثر توکن</label>
+                                <input asp-for="Form.MaxTokens" type="number" class="form-control" id="formMaxTokens" dir="ltr" />
+                            </div>
+                            <div class="col-md-4 d-flex align-items-end">
+                                <div class="form-check">
+                                    <input asp-for="Form.IsDefault" class="form-check-input" type="checkbox" id="formIsDefault" />
+                                    <label class="form-check-label" asp-for="Form.IsDefault">مدل پیش‌فرض</label>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">توضیح</label>
+                                <textarea asp-for="Form.Description" class="form-control" rows="2" id="formDescription"></textarea>
                             </div>
                         </div>
-                        <div class="col-12">
-                            <label class="form-label">توضیح</label>
-                            <textarea asp-for="Form.Description" class="form-control" rows="2" id="formDescription"></textarea>
-                        </div>
-                    </div>
+                    </form>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">انصراف</button>
-                    <button type="submit" class="btn btn-primary btn-sm">ذخیره</button>
-                </div>
+
+            </div><!-- /modal-body -->
+
+            <!-- Footer -->
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">انصراف</button>
+                <!-- دکمه tab خودکار -->
+                <button type="button" class="btn btn-primary btn-sm fw-semibold d-none" id="importSaveBtn" onclick="saveImportedModels()">
+                    <i class="fas fa-save me-1"></i> ذخیره مدل‌های انتخابی
+                </button>
+                <!-- دکمه tab دستی -->
+                <button type="submit" form="manualForm" class="btn btn-primary btn-sm d-none" id="manualSaveBtn">
+                    <i class="fas fa-save me-1"></i> ذخیره
+                </button>
             </div>
-        </form>
+
+        </div>
     </div>
 </div>
 

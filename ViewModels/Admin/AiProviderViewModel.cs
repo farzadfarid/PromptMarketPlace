@@ -18,6 +18,15 @@ public class AiProviderFormViewModel
     public string? Description { get; set; }
 
     public string? ApiKey { get; set; }
-
     public bool HasApiKey { get; set; }
+
+    // پیکربندی موجودی
+    [MaxLength(500)]
+    public string? BalanceUrl { get; set; }
+
+    [MaxLength(200)]
+    public string? BalanceJsonPath { get; set; }
+
+    [MaxLength(20)]
+    public string? BalanceCurrency { get; set; }
 }

@@ -44,7 +44,7 @@ public class AiService : IAiService
     {
         try
         {
-            var client = BuildClient(model.Provider?.BaseUrl ?? "https://openrouter.ai/api/v1", apiKey);
+            var client = BuildClient(model.Provider?.BaseUrl ?? throw new InvalidOperationException("مدل هوش مصنوعی به سرویس‌دهنده متصل نیست."), apiKey);
 
             var messages = new List<object>();
             if (!string.IsNullOrWhiteSpace(systemContext))
@@ -65,7 +65,7 @@ public class AiService : IAiService
 
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("OpenRouter chat error {Status}: {Body}", response.StatusCode, json);
+                _logger.LogWarning("AI chat error {Status}: {Body}", response.StatusCode, json);
                 var errMsg = TryExtractErrorMessage(json);
                 return AiResponse.Fail($"خطا از سرویس AI ({(int)response.StatusCode}): {errMsg}");
             }
@@ -89,35 +89,46 @@ public class AiService : IAiService
 
     private async Task<AiResponse> RunImageGenerationAsync(AiModel model, string? apiKey, string prompt)
     {
+        var baseUrl = model.Provider?.BaseUrl ?? throw new InvalidOperationException("مدل هوش مصنوعی به سرویس‌دهنده متصل نیست.");
         try
         {
-            var client = BuildClient(model.Provider?.BaseUrl ?? "https://openrouter.ai/api/v1", apiKey);
+            var client = BuildClient(baseUrl, apiKey);
 
-            var body = JsonSerializer.Serialize(new
-            {
-                model = model.ModelId,
-                prompt,
-                n = 1
-            });
-
+            // ── تلاش اول: endpoint استاندارد OpenAI ─────────────────
+            var body = JsonSerializer.Serialize(new { model = model.ModelId, prompt, n = 1 });
             var request = BuildRequest(HttpMethod.Post, "images/generations",
                 new StringContent(body, Encoding.UTF8, "application/json"), apiKey);
             var response = await client.SendAsync(request);
             var json = await response.Content.ReadAsStringAsync();
 
-            if (!response.IsSuccessStatusCode)
+            if (response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("OpenRouter image error {Status}: {Body}", response.StatusCode, json);
-                return AiResponse.Fail($"خطا در تولید تصویر: {response.StatusCode}");
+                var node = JsonNode.Parse(json);
+                var imageUrl = node?["data"]?[0]?["url"]?.GetValue<string>()
+                            ?? node?["data"]?[0]?["b64_json"]?.GetValue<string>();
+
+                if (!string.IsNullOrEmpty(imageUrl))
+                    return AiResponse.SuccessImage(
+                        imageUrl.StartsWith("data:") ? imageUrl : imageUrl);
+
+                return AiResponse.Fail("تصویر از API دریافت نشد.");
             }
 
-            var node = JsonNode.Parse(json);
-            var imageUrl = node?["data"]?[0]?["url"]?.GetValue<string>();
+            // ── fallback: هر خطای 4xx (غیر از 401) → امتحان chat/completions ─
+            // ChatQT و برخی سرویس‌دهنده‌ها endpoint مجزا ندارند؛ مدل‌های تصویری را
+            // از chat/completions ارائه می‌دهند. 401 خطای واقعی API Key است.
+            var statusCode = (int)response.StatusCode;
+            if (statusCode >= 400 && statusCode < 500 && statusCode != 401)
+            {
+                _logger.LogInformation(
+                    "images/generations returned {Status} for {Model} — falling back to chat/completions. Body: {Body}",
+                    response.StatusCode, model.ModelId, json[..Math.Min(json.Length, 300)]);
+                return await RunImageViaChatAsync(model, apiKey, prompt, baseUrl);
+            }
 
-            if (string.IsNullOrEmpty(imageUrl))
-                return AiResponse.Fail("تصویر از API دریافت نشد.");
-
-            return AiResponse.SuccessImage(imageUrl);
+            _logger.LogWarning("Image generation error {Status}: {Body}", response.StatusCode, json);
+            var errMsg = TryExtractErrorMessage(json);
+            return AiResponse.Fail($"خطا در تولید تصویر ({(int)response.StatusCode}): {errMsg}");
         }
         catch (TaskCanceledException)
         {
@@ -130,40 +141,146 @@ public class AiService : IAiService
         }
     }
 
-    private async Task<AiResponse> RunVideoGenerationAsync(AiModel model, string? apiKey, string prompt)
+    private async Task<AiResponse> RunImageViaChatAsync(AiModel model, string? apiKey, string prompt, string baseUrl)
     {
-        // Video generation is async — submit job, return JobId for polling
         try
         {
-            var client = BuildClient(model.Provider?.BaseUrl ?? "https://openrouter.ai/api/v1", apiKey);
+            var client = BuildClient(baseUrl, apiKey);
+
+            // اطمینان از اینکه prompt صریحاً درخواست تولید تصویر دارد
+            var messages = new List<object>
+            {
+                new { role = "user", content = prompt }
+            };
 
             var body = JsonSerializer.Serialize(new
             {
                 model = model.ModelId,
-                prompt
+                messages,
+                max_tokens = 4096
             });
 
-            var request = BuildRequest(HttpMethod.Post, "video/generations",
+            var request = BuildRequest(HttpMethod.Post, "chat/completions",
                 new StringContent(body, Encoding.UTF8, "application/json"), apiKey);
             var response = await client.SendAsync(request);
             var json = await response.Content.ReadAsStringAsync();
 
             if (!response.IsSuccessStatusCode)
-                return AiResponse.Fail($"خطا در تولید ویدیو: {response.StatusCode}");
+            {
+                var snippet = json[..Math.Min(json.Length, 600)];
+                _logger.LogWarning("Image-via-chat error {Status} model={Model}: {Body}",
+                    response.StatusCode, model.ModelId, snippet);
+                var errDetail = TryExtractErrorMessage(json);
+                // نمایش جزئیات کامل برای تشخیص مشکل
+                return AiResponse.Fail($"خطا در تولید تصویر ({(int)response.StatusCode}): {errDetail} | پاسخ: {snippet[..Math.Min(snippet.Length, 200)]}");
+            }
 
             var node = JsonNode.Parse(json);
+            string? imageUrl = null;
 
-            // try to get direct URL first (sync models)
-            var videoUrl = node?["data"]?[0]?["url"]?.GetValue<string>();
-            if (!string.IsNullOrEmpty(videoUrl))
-                return new AiResponse { IsSuccess = true, VideoUrl = videoUrl };
+            // ── ۱. ChatQT: choices[0].message.images[0].image_url.url ──────────
+            var imagesArr = node?["choices"]?[0]?["message"]?["images"]?.AsArray();
+            if (imagesArr != null && imagesArr.Count > 0)
+                imageUrl = imagesArr[0]?["image_url"]?["url"]?.GetValue<string>();
 
-            // async job
-            var jobId = node?["id"]?.GetValue<string>();
-            if (!string.IsNullOrEmpty(jobId))
-                return new AiResponse { IsSuccess = true, JobId = jobId };
+            // ── ۲. OpenAI multimodal content array ────────────────────────────
+            if (string.IsNullOrEmpty(imageUrl))
+            {
+                var content = node?["choices"]?[0]?["message"]?["content"];
+                if (content?.GetValueKind() == System.Text.Json.JsonValueKind.Array)
+                {
+                    foreach (var part in content.AsArray())
+                    {
+                        var partType = part?["type"]?.GetValue<string>();
+                        if (partType == "image_url")
+                            imageUrl = part?["image_url"]?["url"]?.GetValue<string>();
+                        else if (partType == "image")
+                            imageUrl = part?["source"]?["url"]?.GetValue<string>()
+                                    ?? part?["url"]?.GetValue<string>();
+                        if (!string.IsNullOrEmpty(imageUrl)) break;
+                    }
+                }
+                else
+                {
+                    var text = content?.GetValue<string>() ?? "";
+                    imageUrl = ExtractImageUrlFromText(text);
+                }
+            }
 
-            return AiResponse.Fail("پاسخ نامعتبر از سرویس ویدیو.");
+            if (string.IsNullOrEmpty(imageUrl))
+            {
+                var rawSnippet = json[..Math.Min(json.Length, 600)];
+                _logger.LogWarning("No image URL found in chat response for {Model}: {Snippet}", model.ModelId, rawSnippet);
+                return AiResponse.Fail($"تصویر از API دریافت نشد. پاسخ سرور: {rawSnippet}");
+            }
+
+            return AiResponse.SuccessImage(imageUrl);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Image-via-chat failed for {ModelId}", model.ModelId);
+            return AiResponse.Fail("خطا در تولید تصویر.");
+        }
+    }
+
+    private static string? ExtractImageUrlFromText(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return null;
+
+        // markdown: ![alt](url)
+        var mdMatch = System.Text.RegularExpressions.Regex.Match(text, @"!\[.*?\]\((https?://\S+?)\)");
+        if (mdMatch.Success) return mdMatch.Groups[1].Value.TrimEnd(')');
+
+        // plain URL on its own line or after colon
+        var urlMatch = System.Text.RegularExpressions.Regex.Match(text,
+            @"https?://\S+\.(?:png|jpg|jpeg|webp|gif)(\?\S*)?", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        if (urlMatch.Success) return urlMatch.Value;
+
+        // any URL that looks like a CDN image path
+        var anyUrl = System.Text.RegularExpressions.Regex.Match(text, @"https?://\S{20,}");
+        if (anyUrl.Success) return anyUrl.Value;
+
+        return null;
+    }
+
+    private async Task<AiResponse> RunVideoGenerationAsync(AiModel model, string? apiKey, string prompt)
+    {
+        var baseUrl = model.Provider?.BaseUrl ?? throw new InvalidOperationException("مدل هوش مصنوعی به سرویس‌دهنده متصل نیست.");
+        try
+        {
+            var client = BuildClient(baseUrl, apiKey);
+
+            var body = JsonSerializer.Serialize(new { model = model.ModelId, prompt });
+            var request = BuildRequest(HttpMethod.Post, "video/generations",
+                new StringContent(body, Encoding.UTF8, "application/json"), apiKey);
+            var response = await client.SendAsync(request);
+            var json = await response.Content.ReadAsStringAsync();
+
+            if (response.IsSuccessStatusCode)
+            {
+                var node = JsonNode.Parse(json);
+                var videoUrl = node?["data"]?[0]?["url"]?.GetValue<string>();
+                if (!string.IsNullOrEmpty(videoUrl))
+                    return new AiResponse { IsSuccess = true, VideoUrl = videoUrl };
+
+                var jobId = node?["id"]?.GetValue<string>();
+                if (!string.IsNullOrEmpty(jobId))
+                    return new AiResponse { IsSuccess = true, JobId = jobId };
+
+                return AiResponse.Fail("پاسخ نامعتبر از سرویس ویدیو.");
+            }
+
+            // fallback: 4xx (not 401) → try chat/completions
+            var statusCode = (int)response.StatusCode;
+            if (statusCode >= 400 && statusCode < 500 && statusCode != 401)
+            {
+                _logger.LogInformation(
+                    "video/generations returned {Status} for {Model} — falling back to chat/completions",
+                    response.StatusCode, model.ModelId);
+                return await RunVideoViaChatAsync(model, apiKey, prompt, baseUrl);
+            }
+
+            return AiResponse.Fail($"خطا در تولید ویدیو ({statusCode}): {TryExtractErrorMessage(json)}");
         }
         catch (Exception ex)
         {
@@ -172,11 +289,71 @@ public class AiService : IAiService
         }
     }
 
+    private async Task<AiResponse> RunVideoViaChatAsync(AiModel model, string? apiKey, string prompt, string baseUrl)
+    {
+        try
+        {
+            var client = BuildClient(baseUrl, apiKey);
+            var body = JsonSerializer.Serialize(new
+            {
+                model = model.ModelId,
+                messages = new[] { new { role = "user", content = prompt } },
+                max_tokens = 4096
+            });
+
+            var request = BuildRequest(HttpMethod.Post, "chat/completions",
+                new StringContent(body, Encoding.UTF8, "application/json"), apiKey);
+            var response = await client.SendAsync(request);
+            var json = await response.Content.ReadAsStringAsync();
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errDetail = TryExtractErrorMessage(json);
+                return AiResponse.Fail($"خطا در تولید ویدیو ({(int)response.StatusCode}): {errDetail}");
+            }
+
+            var node = JsonNode.Parse(json);
+
+            // ChatQT style: choices[0].message.videos[0].video_url.url
+            var videosArr = node?["choices"]?[0]?["message"]?["videos"]?.AsArray();
+            if (videosArr != null && videosArr.Count > 0)
+            {
+                var videoUrl = videosArr[0]?["video_url"]?["url"]?.GetValue<string>();
+                if (!string.IsNullOrEmpty(videoUrl))
+                    return new AiResponse { IsSuccess = true, VideoUrl = videoUrl };
+            }
+
+            // plain text with URL
+            var text = node?["choices"]?[0]?["message"]?["content"]?.GetValue<string>() ?? "";
+            var extracted = ExtractVideoUrlFromText(text);
+            if (!string.IsNullOrEmpty(extracted))
+                return new AiResponse { IsSuccess = true, VideoUrl = extracted };
+
+            var snippet = json[..Math.Min(json.Length, 400)];
+            _logger.LogWarning("No video URL in chat response for {Model}: {Snippet}", model.ModelId, snippet);
+            return AiResponse.Fail($"ویدیو از API دریافت نشد. پاسخ سرور: {snippet}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Video-via-chat failed for {ModelId}", model.ModelId);
+            return AiResponse.Fail("خطا در تولید ویدیو.");
+        }
+    }
+
+    private static string? ExtractVideoUrlFromText(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return null;
+        var match = System.Text.RegularExpressions.Regex.Match(text,
+            @"https?://\S+\.(?:mp4|webm|mov|avi)(\?\S*)?",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        return match.Success ? match.Value : null;
+    }
+
     private async Task<AiResponse> RunAudioGenerationAsync(AiModel model, string? apiKey, string prompt)
     {
         try
         {
-            var client = BuildClient(model.Provider?.BaseUrl ?? "https://openrouter.ai/api/v1", apiKey);
+            var client = BuildClient(model.Provider?.BaseUrl ?? throw new InvalidOperationException("مدل هوش مصنوعی به سرویس‌دهنده متصل نیست."), apiKey);
 
             var body = JsonSerializer.Serialize(new
             {
@@ -210,7 +387,7 @@ public class AiService : IAiService
     {
         try
         {
-            var client = BuildClient(model.Provider?.BaseUrl ?? "https://openrouter.ai/api/v1", apiKey);
+            var client = BuildClient(model.Provider?.BaseUrl ?? throw new InvalidOperationException("مدل هوش مصنوعی به سرویس‌دهنده متصل نیست."), apiKey);
             var response = await client.GetAsync($"video/generations/{jobId}");
             var json = await response.Content.ReadAsStringAsync();
             var node = JsonNode.Parse(json);
@@ -249,7 +426,7 @@ public class AiService : IAiService
 
     private HttpClient BuildClient(string baseUrl, string? apiKey)
     {
-        var client = _httpFactory.CreateClient("OpenRouter");
+        var client = _httpFactory.CreateClient();
         client.BaseAddress = new Uri(baseUrl.TrimEnd('/') + '/');
         client.Timeout = TimeSpan.FromSeconds(120);
         return client;

@@ -111,7 +111,25 @@
                     <dt class="col-5 text-muted">دسته‌بندی</dt>
                     <dd class="col-7">@a.Category?.Name</dd>
                     <dt class="col-5 text-muted">مدل AI</dt>
-                    <dd class="col-7">@a.AiModel?.Name</dd>
+                    <dd class="col-7">
+                        <span class="fw-semibold">@a.AiModel?.Name</span>
+                        <small class="text-muted d-block" dir="ltr">@a.AiModel?.ModelId</small>
+                        <button class="btn btn-link btn-sm p-0 mt-1 text-warning"
+                                data-bs-toggle="collapse" data-bs-target="#changeModelBox">
+                            <i class="fas fa-exchange-alt me-1"></i>تغییر مدل
+                        </button>
+                        <div class="collapse mt-2" id="changeModelBox">
+                            <form method="post" asp-page-handler="ChangeModel">
+                                <input type="hidden" name="id" value="@a.Id" />
+                                <select name="newModelId" class="form-select form-select-sm mb-1"
+                                        asp-items="Model.ModelSelectList">
+                                </select>
+                                <button type="submit" class="btn btn-warning btn-sm w-100">
+                                    <i class="fas fa-save me-1"></i>اعمال مدل جدید
+                                </button>
+                            </form>
+                        </div>
+                    </dd>
                     <dt class="col-5 text-muted">Slug</dt>
                     <dd class="col-7 text-muted" dir="ltr">@a.Slug</dd>
                     <dt class="col-5 text-muted">ایجاد</dt>

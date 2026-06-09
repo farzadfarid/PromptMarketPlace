@@ -114,7 +114,7 @@ public class CreateModel : PageModel
         var models = await _providers.GetAllModelsAsync();
         var modelsData = models.Select(m => new
         {
-            m.Id, m.Name,
+            m.Id, m.Name, m.IsDefault,
             Capabilities = JsonSerializer.Deserialize<List<string>>(m.Capabilities) ?? new()
         });
         ModelsJson = JsonSerializer.Serialize(modelsData);

@@ -1,4 +1,6 @@
+using System.Net.Http.Headers;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -15,11 +17,13 @@ public class ModelsModel : PageModel
 {
     private readonly IAiProviderService _providerService;
     private readonly ApplicationDbContext _db;
+    private readonly IHttpClientFactory _httpFactory;
 
-    public ModelsModel(IAiProviderService providerService, ApplicationDbContext db)
+    public ModelsModel(IAiProviderService providerService, ApplicationDbContext db, IHttpClientFactory httpFactory)
     {
         _providerService = providerService;
         _db = db;
+        _httpFactory = httpFactory;
     }
 
     public List<AiModel> Models { get; set; } = new();
@@ -132,4 +136,95 @@ public class ModelsModel : PageModel
         TempData["Success"] = $"مدل «{model.Name}» به {count} ابزار اعمال شد.";
         return RedirectToPage();
     }
+
+    // بارگذاری لیست مدل‌ها از سرویس‌دهنده
+    public async Task<IActionResult> OnPostFetchProviderModelsAsync([FromBody] FetchModelsDto dto)
+    {
+        var provider = await _providerService.GetProviderByIdAsync(dto.ProviderId);
+        if (provider == null)
+            return new JsonResult(new { success = false, message = "سرویس‌دهنده یافت نشد." });
+
+        var apiKey = await _providerService.GetDecryptedApiKeyAsync(dto.ProviderId);
+        if (string.IsNullOrWhiteSpace(apiKey))
+            return new JsonResult(new { success = false, message = "API Key تنظیم نشده است." });
+
+        try
+        {
+            var client = _httpFactory.CreateClient();
+            client.Timeout = TimeSpan.FromSeconds(15);
+            var request = new HttpRequestMessage(HttpMethod.Get, $"{provider.BaseUrl.TrimEnd('/')}/models");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+
+            var response = await client.SendAsync(request);
+            var json = await response.Content.ReadAsStringAsync();
+
+            if (!response.IsSuccessStatusCode)
+                return new JsonResult(new { success = false, message = $"خطا از سرویس‌دهنده: {(int)response.StatusCode}" });
+
+            var node = JsonNode.Parse(json);
+            var dataArray = node?["data"]?.AsArray() ?? node?.AsArray();
+
+            var existingIds = await _db.AiModels
+                .Where(m => m.AiProviderId == dto.ProviderId)
+                .Select(m => m.ModelId)
+                .ToListAsync();
+
+            var models = new List<object>();
+            if (dataArray != null)
+            {
+                foreach (var item in dataArray)
+                {
+                    var id   = item?["id"]?.GetValue<string>() ?? "";
+                    var name = item?["name"]?.GetValue<string>() ?? id;
+                    if (!string.IsNullOrWhiteSpace(id))
+                        models.Add(new { id, name, alreadyAdded = existingIds.Contains(id) });
+                }
+            }
+
+            return new JsonResult(new { success = true, models, providerName = provider.Name });
+        }
+        catch (TaskCanceledException)
+        {
+            return new JsonResult(new { success = false, message = "زمان انتظار به پایان رسید." });
+        }
+        catch (Exception)
+        {
+            return new JsonResult(new { success = false, message = "خطا در دریافت مدل‌ها." });
+        }
+    }
+
+    // ذخیره مدل‌های انتخاب‌شده
+    public async Task<IActionResult> OnPostImportModelsAsync([FromBody] ImportModelsDto dto)
+    {
+        if (dto.Models == null || dto.Models.Count == 0)
+            return new JsonResult(new { success = false, message = "هیچ مدلی انتخاب نشده." });
+
+        var validCaps = (dto.Capabilities ?? new())
+            .Where(c => Enum.TryParse<AiCapability>(c, out _))
+            .ToList();
+        var caps = JsonSerializer.Serialize(validCaps);
+
+        int count = 0;
+        foreach (var modelId in dto.Models)
+        {
+            var exists = await _db.AiModels.AnyAsync(m => m.AiProviderId == dto.ProviderId && m.ModelId == modelId);
+            if (exists) continue;
+
+            await _providerService.CreateModelAsync(new AiModel
+            {
+                AiProviderId = dto.ProviderId,
+                Name         = modelId.Contains('/') ? modelId.Split('/').Last() : modelId,
+                ModelId      = modelId,
+                Capabilities = caps,
+                IsActive     = true,
+                SortOrder    = 0
+            });
+            count++;
+        }
+
+        return new JsonResult(new { success = true, message = $"{count} مدل با موفقیت اضافه شد." });
+    }
+
+    public record FetchModelsDto(int ProviderId);
+    public record ImportModelsDto(int ProviderId, List<string> Models, List<string>? Capabilities);
 }

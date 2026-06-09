@@ -85,8 +85,23 @@ public class ExecutionService : IExecutionService
         var decryptedPrompt = _encryption.Decrypt(app.EncryptedPrompt);
         var finalPrompt = InputValidator.SubstituteVariables(decryptedPrompt, inputs);
 
-        // ─── API Key پیش از transaction ───────────────────────────
-        var apiKey = await _providers.GetDecryptedApiKeyAsync(app.AiModel.AiProviderId);
+        // ─── پیدا کردن provider و مدل فعال برای این نوع خروجی ────
+        var (activeProvider, activeModel, apiKey) =
+            await _providers.GetActiveSetupForOutputTypeAsync(app.OutputType);
+
+        if (activeProvider == null)
+        {
+            await FailExecutionAsync(execution, "سرویس‌دهنده‌ای برای این نوع ابزار فعال نشده.");
+            // اعتبار کسر نشده، بازگشت لازم نیست
+            return ExecutionResult.Fail("سرویس‌دهنده هوش مصنوعی برای این نوع ابزار پیکربندی نشده. لطفاً با ادمین تماس بگیرید.");
+        }
+
+        if (activeModel == null)
+        {
+            await FailExecutionAsync(execution, "مدل پیش‌فرضی برای این نوع خروجی روی سرویس‌دهنده فعال یافت نشد.");
+            // اعتبار کسر نشده، بازگشت لازم نیست
+            return ExecutionResult.Fail("مدل هوش مصنوعی برای این نوع ابزار پیکربندی نشده. لطفاً با ادمین تماس بگیرید.");
+        }
 
         using var transaction = await _db.Database.BeginTransactionAsync();
         try
@@ -112,7 +127,7 @@ public class ExecutionService : IExecutionService
         try
         {
             // ─── ۹. فراخوانی AI (خارج از transaction چون کند است) ─
-            var aiResponse = await _ai.RunAsync(app.AiModel, apiKey, app.SystemContext,
+            var aiResponse = await _ai.RunAsync(activeModel, apiKey, app.SystemContext,
                 finalPrompt, app.OutputType);
 
             if (!aiResponse.IsSuccess)
@@ -123,7 +138,7 @@ public class ExecutionService : IExecutionService
             }
 
             // ─── ۱۰. پردازش خروجی داینامیک ───────────────────────
-            await ProcessOutputAsync(execution, aiResponse, app.OutputType);
+            await ProcessOutputAsync(execution, aiResponse, app.OutputType, apiKey);
 
             execution.Status = ExecutionStatus.Completed;
             execution.TokensUsed = aiResponse.TokensUsed;
@@ -197,7 +212,8 @@ public class ExecutionService : IExecutionService
 
     // ─── Private Helpers ─────────────────────────────────────────────
 
-    private async Task ProcessOutputAsync(AppExecution execution, AiResponse aiResponse, OutputType outputType)
+    private async Task ProcessOutputAsync(AppExecution execution, AiResponse aiResponse,
+        OutputType outputType, string? apiKey = null)
     {
         execution.OutputText = aiResponse.Text;
 
@@ -205,13 +221,15 @@ public class ExecutionService : IExecutionService
         {
             try
             {
-                var localPath = await _storage.SaveFromUrlAsync(aiResponse.ImageUrl, "images");
+                // API Key را پاس می‌دهیم تا تصاویر authenticated از ChatQT هم دانلود شوند
+                var localPath = await _storage.SaveFromUrlAsync(aiResponse.ImageUrl, "images", apiKey);
                 execution.OutputImageUrl = localPath;
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Could not download image, using original URL");
-                execution.OutputImageUrl = aiResponse.ImageUrl;
+                _logger.LogWarning(ex, "Could not download image from {Url}", aiResponse.ImageUrl);
+                // URL خارجی را ذخیره نمی‌کنیم — فقط لاگ می‌زنیم
+                execution.OutputImageUrl = null;
             }
         }
 

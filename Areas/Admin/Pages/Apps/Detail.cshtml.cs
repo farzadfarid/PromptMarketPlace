@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using PromptMarketPlace.Data;
 using PromptMarketPlace.Models.Domain;
@@ -15,9 +16,13 @@ public class DetailModel : PageModel
 {
     private readonly ApplicationDbContext _db;
     private readonly IEncryptionService _encryption;
+    private readonly IAiProviderService _providers;
 
-    public DetailModel(ApplicationDbContext db, IEncryptionService encryption)
+    public SelectList? ModelSelectList { get; set; }
+
+    public DetailModel(ApplicationDbContext db, IEncryptionService encryption, IAiProviderService providers)
     {
+        _providers = providers;
         _db = db;
         _encryption = encryption;
     }
@@ -52,6 +57,11 @@ public class DetailModel : PageModel
 
         try { DecryptedPrompt = _encryption.Decrypt(app.EncryptedPrompt); }
         catch { DecryptedPrompt = "[خطا در رمزگشایی]"; }
+
+        var allModels = await _providers.GetAllModelsAsync();
+        ModelSelectList = new SelectList(
+            allModels.Select(m => new { m.Id, Display = $"{m.Name} ({m.Provider?.Name})" }),
+            "Id", "Display", app.AiModelId);
 
         var execQuery = _db.Executions
             .Include(e => e.User)
@@ -122,6 +132,38 @@ public class DetailModel : PageModel
         await _db.SaveChangesAsync();
 
         TempData["Success"] = $"هزینه اجرا به {app.CreditCost} اعتبار تغییر یافت.";
+        return RedirectToPage(new { id });
+    }
+
+    public async Task<IActionResult> OnPostChangeModelAsync(int id, int newModelId)
+    {
+        var app = await _db.Apps.Include(a => a.AiModel).FirstOrDefaultAsync(a => a.Id == id);
+        if (app == null) return NotFound();
+
+        var model = await _db.AiModels.Include(m => m.Provider).FirstOrDefaultAsync(m => m.Id == newModelId);
+        if (model == null)
+        {
+            TempData["Error"] = "مدل انتخابی یافت نشد.";
+            return RedirectToPage(new { id });
+        }
+
+        var oldName = app.AiModel?.Name ?? "?";
+        app.AiModelId = newModelId;
+        app.UpdatedAt = DateTime.UtcNow;
+
+        var adminId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
+        _db.AuditLogs.Add(new AdminAuditLog
+        {
+            AdminUserId = adminId,
+            Action = "ChangeAppModel",
+            TargetType = "App",
+            TargetId = id.ToString(),
+            Details = $"مدل ابزار '{app.Title}' از '{oldName}' به '{model.Name}' تغییر یافت",
+            IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString()
+        });
+
+        await _db.SaveChangesAsync();
+        TempData["Success"] = $"مدل ابزار به «{model.Name}» تغییر یافت.";
         return RedirectToPage(new { id });
     }
 }

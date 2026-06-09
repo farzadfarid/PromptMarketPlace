@@ -502,10 +502,38 @@ namespace PromptMarketPlace.Migrations
                     b.Property<string>("ApiKeyEncrypted")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("BalanceCurrency")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("BalanceJsonPath")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("BalanceUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<string>("BaseUrl")
                         .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsActiveForAudio")
+                        .HasDefaultValue(false)
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsActiveForImage")
+                        .HasDefaultValue(false)
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsActiveForText")
+                        .HasDefaultValue(false)
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsActiveForVideo")
+                        .HasDefaultValue(false)
+                        .HasColumnType("bit");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");

@@ -1,4 +1,5 @@
 using System.Net.Http.Headers;
+using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using PromptMarketPlace.Models.Domain;
@@ -37,9 +38,11 @@ public class ProvidersModel : PageModel
         }
 
         if (Form.Id == 0)
-            await _providerService.CreateProviderAsync(Form.Name, Form.BaseUrl, Form.ApiKey, Form.Description);
+            await _providerService.CreateProviderAsync(Form.Name, Form.BaseUrl, Form.ApiKey, Form.Description,
+                Form.BalanceUrl, Form.BalanceJsonPath, Form.BalanceCurrency);
         else
-            await _providerService.UpdateProviderAsync(Form.Id, Form.Name, Form.BaseUrl, Form.ApiKey, Form.Description);
+            await _providerService.UpdateProviderAsync(Form.Id, Form.Name, Form.BaseUrl, Form.ApiKey, Form.Description,
+                Form.BalanceUrl, Form.BalanceJsonPath, Form.BalanceCurrency);
 
         TempData["Success"] = Form.Id == 0 ? "سرویس‌دهنده با موفقیت افزوده شد." : "سرویس‌دهنده بروزرسانی شد.";
         return RedirectToPage();
@@ -103,5 +106,105 @@ public class ProvidersModel : PageModel
         }
     }
 
+    public async Task<IActionResult> OnPostCheckBalanceAsync([FromBody] CheckBalanceDto dto)
+    {
+        if (!dto.ProviderId.HasValue)
+            return new JsonResult(new { success = false, message = "شناسه سرویس‌دهنده ارسال نشده." });
+
+        var provider = await _providerService.GetProviderByIdAsync(dto.ProviderId.Value);
+        if (provider == null)
+            return new JsonResult(new { success = false, message = "سرویس‌دهنده یافت نشد." });
+
+        var apiKey = await _providerService.GetDecryptedApiKeyAsync(dto.ProviderId.Value);
+        if (string.IsNullOrWhiteSpace(apiKey))
+            return new JsonResult(new { success = false, message = "API Key تنظیم نشده است." });
+
+        var baseUrl = provider.BaseUrl.TrimEnd('/');
+
+        try
+        {
+            var client = _httpFactory.CreateClient();
+            client.Timeout = TimeSpan.FromSeconds(10);
+
+            // ChatQT: GET /token/usage?token={key}
+            if (baseUrl.Contains("chatqt.com", StringComparison.OrdinalIgnoreCase))
+            {
+                var req = new HttpRequestMessage(HttpMethod.Get, $"{baseUrl}/token/usage?token={Uri.EscapeDataString(apiKey)}");
+                req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+                var resp = await client.SendAsync(req);
+                var json = JsonNode.Parse(await resp.Content.ReadAsStringAsync());
+                if (resp.IsSuccessStatusCode)
+                {
+                    var usage = json?["usage"]?.GetValue<double>() ?? 0;
+                    return new JsonResult(new { success = true, label = "مصرف کلید", value = $"${usage:F4}", unit = "USD" });
+                }
+                return new JsonResult(new { success = false, message = "دریافت اطلاعات ناموفق بود." });
+            }
+
+            // OpenRouter: GET /auth/key
+            if (baseUrl.Contains("openrouter.ai", StringComparison.OrdinalIgnoreCase))
+            {
+                var req = new HttpRequestMessage(HttpMethod.Get, $"{baseUrl}/auth/key");
+                req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+                var resp = await client.SendAsync(req);
+                var json = JsonNode.Parse(await resp.Content.ReadAsStringAsync());
+                if (resp.IsSuccessStatusCode)
+                {
+                    var data = json?["data"];
+                    var usage = data?["usage"]?.GetValue<double>() ?? 0;
+                    var limit = data?["limit"]?.GetValue<double?>();
+                    var remaining = data?["limit_remaining"]?.GetValue<double?>();
+                    var valueStr = limit.HasValue
+                        ? $"${usage:F4} از ${limit:F2} (باقی‌مانده: ${remaining:F4})"
+                        : $"${usage:F4} مصرف شده (بدون سقف)";
+                    return new JsonResult(new { success = true, label = "مصرف / موجودی", value = valueStr, unit = "USD" });
+                }
+                return new JsonResult(new { success = false, message = "دریافت اطلاعات ناموفق بود." });
+            }
+
+            // AvalAI: GET /account/balance
+            if (baseUrl.Contains("avalai.ir", StringComparison.OrdinalIgnoreCase))
+            {
+                var req = new HttpRequestMessage(HttpMethod.Get, $"{baseUrl}/account/balance");
+                req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+                var resp = await client.SendAsync(req);
+                if (resp.IsSuccessStatusCode)
+                {
+                    var json = JsonNode.Parse(await resp.Content.ReadAsStringAsync());
+                    var balance = json?["balance"]?.GetValue<double>()
+                               ?? json?["data"]?["balance"]?.GetValue<double>()
+                               ?? 0;
+                    return new JsonResult(new { success = true, label = "موجودی", value = $"{balance:N0} تومان", unit = "" });
+                }
+                return new JsonResult(new { success = false, message = "دریافت اطلاعات ناموفق بود." });
+            }
+
+            return new JsonResult(new { success = false, message = "بررسی موجودی برای این سرویس‌دهنده پشتیبانی نمی‌شود." });
+        }
+        catch (TaskCanceledException)
+        {
+            return new JsonResult(new { success = false, message = "زمان انتظار به پایان رسید." });
+        }
+        catch (Exception ex)
+        {
+            return new JsonResult(new { success = false, message = $"خطا: {ex.Message}" });
+        }
+    }
+
+    public async Task<IActionResult> OnPostSetCapabilityAsync([FromBody] SetCapabilityDto dto)
+    {
+        try
+        {
+            await _providerService.SetCapabilityActiveAsync(dto.ProviderId, dto.Capability, dto.IsActive);
+            return new JsonResult(new { success = true });
+        }
+        catch (Exception ex)
+        {
+            return new JsonResult(new { success = false, message = ex.Message });
+        }
+    }
+
     public record TestConnectionDto(string BaseUrl, string? ApiKey, int? ProviderId);
+    public record CheckBalanceDto(int? ProviderId);
+    public record SetCapabilityDto(int ProviderId, string Capability, bool IsActive);
 }
