@@ -14,8 +14,12 @@ public class EditModel : PageModel
     private readonly IAppService _apps;
     private readonly ICreatorHelper _ch;
     private readonly IWebHostEnvironment _env;
+    private readonly IEncryptionService _encryption;
 
-    public EditModel(IAppService apps, ICreatorHelper ch, IWebHostEnvironment env) { _apps = apps; _ch = ch; _env = env; }
+    public EditModel(IAppService apps, ICreatorHelper ch, IWebHostEnvironment env, IEncryptionService encryption)
+    {
+        _apps = apps; _ch = ch; _env = env; _encryption = encryption;
+    }
 
     public AiApp App { get; set; } = null!;
     public bool CanEditPrompt { get; set; }
@@ -42,7 +46,8 @@ public class EditModel : PageModel
             Title = app.Title, ShortDescription = app.ShortDescription,
             Description = app.Description, CategoryId = app.CategoryId,
             CreditCost = app.CreditCost, SystemContext = app.SystemContext,
-            Tags = string.Join(", ", app.Tags.Select(t => t.TagName))
+            Tags = string.Join(", ", app.Tags.Select(t => t.TagName)),
+            NewPrompt = CanEditPrompt ? _encryption.Decrypt(app.EncryptedPrompt) : null
         };
         return Page();
     }
@@ -88,6 +93,7 @@ public class EditModel : PageModel
     private async Task<string?> SaveThumbnailAsync(IFormFile? file)
     {
         if (file == null || file.Length == 0) return null;
+        if (file.Length > 5 * 1024 * 1024) return null;
         var allowed = new[] { ".jpg", ".jpeg", ".png", ".webp" };
         var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
         if (!allowed.Contains(ext)) return null;
