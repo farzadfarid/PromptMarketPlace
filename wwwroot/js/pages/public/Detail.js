@@ -89,16 +89,41 @@ document.addEventListener('DOMContentLoaded', function () {
         el.addEventListener('click', function () {
             var caption = this.dataset.caption || '';
             var text = this.dataset.text || '';
-            var imgUrl = this.dataset.imgurl || '';
+            var url = this.dataset.imgurl || '';
+            var type = (this.dataset.type || '').toLowerCase();
             var titleEl = document.getElementById('showcaseModalTitle');
             var bodyEl = document.getElementById('showcaseModalBody');
             if (titleEl) titleEl.textContent = caption || 'نمونه خروجی';
             if (!bodyEl) return;
-            if (imgUrl) {
+            bodyEl.innerHTML = '';
+
+            if (type === 'video' && url) {
+                var vid = document.createElement('video');
+                vid.controls = true;
+                vid.className = 'w-100 rounded';
+                vid.style.maxHeight = '500px';
+                var src = document.createElement('source');
+                src.src = url;
+                vid.appendChild(src);
+                bodyEl.appendChild(vid);
+            } else if (type === 'audio' && url) {
+                var aud = document.createElement('audio');
+                aud.controls = true;
+                aud.className = 'w-100 mt-3';
+                var src2 = document.createElement('source');
+                src2.src = url;
+                aud.appendChild(src2);
+                if (caption) {
+                    var cap = document.createElement('p');
+                    cap.className = 'text-muted small mt-2 mb-0';
+                    cap.textContent = caption;
+                    bodyEl.appendChild(cap);
+                }
+                bodyEl.appendChild(aud);
+            } else if (url && (type === 'image' || (!text && url))) {
                 var img = document.createElement('img');
-                img.src = imgUrl;
+                img.src = url;
                 img.className = 'img-fluid rounded';
-                bodyEl.innerHTML = '';
                 bodyEl.appendChild(img);
             } else {
                 var pre = document.createElement('pre');
@@ -107,7 +132,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 pre.style.fontSize = '.9rem';
                 pre.style.lineHeight = '1.7';
                 pre.textContent = text;
-                bodyEl.innerHTML = '';
                 bodyEl.appendChild(pre);
             }
         });
