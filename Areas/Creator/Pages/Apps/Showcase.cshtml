@@ -59,6 +59,17 @@
             <li>تصاویری که ابزار شما تولید کرده را آپلود کنید</li>
             <li>تصاویر باید نماینده خروجی واقعی باشند</li>
         }
+        else if (Model.App.OutputType == OutputType.Video)
+        {
+            <li>لینک مستقیم ویدیوهایی که ابزار شما تولید کرده را وارد کنید</li>
+            <li>فرمت‌های پشتیبانی‌شده: mp4، webm — لینک باید مستقیم به فایل باشد</li>
+            <li>می‌توانید از CDN یا هاست ویدیو استفاده کنید</li>
+        }
+        else if (Model.App.OutputType == OutputType.Audio)
+        {
+            <li>لینک مستقیم فایل‌های صوتی که ابزار شما تولید کرده را وارد کنید</li>
+            <li>فرمت‌های پشتیبانی‌شده: mp3، wav، ogg</li>
+        }
     </ul>
 </div>
 
@@ -72,12 +83,20 @@
                     <select asp-for="Form.OutputType" class="form-select form-select-sm" onchange="toggleShowcaseInput(this.value)">
                         <option value="Text">متن</option>
                         <option value="Image">تصویر</option>
+                        <option value="Video">ویدیو</option>
+                        <option value="Audio">صدا</option>
                         <option value="Code">کد</option>
                     </select>
                 </div>
                 <div id="image-input" class="mb-3 d-none">
                     <label class="form-label small">آپلود تصویر</label>
                     <input type="file" asp-for="Form.ImageFile" class="form-control form-control-sm" accept="image/*" />
+                </div>
+                <div id="media-url-input" class="mb-3 d-none">
+                    <label class="form-label small" id="media-url-label">لینک ویدیو</label>
+                    <input type="url" asp-for="Form.MediaUrl" class="form-control form-control-sm" dir="ltr"
+                           placeholder="https://..." id="media-url-field" />
+                    <div class="form-text" id="media-url-hint">لینک مستقیم فایل mp4 یا آدرس CDN</div>
                 </div>
                 <div id="text-input" class="mb-3">
                     <label class="form-label small">متن خروجی نمونه</label>
@@ -116,7 +135,21 @@
             {
                 <div class="col-md-6">
                     <div class="card border-0 shadow-sm h-100">
-                        @if (!string.IsNullOrEmpty(item.OutputUrl))
+                        @if (item.OutputType == OutputType.Video && !string.IsNullOrEmpty(item.OutputUrl))
+                        {
+                            <video controls class="w-100" style="height:140px;object-fit:cover;background:#000;">
+                                <source src="@item.OutputUrl" />
+                            </video>
+                        }
+                        else if (item.OutputType == OutputType.Audio && !string.IsNullOrEmpty(item.OutputUrl))
+                        {
+                            <div class="p-2 d-flex align-items-center justify-content-center bg-light" style="height:80px;">
+                                <audio controls class="w-100" style="max-width:260px;">
+                                    <source src="@item.OutputUrl" />
+                                </audio>
+                            </div>
+                        }
+                        else if (!string.IsNullOrEmpty(item.OutputUrl))
                         {
                             <img src="@item.OutputUrl" class="card-img-top" style="height:140px;object-fit:cover;" />
                         }

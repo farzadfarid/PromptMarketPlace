@@ -57,13 +57,18 @@ public class ShowcaseModel : PageModel
             await Form.ImageFile.CopyToAsync(fs);
             item.OutputUrl = $"/uploads/showcase/{fileName}";
         }
+        else if ((Form.OutputType == OutputType.Video || Form.OutputType == OutputType.Audio)
+                 && !string.IsNullOrWhiteSpace(Form.MediaUrl))
+        {
+            item.OutputUrl = Form.MediaUrl.Trim();
+        }
         else if (!string.IsNullOrWhiteSpace(Form.TextOutput))
         {
             item.OutputText = Form.TextOutput;
         }
         else
         {
-            TempData["Error"] = "فایل یا متن وارد کنید.";
+            TempData["Error"] = "فایل، لینک یا متن وارد کنید.";
             return RedirectToPage(new { appId });
         }
 
@@ -86,6 +91,7 @@ public class ShowcaseModel : PageModel
     {
         public OutputType OutputType { get; set; } = OutputType.Text;
         public IFormFile? ImageFile { get; set; }
+        public string? MediaUrl { get; set; }
         public string? TextOutput { get; set; }
         public string? Caption { get; set; }
     }
