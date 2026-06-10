@@ -12,6 +12,109 @@
 <div class="row justify-content-center">
     <div class="col-lg-9">
 
+        <!-- آمار مصرف توکن -->
+        @if (Model.AvgTokensAll.HasValue)
+        {
+            <div class="alert @(Model.IsUnprofitable ? "alert-danger" : "alert-info") py-2 px-3 mb-3 d-flex align-items-center gap-3 flex-wrap small">
+                <i class="fas fa-microchip"></i>
+                <div class="d-flex gap-4 flex-wrap flex-grow-1">
+                    <span>
+                        <span class="text-muted">میانگین توکن (کل): </span>
+                        <strong>@Model.AvgTokensAll.Value.N0Fa()</strong>
+                    </span>
+                    @if (Model.AvgTokens30d.HasValue)
+                    {
+                        <span>
+                            <span class="text-muted">میانگین ۳۰ روز: </span>
+                            <strong>@Model.AvgTokens30d.Value.N0Fa()</strong>
+                        </span>
+                    }
+                    <span>
+                        <span class="text-muted">هزینه اجرا: </span>
+                        <strong>@Model.App.CreditCost اعتبار</strong>
+                    </span>
+                </div>
+                @if (Model.IsUnprofitable)
+                {
+                    <span class="badge bg-danger">
+                        <i class="fas fa-exclamation-triangle me-1"></i>احتمال زیان‌دهی — افزایش هزینه اجرا توصیه می‌شود
+                    </span>
+                }
+                <button type="button" class="btn btn-link p-0 help-popover-btn"
+                        data-help-id="tokenStats" title="راهنما" style="line-height:1">
+                    <i class="fas fa-question-circle @(Model.IsUnprofitable ? "text-white" : "")"></i>
+                </button>
+            </div>
+        }
+
+        <!-- ماشین حساب تخمین توکن -->
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header d-flex align-items-center gap-2 py-2">
+                <h6 class="mb-0 small fw-semibold flex-grow-1">
+                    <i class="fas fa-calculator me-2 text-primary"></i>ماشین حساب تخمین توکن
+                </h6>
+                <button type="button" class="btn btn-link p-0 text-muted help-popover-btn"
+                        data-help-id="calculator" title="راهنما" style="line-height:1;font-size:.9rem">
+                    <i class="fas fa-question-circle"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-secondary py-0 px-2"
+                        data-bs-toggle="collapse" data-bs-target="#creatorCalcBox">
+                    نمایش / پنهان
+                </button>
+            </div>
+            <div class="collapse" id="creatorCalcBox">
+                <div class="card-body pt-2"
+                     id="creatorTokenCalc"
+                     data-prompt="@Model.PromptCharCount"
+                     data-sys="@Model.SystemContextCharCount"
+                     data-fields="@(System.Text.Json.JsonSerializer.Serialize(Model.ExistingFields.Select(f => f.Type.ToString())))">
+                    <table class="table table-sm small mb-2">
+                        <tbody>
+                            <tr>
+                                <td class="text-muted">System Context</td>
+                                <td class="text-end fw-semibold" id="ctc-sys">0</td>
+                                <td class="text-muted ps-1" style="font-size:.7rem">توکن</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">پرامپت قالب</td>
+                                <td class="text-end fw-semibold" id="ctc-prompt">0</td>
+                                <td class="text-muted ps-1" style="font-size:.7rem">توکن</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">فیلدهای ورودی (@Model.ExistingFields.Count فیلد)</td>
+                                <td class="text-end fw-semibold" id="ctc-fields">0</td>
+                                <td class="text-muted ps-1" style="font-size:.7rem">توکن</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="text-muted">خروجی تخمینی</div>
+                                    <div class="d-flex align-items-center gap-1 mt-1">
+                                        <input type="range" id="ctc-slider" min="100" max="4000" step="100" value="500"
+                                               class="form-range flex-grow-1" oninput="updateCreatorCalc()">
+                                        <span id="ctc-out-lbl" class="text-primary fw-semibold" style="min-width:36px;font-size:.8rem">500</span>
+                                    </div>
+                                </td>
+                                <td class="text-end fw-semibold" id="ctc-out">500</td>
+                                <td class="text-muted ps-1" style="font-size:.7rem">توکن</td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr class="fw-bold">
+                                <td class="border-top pt-2">مجموع تخمینی</td>
+                                <td class="text-end border-top pt-2" id="ctc-total">—</td>
+                                <td class="text-muted ps-1 border-top pt-2" style="font-size:.7rem">توکن</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                    <div class="text-center py-2 rounded" style="background:rgba(13,110,253,.06);border:1px solid rgba(13,110,253,.2);">
+                        <div class="text-muted small">هزینه اجرای پیشنهادی</div>
+                        <div class="fw-bold fs-5 text-primary" id="ctc-credits">—</div>
+                        <div class="text-muted" style="font-size:.68rem">اعتبار &nbsp;|&nbsp; ۱٬۰۰۰ توکن = ۱ اعتبار</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Wizard Steps -->
         <div class="d-flex gap-0 mb-4" id="wizard-steps">
             @foreach (var (num, title) in new[] { (1,"اطلاعات پایه"), (2,"تنظیمات AI"), (3,"فیلدها و پرامپت") })
@@ -429,5 +532,99 @@
         };
         reader.readAsDataURL(file);
     });
+    </script>
+    <script>
+    (function () {
+        // ─── Calculator ───────────────────────────────────
+        var FIELD_TOKENS = { Textarea: 300, Text: 50, Select: 5, Number: 5, Checkbox: 3 };
+        var el = document.getElementById('creatorTokenCalc');
+        if (el) {
+            var promptTokens = Math.round((parseInt(el.dataset.prompt) || 0) / 3.5);
+            var sysTokens    = Math.round((parseInt(el.dataset.sys)    || 0) / 3.5);
+            var fields       = JSON.parse(el.dataset.fields || '[]');
+            var fieldTokens  = fields.reduce(function (s, t) { return s + (FIELD_TOKENS[t] || 30); }, 0);
+
+            document.getElementById('ctc-sys').textContent    = sysTokens.toLocaleString('fa-IR');
+            document.getElementById('ctc-prompt').textContent = promptTokens.toLocaleString('fa-IR');
+            document.getElementById('ctc-fields').textContent = fieldTokens.toLocaleString('fa-IR');
+
+            window.updateCreatorCalc = function () {
+                var outVal = parseInt(document.getElementById('ctc-slider').value) || 500;
+                document.getElementById('ctc-out-lbl').textContent = outVal.toLocaleString('fa-IR');
+                document.getElementById('ctc-out').textContent     = outVal.toLocaleString('fa-IR');
+                var total   = sysTokens + promptTokens + fieldTokens + outVal;
+                var credits = Math.ceil(total / 1000);
+                document.getElementById('ctc-total').textContent   = total.toLocaleString('fa-IR');
+                document.getElementById('ctc-credits').textContent = credits.toLocaleString('fa-IR') + ' اعتبار';
+            };
+            updateCreatorCalc();
+        }
+
+        // ─── Help Popovers ────────────────────────────────
+        var helpData = {
+            tokenStats: {
+                title: '<i class="fas fa-microchip me-1 text-primary"></i> مصرف توکن واقعی',
+                content: [
+                    '<div style="font-size:.82rem;line-height:1.75;direction:rtl;text-align:right">',
+                    '<p class="mb-2">این بخش آمار واقعی مصرف توکن در اجراهای موفق ابزار را نمایش می‌دهد. هر اجرای AI یک بار توکن مصرف می‌کند؛ هرچه توکن بیشتری مصرف شود، هزینه واقعی بیشتر است.</p>',
+                    '<hr class="my-2">',
+                    '<dl class="mb-0">',
+                    '<dt class="mb-1">📊 میانگین توکن (کل)</dt>',
+                    '<dd class="text-muted mb-2">میانگین تعداد توکن در <strong>تمام اجراهای موفق</strong> از ابتدا. هم توکن ورودی (پرامپت + فیلدها) و هم توکن خروجی (پاسخ AI) را شامل می‌شود.</dd>',
+                    '<dt class="mb-1">📅 میانگین توکن (۳۰ روز)</dt>',
+                    '<dd class="text-muted mb-2">میانگین <strong>۳۰ روز اخیر</strong>؛ نشان می‌دهد آیا مصرف در حال افزایش است یا کاهش. این عدد برای تصمیم‌گیری درباره تغییر هزینه اجرا مهم‌تر است.</dd>',
+                    '<dt class="mb-1">💰 هزینه اعتبار</dt>',
+                    '<dd class="text-muted mb-2">تعداد اعتباری که از کاربر برای هر اجرا دریافت می‌شود. استاندارد پلتفرم: <strong>هر ۱ اعتبار = ۱٬۰۰۰ توکن</strong>.</dd>',
+                    '<dt class="mb-1">⚠️ هشدار زیان‌دهی</dt>',
+                    '<dd class="text-muted mb-0">اگر میانگین ۳۰ روز از مقدار <em>(اعتبار × ۱۰۰۰)</em> بیشتر شود فعال می‌شود؛ یعنی درآمد اعتباری کافی نیست تا هزینه واقعی API را پوشش دهد.</dd>',
+                    '</dl></div>'
+                ].join('')
+            },
+            calculator: {
+                title: '<i class="fas fa-calculator me-1 text-primary"></i> ماشین حساب تخمین توکن',
+                content: [
+                    '<div style="font-size:.82rem;line-height:1.75;direction:rtl;text-align:right">',
+                    '<p class="mb-2">این ابزار تخمین می‌زند <strong>هر اجرای ابزار</strong> چه مقدار توکن مصرف می‌کند تا بتوانید هزینه اجرای مناسب تعیین کنید.</p>',
+                    '<hr class="my-2">',
+                    '<dl class="mb-0">',
+                    '<dt class="mb-1">📝 System Context</dt>',
+                    '<dd class="text-muted mb-2">متن System Context به توکن تبدیل می‌شود. فرمول: <strong>کاراکتر ÷ ۳.۵</strong>.</dd>',
+                    '<dt class="mb-1">📄 پرامپت قالب</dt>',
+                    '<dd class="text-muted mb-2">طول ثابت پرامپت ابزار. با همان فرمول کاراکتر ÷ ۳.۵ تخمین زده می‌شود.</dd>',
+                    '<dt class="mb-1">🔢 فیلدهای ورودی</dt>',
+                    '<dd class="text-muted mb-2">بر اساس نوع فیلد تخمین می‌زنیم کاربر چه مقدار تایپ می‌کند:<br>',
+                    '<code>Textarea ≈ ۳۰۰</code> &nbsp; <code>Text ≈ ۵۰</code> &nbsp; <code>Select/Number ≈ ۵</code></dd>',
+                    '<dt class="mb-1">🤖 خروجی تخمینی</dt>',
+                    '<dd class="text-muted mb-2">توکن‌هایی که AI در پاسخ تولید می‌کند. با slider تنظیم کنید: پاسخ کوتاه ۳۰۰-۵۰۰، پاسخ بلند ۱۰۰۰-۲۰۰۰.</dd>',
+                    '<dt class="mb-1">💡 هزینه پیشنهادی</dt>',
+                    '<dd class="text-muted mb-0">فرمول: <strong>⌈مجموع ÷ ۱۰۰۰⌉</strong> اعتبار. حداقل هزینه‌ای که باید تنظیم کنید تا ابزار زیان‌ده نباشد.</dd>',
+                    '</dl></div>'
+                ].join('')
+            }
+        };
+
+        document.querySelectorAll('.help-popover-btn').forEach(function (btn) {
+            var id = btn.dataset.helpId;
+            var data = helpData[id];
+            if (!data) return;
+            new bootstrap.Popover(btn, {
+                html: true,
+                title: data.title,
+                content: data.content,
+                trigger: 'click',
+                placement: 'auto',
+                customClass: 'help-popover'
+            });
+        });
+
+        document.addEventListener('click', function (e) {
+            if (!e.target.closest('.help-popover-btn') && !e.target.closest('.popover')) {
+                document.querySelectorAll('.help-popover-btn').forEach(function (btn) {
+                    var pop = bootstrap.Popover.getInstance(btn);
+                    if (pop) pop.hide();
+                });
+            }
+        });
+    })();
     </script>
 }

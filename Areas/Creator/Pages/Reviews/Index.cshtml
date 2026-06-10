@@ -1,0 +1,179 @@
+@page
+@model IndexModel
+@{ ViewData["Title"] = "نظرات کاربران"; }
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show small">
+        <i class="fas fa-check-circle me-2"></i>@TempData["Success"]
+        <button type="button" class="btn-close btn-sm" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show small">
+        <i class="fas fa-exclamation-circle me-2"></i>@TempData["Error"]
+        <button type="button" class="btn-close btn-sm" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <p class="text-muted small mb-0">
+            نظرات کاربران درباره ابزارهای شما
+            @if (Model.PendingCount > 0)
+            {
+                <span class="badge bg-warning text-dark ms-2">@Model.PendingCount نظر در انتظار تایید</span>
+            }
+        </p>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-page="/Reviews/Index" asp-area="Creator"
+           class="btn btn-sm @(Model.FilterStatus == null ? "btn-primary" : "btn-outline-secondary")">
+            همه نظرات
+        </a>
+        <a asp-page="/Reviews/Index" asp-area="Creator" asp-route-FilterStatus="pending"
+           class="btn btn-sm @(Model.FilterStatus == "pending" ? "btn-warning" : "btn-outline-warning")">
+            در انتظار تایید
+            @if (Model.PendingCount > 0)
+            {
+                <span class="badge bg-dark ms-1">@Model.PendingCount</span>
+            }
+        </a>
+    </div>
+</div>
+
+@if (!Model.Reviews.Any())
+{
+    <div class="card shadow-sm">
+        <div class="card-body text-center text-muted py-5">
+            <i class="fas fa-comments fa-2x mb-3 d-block opacity-25"></i>
+            @(Model.FilterStatus == "pending" ? "نظر در انتظار تایید وجود ندارد." : "هنوز نظری ثبت نشده است.")
+        </div>
+    </div>
+}
+else
+{
+    <div class="d-flex flex-column gap-3">
+        @foreach (var r in Model.Reviews)
+        {
+            <div class="card shadow-sm @(!r.IsApproved ? "border-warning border-opacity-50" : "")">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                        <!-- اطلاعات نظر -->
+                        <div class="flex-grow-1">
+                            <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                                <strong class="small">@r.User?.DisplayName</strong>
+                                <div>
+                                    @for (int i = 1; i <= 5; i++)
+                                    {
+                                        <i class="fas fa-star @(i <= r.Rating ? "text-warning" : "text-muted")" style="font-size:.75rem;"></i>
+                                    }
+                                </div>
+                                @if (r.IsVerifiedPurchase)
+                                {
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size:.65rem;">
+                                        <i class="fas fa-check me-1"></i>خریدار تأیید شده
+                                    </span>
+                                }
+                                <span class="badge bg-light text-secondary border small">@r.App?.Title</span>
+                                <span class="text-muted" style="font-size:.7rem;">@r.CreatedAt.ToShamsi("yy/MM/dd")</span>
+                                @if (r.IsApproved)
+                                {
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size:.65rem;">منتشر شده</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle" style="font-size:.65rem;">در انتظار تایید</span>
+                                }
+                            </div>
+
+                            @if (!string.IsNullOrEmpty(r.Comment))
+                            {
+                                <p class="mb-2 small text-muted">@r.Comment</p>
+                            }
+
+                            <!-- پاسخ سازنده -->
+                            @if (!string.IsNullOrEmpty(r.CreatorReply))
+                            {
+                                <div class="p-2 rounded bg-primary bg-opacity-10 border-start border-primary border-2 small mb-2">
+                                    <span class="fw-semibold text-primary">پاسخ شما:</span>
+                                    <span class="text-muted me-1">@r.CreatorReply</span>
+                                    <span class="text-muted" style="font-size:.65rem;">(@r.RepliedAt?.ToShamsi("yy/MM/dd"))</span>
+                                </div>
+                            }
+
+                            <!-- فرم پاسخ (فقط برای نظرات تایید شده بدون پاسخ) -->
+                            @if (r.IsApproved && string.IsNullOrEmpty(r.CreatorReply))
+                            {
+                                <details class="mt-2">
+                                    <summary class="text-primary small" style="cursor:pointer;">
+                                        <i class="fas fa-reply fa-xs me-1"></i>پاسخ دادن
+                                    </summary>
+                                    <form method="post" asp-page-handler="Reply" class="mt-2 d-flex gap-2">
+                                        <input type="hidden" name="id" value="@r.Id" />
+                                        <input type="text" name="reply" class="form-control form-control-sm"
+                                               placeholder="پاسخ خود را بنویسید..." required maxlength="500" />
+                                        <button type="submit" class="btn btn-sm btn-primary flex-shrink-0">ارسال</button>
+                                    </form>
+                                </details>
+                            }
+                        </div>
+
+                        <!-- دکمه‌های عملیات -->
+                        @if (!r.IsApproved)
+                        {
+                            <div class="d-flex gap-2 flex-shrink-0">
+                                <form method="post" asp-page-handler="Approve">
+                                    <input type="hidden" name="id" value="@r.Id" />
+                                    <button type="submit" class="btn btn-sm btn-success">
+                                        <i class="fas fa-check me-1"></i>تایید و انتشار
+                                    </button>
+                                </form>
+                                <button type="button" class="btn btn-sm btn-outline-danger reject-btn"
+                                        data-id="@r.Id" data-user="@r.User?.DisplayName">
+                                    <i class="fas fa-times me-1"></i>رد کردن
+                                </button>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+<!-- Modal رد کردن نظر -->
+<div class="modal fade" id="rejectModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <div class="modal-body p-4 text-center">
+                <div class="rounded-circle bg-danger bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3"
+                     style="width:52px;height:52px;">
+                    <i class="fas fa-trash-alt text-danger fs-5"></i>
+                </div>
+                <h6 class="fw-semibold mb-1">رد کردن نظر</h6>
+                <p class="text-muted small mb-0">نظر <strong id="rejectUserName"></strong> حذف می‌شود و برای کاربر نمایش داده نخواهد شد.</p>
+            </div>
+            <div class="modal-footer border-0 pt-0 justify-content-center gap-2">
+                <button type="button" class="btn btn-outline-secondary btn-sm px-4" data-bs-dismiss="modal">انصراف</button>
+                <form method="post" asp-page-handler="Reject" id="rejectForm">
+                    <input type="hidden" name="id" id="rejectId" />
+                    <button type="submit" class="btn btn-danger btn-sm px-4">رد کردن</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+document.querySelectorAll('.reject-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+        document.getElementById('rejectId').value = this.dataset.id;
+        document.getElementById('rejectUserName').textContent = this.dataset.user || 'کاربر';
+        new bootstrap.Modal(document.getElementById('rejectModal')).show();
+    });
+});
+</script>
+}

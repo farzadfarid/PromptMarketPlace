@@ -1,4 +1,47 @@
 document.addEventListener('DOMContentLoaded', function () {
+    // Star rating
+    var starContainer = document.getElementById('starRating');
+    if (starContainer) {
+        var starLabels = Array.from(starContainer.querySelectorAll('.star-lbl'));
+        var ratingInput = document.getElementById('ratingValue');
+        var starError = document.getElementById('starError');
+        var selectedVal = 0;
+
+        function paintStars(upTo) {
+            starLabels.forEach(function (lbl) {
+                lbl.querySelector('i').style.color = parseInt(lbl.dataset.val) <= upTo ? '#f97316' : '#ddd';
+            });
+        }
+
+        starLabels.forEach(function (lbl) {
+            lbl.addEventListener('mouseenter', function () {
+                paintStars(parseInt(this.dataset.val));
+            });
+            lbl.addEventListener('click', function () {
+                selectedVal = parseInt(this.dataset.val);
+                if (ratingInput) ratingInput.value = selectedVal;
+                if (starError) starError.style.display = 'none';
+                paintStars(selectedVal);
+            });
+        });
+
+        starContainer.addEventListener('mouseleave', function () {
+            paintStars(selectedVal);
+        });
+
+        // validate before submit
+        var reviewForm = starContainer.closest('form');
+        if (reviewForm) {
+            reviewForm.addEventListener('submit', function (e) {
+                if (selectedVal < 1) {
+                    e.preventDefault();
+                    if (starError) starError.style.display = 'block';
+                    starContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            });
+        }
+    }
+
     // Scroll to output result after execution
     var output = document.querySelector('.output-result');
     if (output) {

@@ -72,7 +72,23 @@ public class AiService : IAiService
 
             var node = JsonNode.Parse(json);
             var text = node?["choices"]?[0]?["message"]?["content"]?.GetValue<string>() ?? "";
-            var tokens = node?["usage"]?["total_tokens"]?.GetValue<int>() ?? 0;
+
+            // ── token count: try API usage first, fall back to char-based estimate ──
+            var usage = node?["usage"];
+            var tokens = usage?["total_tokens"]?.GetValue<int>()
+                      ?? ((usage?["prompt_tokens"]?.GetValue<int>() ?? 0)
+                        + (usage?["completion_tokens"]?.GetValue<int>() ?? 0));
+
+            if (tokens == 0)
+            {
+                // provider did not return usage — estimate from actual content
+                var inputChars  = (systemContext?.Length ?? 0) + prompt.Length;
+                var outputChars = text.Length;
+                tokens = (int)Math.Round((inputChars + outputChars) / 3.5);
+            }
+
+            _logger.LogInformation("Tokens for model {Model}: {Tokens} (api={ApiTokens})",
+                model.ModelId, tokens, usage != null);
 
             return new AiResponse { IsSuccess = true, Text = text, TokensUsed = tokens };
         }

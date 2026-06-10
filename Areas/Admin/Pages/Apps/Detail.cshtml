@@ -203,6 +203,120 @@
             </div>
         </div>
 
+        <!-- مصرف توکن واقعی -->
+        <div class="card shadow-sm mb-3">
+            <div class="card-body">
+                <h6 class="fw-semibold mb-3 d-flex align-items-center gap-2 flex-wrap">
+                    <i class="fas fa-microchip me-1" style="color:#6366f1;"></i>مصرف توکن واقعی
+                    @if (Model.IsUnprofitable)
+                    {
+                        <span class="badge bg-danger" style="font-size:.6rem;">
+                            <i class="fas fa-exclamation-triangle me-1"></i>احتمال زیان‌دهی
+                        </span>
+                    }
+                    <button type="button" class="btn btn-link p-0 ms-auto text-muted help-popover-btn"
+                            data-help-id="tokenStats" title="راهنما" style="line-height:1">
+                        <i class="fas fa-question-circle"></i>
+                    </button>
+                </h6>
+                <dl class="row mb-0 small">
+                    <dt class="col-7 text-muted">هزینه اعتبار تنظیم شده</dt>
+                    <dd class="col-5 fw-semibold">@a.CreditCost اعتبار</dd>
+                    <dt class="col-7 text-muted">ظرفیت هر اعتبار</dt>
+                    <dd class="col-5 text-muted">~۱٬۰۰۰ توکن</dd>
+                    @if (Model.AvgTokensAll.HasValue)
+                    {
+                        <dt class="col-7 text-muted">میانگین توکن (کل)</dt>
+                        <dd class="col-5 fw-semibold">@Model.AvgTokensAll.Value.N0Fa()</dd>
+                    }
+                    @if (Model.AvgTokens30d.HasValue)
+                    {
+                        <dt class="col-7 text-muted">میانگین توکن (۳۰ روز)</dt>
+                        <dd class="col-5 fw-semibold @(Model.IsUnprofitable ? "text-danger" : "")">@Model.AvgTokens30d.Value.N0Fa()</dd>
+                    }
+                </dl>
+                @if (!Model.AvgTokensAll.HasValue)
+                {
+                    <p class="text-muted small mb-0 mt-2">هنوز اجرایی با ثبت توکن وجود ندارد.</p>
+                }
+                @if (Model.IsUnprofitable)
+                {
+                    <div class="alert alert-danger py-2 px-3 mt-2 mb-0 small">
+                        <i class="fas fa-exclamation-triangle me-1"></i>
+                        میانگین مصرف ۳۰ روز اخیر از سقف اعتبار تنظیم شده بیشتر است. افزایش هزینه اجرا یا بهینه‌سازی پرامپت توصیه می‌شود.
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- ماشین حساب تخمین توکن -->
+        <div class="card shadow-sm mb-3">
+            <div class="card-header d-flex align-items-center gap-2 py-2">
+                <h6 class="mb-0 small fw-semibold flex-grow-1">
+                    <i class="fas fa-calculator me-2" style="color:#6366f1;"></i>ماشین حساب تخمین توکن
+                </h6>
+                <button type="button" class="btn btn-link p-0 text-muted help-popover-btn"
+                        data-help-id="calculator" title="راهنما" style="line-height:1;font-size:.9rem">
+                    <i class="fas fa-question-circle"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-secondary py-0 px-2"
+                        data-bs-toggle="collapse" data-bs-target="#tokenCalcBox">
+                    نمایش / پنهان
+                </button>
+            </div>
+            <div class="collapse" id="tokenCalcBox">
+                <div class="card-body pt-2"
+                     id="adminTokenCalc"
+                     data-prompt="@Model.PromptCharCount"
+                     data-sys="@Model.SystemContextCharCount"
+                     data-fields="@(System.Text.Json.JsonSerializer.Serialize(a.InputFields.Select(f => f.Type.ToString())))">
+                    <table class="table table-sm small mb-2">
+                        <tbody>
+                            <tr>
+                                <td class="text-muted">System Context</td>
+                                <td class="text-end fw-semibold" id="atc-sys">0</td>
+                                <td class="text-muted ps-1" style="font-size:.7rem">توکن</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">پرامپت قالب</td>
+                                <td class="text-end fw-semibold" id="atc-prompt">0</td>
+                                <td class="text-muted ps-1" style="font-size:.7rem">توکن</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">فیلدهای ورودی (@a.InputFields.Count.N0Fa() فیلد)</td>
+                                <td class="text-end fw-semibold" id="atc-fields">0</td>
+                                <td class="text-muted ps-1" style="font-size:.7rem">توکن</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="text-muted">خروجی تخمینی</div>
+                                    <div class="d-flex align-items-center gap-1 mt-1">
+                                        <input type="range" id="atc-slider" min="100" max="4000" step="100" value="500"
+                                               class="form-range flex-grow-1" oninput="updateAdminCalc()">
+                                        <span id="atc-out-lbl" class="text-primary fw-semibold" style="min-width:36px;font-size:.8rem">500</span>
+                                    </div>
+                                </td>
+                                <td class="text-end fw-semibold" id="atc-out">500</td>
+                                <td class="text-muted ps-1" style="font-size:.7rem">توکن</td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr class="fw-bold">
+                                <td class="border-top pt-2">مجموع تخمینی</td>
+                                <td class="text-end border-top pt-2" id="atc-total">—</td>
+                                <td class="text-muted ps-1 border-top pt-2" style="font-size:.7rem">توکن</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                    <div class="text-center py-2 rounded" style="background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);">
+                        <div class="text-muted small">هزینه اجرای پیشنهادی</div>
+                        <div class="fw-bold fs-5 text-primary" id="atc-credits">—</div>
+                        <div class="text-muted" style="font-size:.68rem">اعتبار &nbsp;|&nbsp; ۱٬۰۰۰ توکن = ۱ اعتبار</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- فیلدهای ورودی -->
         @if (a.InputFields.Any())
         {
@@ -384,6 +498,11 @@
                         }
                     </div>
                     <small class="text-muted">@Model.ReviewTotalCount.N0Fa() نظر</small>
+                    @{ var pendingRevCount = Model.Reviews.Count(r => !r.IsApproved); }
+                    @if (pendingRevCount > 0)
+                    {
+                        <span class="badge bg-warning text-dark ms-1" style="font-size:.6rem">@pendingRevCount در انتظار</span>
+                    }
                 </div>
 
                 @{
@@ -398,18 +517,50 @@
                     @foreach (var r in Model.Reviews)
                     {
                         <div class="border-bottom pb-2 mb-2">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span class="small fw-semibold">@r.User?.DisplayName</span>
-                                <div class="d-flex align-items-center gap-2">
-                                    <span class="text-warning small">
-                                        @for (int s = 1; s <= 5; s++)
-                                        { <i class="fas fa-star@(s <= r.Rating ? "" : " text-muted opacity-25")"></i> }
-                                    </span>
-                                    <span class="text-muted" style="font-size:.7rem">@r.CreatedAt.ToShamsi("yy/MM/dd")</span>
+                            <div class="d-flex justify-content-between align-items-start gap-2">
+                                <div class="flex-grow-1">
+                                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                                        <span class="small fw-semibold">@r.User?.DisplayName</span>
+                                        <span class="text-warning small">
+                                            @for (int s = 1; s <= 5; s++)
+                                            { <i class="fas fa-star@(s <= r.Rating ? "" : " text-muted opacity-25")" style="font-size:.7rem"></i> }
+                                        </span>
+                                        <span class="text-muted" style="font-size:.65rem">(@r.Rating ستاره)</span>
+                                        @if (r.IsApproved)
+                                        {
+                                            <span class="badge bg-success-subtle text-success" style="font-size:.6rem">منتشر</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-warning-subtle text-warning" style="font-size:.6rem">در انتظار</span>
+                                        }
+                                        <span class="text-muted" style="font-size:.65rem">@r.CreatedAt.ToShamsi("yy/MM/dd")</span>
+                                    </div>
+                                    @if (!string.IsNullOrEmpty(r.Comment))
+                                    { <p class="small text-muted mb-0 mt-1">@r.Comment</p> }
+                                    @if (!string.IsNullOrEmpty(r.CreatorReply))
+                                    { <p class="small text-primary mb-0 mt-1"><i class="fas fa-reply fa-xs me-1"></i>@r.CreatorReply</p> }
+                                </div>
+                                <div class="d-flex gap-1 flex-shrink-0">
+                                    @if (!r.IsApproved)
+                                    {
+                                        <form method="post" asp-page-handler="ApproveReview" asp-route-id="@a.Id">
+                                            <input type="hidden" name="reviewId" value="@r.Id" />
+                                            <button type="submit" class="btn btn-xs btn-outline-success" title="تایید" style="font-size:.7rem;padding:.15rem .4rem;">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                    <form method="post" asp-page-handler="DeleteReview" asp-route-id="@a.Id">
+                                        <input type="hidden" name="reviewId" value="@r.Id" />
+                                        <button type="submit" class="btn btn-xs btn-outline-danger" title="حذف"
+                                                style="font-size:.7rem;padding:.15rem .4rem;"
+                                                onclick="return confirm('حذف شود؟')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
                                 </div>
                             </div>
-                            @if (!string.IsNullOrEmpty(r.Comment))
-                            { <p class="small text-muted mb-0 mt-1">@r.Comment</p> }
                         </div>
                     }
                     @if (totalReviewPages > 1)
@@ -471,3 +622,102 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+<script>
+(function () {
+    // ─── Calculator ───────────────────────────────────────
+    var FIELD_TOKENS = { Textarea: 300, Text: 50, Select: 5, Number: 5, Checkbox: 3 };
+    var el = document.getElementById('adminTokenCalc');
+    if (el) {
+        var promptTokens = Math.round((parseInt(el.dataset.prompt) || 0) / 3.5);
+        var sysTokens    = Math.round((parseInt(el.dataset.sys)    || 0) / 3.5);
+        var fields       = JSON.parse(el.dataset.fields || '[]');
+        var fieldTokens  = fields.reduce(function (s, t) { return s + (FIELD_TOKENS[t] || 30); }, 0);
+
+        document.getElementById('atc-sys').textContent    = sysTokens.toLocaleString('fa-IR');
+        document.getElementById('atc-prompt').textContent = promptTokens.toLocaleString('fa-IR');
+        document.getElementById('atc-fields').textContent = fieldTokens.toLocaleString('fa-IR');
+
+        window.updateAdminCalc = function () {
+            var outVal = parseInt(document.getElementById('atc-slider').value) || 500;
+            document.getElementById('atc-out-lbl').textContent = outVal.toLocaleString('fa-IR');
+            document.getElementById('atc-out').textContent     = outVal.toLocaleString('fa-IR');
+            var total   = sysTokens + promptTokens + fieldTokens + outVal;
+            var credits = Math.ceil(total / 1000);
+            document.getElementById('atc-total').textContent   = total.toLocaleString('fa-IR');
+            document.getElementById('atc-credits').textContent = credits.toLocaleString('fa-IR') + ' اعتبار';
+        };
+        updateAdminCalc();
+    }
+
+    // ─── Help Popovers ───────────────────────────────────
+    var helpData = {
+        tokenStats: {
+            title: '<i class="fas fa-microchip me-1 text-primary"></i> مصرف توکن واقعی',
+            content: [
+                '<div style="font-size:.82rem;line-height:1.75;direction:rtl;text-align:right">',
+                '<p class="mb-2">این بخش آمار واقعی مصرف توکن در اجراهای موفق ابزار را نمایش می‌دهد. هر اجرای هوش مصنوعی یک بار توکن مصرف می‌کند؛ هرچه توکن بیشتری مصرف شود، هزینه واقعی بیشتر است.</p>',
+                '<hr class="my-2">',
+                '<dl class="mb-0">',
+                '<dt class="mb-1">📊 میانگین توکن (کل)</dt>',
+                '<dd class="text-muted mb-2">میانگین تعداد توکن در <strong>تمام اجراهای موفق</strong> از ابتدای ایجاد ابزار. هم توکن‌های ورودی (پرامپت + فیلدها) و هم توکن خروجی (پاسخ AI) را شامل می‌شود.</dd>',
+                '<dt class="mb-1">📅 میانگین توکن (۳۰ روز)</dt>',
+                '<dd class="text-muted mb-2">میانگین <strong>۳۰ روز اخیر</strong>؛ نشان می‌دهد آیا مصرف ابزار در حال افزایش است یا کاهش. این عدد برای تصمیم‌گیری درباره تغییر هزینه اجرا مهم‌تر است.</dd>',
+                '<dt class="mb-1">💰 ظرفیت هر اعتبار</dt>',
+                '<dd class="text-muted mb-2">استاندارد پلتفرم: <strong>هر ۱ اعتبار = ۱٬۰۰۰ توکن</strong>. بر این اساس اگر ابزار به‌طور میانگین ۲٬۵۰۰ توکن مصرف کند، هزینه واقعی آن ۲.۵ اعتبار است.</dd>',
+                '<dt class="mb-1">⚠️ هشدار زیان‌دهی</dt>',
+                '<dd class="text-muted mb-0">اگر میانگین ۳۰ روز از مقدار <em>(اعتبار تنظیم‌شده × ۱۰۰۰)</em> بیشتر شود، این هشدار فعال می‌شود. یعنی درآمد دریافتی از کاربر، هزینه واقعی API را پوشش نمی‌دهد.</dd>',
+                '</dl>',
+                '</div>'
+            ].join('')
+        },
+        calculator: {
+            title: '<i class="fas fa-calculator me-1 text-primary"></i> ماشین حساب تخمین توکن',
+            content: [
+                '<div style="font-size:.82rem;line-height:1.75;direction:rtl;text-align:right">',
+                '<p class="mb-2">این ابزار تخمین می‌زند که <strong>هر اجرای این ابزار</strong> چه مقدار توکن مصرف می‌کند. عدد نهایی برای تعیین هزینه اجرای مناسب کمک می‌کند.</p>',
+                '<hr class="my-2">',
+                '<dl class="mb-0">',
+                '<dt class="mb-1">📝 System Context</dt>',
+                '<dd class="text-muted mb-2">متن System Context ابزار به توکن تبدیل می‌شود. فرمول: <strong>تعداد کاراکتر ÷ ۳.۵</strong> (فارسی و انگلیسی مختلط).</dd>',
+                '<dt class="mb-1">📄 پرامپت قالب</dt>',
+                '<dd class="text-muted mb-2">طول پرامپت اصلی ابزار (بخشی که هرگز تغییر نمی‌کند). با همان فرمول کاراکتر ÷ ۳.۵ تخمین زده می‌شود.</dd>',
+                '<dt class="mb-1">🔢 فیلدهای ورودی</dt>',
+                '<dd class="text-muted mb-2">بر اساس نوع فیلد تخمین زده می‌شود:<br>',
+                '<code>Textarea ≈ ۳۰۰</code> &nbsp; <code>Text ≈ ۵۰</code> &nbsp; <code>Select ≈ ۵</code> &nbsp; <code>Number/Checkbox ≈ ۵</code></dd>',
+                '<dt class="mb-1">🤖 خروجی تخمینی</dt>',
+                '<dd class="text-muted mb-2">توکن‌هایی که AI در پاسخ تولید می‌کند. با slider قابل تنظیم است. برای پاسخ‌های کوتاه ۳۰۰-۵۰۰، برای پاسخ‌های بلند ۱۰۰۰-۲۰۰۰ توصیه می‌شود.</dd>',
+                '<dt class="mb-1">💡 هزینه پیشنهادی</dt>',
+                '<dd class="text-muted mb-0">فرمول: <strong>⌈مجموع توکن ÷ ۱۰۰۰⌉</strong>. حداقل هزینه‌ای که باید برای ابزار تنظیم کنید تا زیان‌ده نباشد.</dd>',
+                '</dl>',
+                '</div>'
+            ].join('')
+        }
+    };
+
+    document.querySelectorAll('.help-popover-btn').forEach(function (btn) {
+        var id = btn.dataset.helpId;
+        var data = helpData[id];
+        if (!data) return;
+        new bootstrap.Popover(btn, {
+            html: true,
+            title: data.title,
+            content: data.content,
+            trigger: 'click',
+            placement: 'auto',
+            customClass: 'help-popover'
+        });
+    });
+
+    document.addEventListener('click', function (e) {
+        if (!e.target.closest('.help-popover-btn') && !e.target.closest('.popover')) {
+            document.querySelectorAll('.help-popover-btn').forEach(function (btn) {
+                var pop = bootstrap.Popover.getInstance(btn);
+                if (pop) pop.hide();
+            });
+        }
+    });
+})();
+</script>
+}

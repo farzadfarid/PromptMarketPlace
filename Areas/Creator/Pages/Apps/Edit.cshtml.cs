@@ -35,6 +35,16 @@ public class EditModel : PageModel
     public List<AppInputField> ExistingFields { get; set; } = new();
     public string ExistingFieldsJson { get; set; } = "[]";
 
+    // Token stats (#3 and #4)
+    public int? AvgTokensAll { get; set; }
+    public int? AvgTokens30d { get; set; }
+    public bool IsUnprofitable { get; set; }
+    private const int TokensPerCredit = 1000;
+
+    // Calculator
+    public int PromptCharCount { get; set; }
+    public int SystemContextCharCount { get; set; }
+
     [BindProperty] public EditForm Form { get; set; } = new();
 
     public async Task<IActionResult> OnGetAsync(int appId)
@@ -67,6 +77,11 @@ public class EditModel : PageModel
         });
         ModelsJson = JsonSerializer.Serialize(modelsData);
 
+        string decryptedPrompt = "";
+        try { decryptedPrompt = _encryption.Decrypt(app.EncryptedPrompt); } catch { }
+        PromptCharCount = decryptedPrompt.Length;
+        SystemContextCharCount = app.SystemContext?.Length ?? 0;
+
         Form = new EditForm
         {
             Title = app.Title,
@@ -78,8 +93,27 @@ public class EditModel : PageModel
             AiModelId = app.AiModelId,
             SystemContext = app.SystemContext,
             Tags = string.Join(", ", app.Tags.Select(t => t.TagName)),
-            NewPrompt = CanEditPrompt ? _encryption.Decrypt(app.EncryptedPrompt) : null
+            NewPrompt = CanEditPrompt ? decryptedPrompt : null
         };
+
+        var tokenData = await _db.Executions
+            .Where(e => e.AppId == appId && e.Status == ExecutionStatus.Completed
+                     && e.TokensUsed.HasValue && e.TokensUsed.Value > 0)
+            .Select(e => new { e.TokensUsed, e.CreatedAt })
+            .ToListAsync();
+
+        if (tokenData.Any())
+        {
+            AvgTokensAll = (int)tokenData.Average(e => (double)e.TokensUsed!.Value);
+            var cutoff = DateTime.UtcNow.AddDays(-30);
+            var recent = tokenData.Where(e => e.CreatedAt >= cutoff).ToList();
+            if (recent.Any())
+            {
+                AvgTokens30d = (int)recent.Average(e => (double)e.TokensUsed!.Value);
+                IsUnprofitable = AvgTokens30d > app.CreditCost * TokensPerCredit;
+            }
+        }
+
         return Page();
     }
 

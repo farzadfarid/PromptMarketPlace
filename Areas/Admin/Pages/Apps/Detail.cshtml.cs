@@ -18,26 +18,37 @@ public class DetailModel : PageModel
     private readonly IEncryptionService _encryption;
     private readonly IAiProviderService _providers;
     private readonly IMessageService _msg;
+    private readonly IReviewService _reviews;
 
     public SelectList? ModelSelectList { get; set; }
     public SelectList? CategorySelectList { get; set; }
 
-    public DetailModel(ApplicationDbContext db, IEncryptionService encryption, IAiProviderService providers, IMessageService msg)
+    public DetailModel(ApplicationDbContext db, IEncryptionService encryption, IAiProviderService providers,
+        IMessageService msg, IReviewService reviews)
     {
         _providers = providers;
         _db = db;
         _encryption = encryption;
         _msg = msg;
+        _reviews = reviews;
     }
 
     public AiApp App { get; set; } = null!;
     public string DecryptedPrompt { get; set; } = string.Empty;
+    public int PromptCharCount => DecryptedPrompt.Length;
+    public int SystemContextCharCount => App?.SystemContext?.Length ?? 0;
 
     public List<AppExecution> RecentExecutions { get; set; } = new();
     public int ExecutionTotalCount { get; set; }
     [BindProperty(SupportsGet = true)] public ExecutionStatus? FilterStatus { get; set; }
     [BindProperty(SupportsGet = true)] public int ExecPage { get; set; } = 1;
     private const int ExecPageSize = 15;
+
+    // Token stats (#3 and #4)
+    public int? AvgTokensAll { get; set; }
+    public int? AvgTokens30d { get; set; }
+    public bool IsUnprofitable { get; set; }
+    private const int TokensPerCredit = 1000;
 
     public List<AppReview> Reviews { get; set; } = new();
     public int ReviewTotalCount { get; set; }
@@ -99,6 +110,24 @@ public class DetailModel : PageModel
             .Skip((ReviewPage - 1) * ReviewPageSize)
             .Take(ReviewPageSize)
             .ToListAsync();
+
+        var tokenData = await _db.Executions
+            .Where(e => e.AppId == id && e.Status == ExecutionStatus.Completed
+                     && e.TokensUsed.HasValue && e.TokensUsed.Value > 0)
+            .Select(e => new { e.TokensUsed, e.CreatedAt })
+            .ToListAsync();
+
+        if (tokenData.Any())
+        {
+            AvgTokensAll = (int)tokenData.Average(e => (double)e.TokensUsed!.Value);
+            var cutoff = DateTime.UtcNow.AddDays(-30);
+            var recent = tokenData.Where(e => e.CreatedAt >= cutoff).ToList();
+            if (recent.Any())
+            {
+                AvgTokens30d = (int)recent.Average(e => (double)e.TokensUsed!.Value);
+                IsUnprofitable = AvgTokens30d > app.CreditCost * TokensPerCredit;
+            }
+        }
 
         return Page();
     }
@@ -184,6 +213,20 @@ public class DetailModel : PageModel
 
         await _db.SaveChangesAsync();
         TempData["Success"] = $"مدل ابزار به «{model.Name}» تغییر یافت.";
+        return RedirectToPage(new { id });
+    }
+
+    public async Task<IActionResult> OnPostApproveReviewAsync(int id, int reviewId)
+    {
+        await _reviews.ApproveAsync(reviewId);
+        TempData["Success"] = "نظر تایید شد.";
+        return RedirectToPage(new { id });
+    }
+
+    public async Task<IActionResult> OnPostDeleteReviewAsync(int id, int reviewId)
+    {
+        await _reviews.RejectAsync(reviewId);
+        TempData["Success"] = "نظر حذف شد.";
         return RedirectToPage(new { id });
     }
 

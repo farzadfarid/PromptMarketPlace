@@ -1,13 +1,20 @@
-﻿@page
+@page
 @model IndexModel
 @{ ViewData["Title"] = "مدیریت نظرات"; }
 
 @if (TempData["Success"] != null) { <div class="alert alert-success alert-dismissible fade show">@TempData["Success"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div> }
+@if (TempData["Error"] != null) { <div class="alert alert-danger alert-dismissible fade show">@TempData["Error"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div> }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h5 class="mb-1">نظرات کاربران</h5>
-        <small class="text-muted">مجموع: @Model.TotalCount نظر</small>
+        <small class="text-muted">
+            مجموع: @Model.TotalCount نظر
+            @if (Model.PendingCount > 0)
+            {
+                <span class="badge bg-warning text-dark ms-2">@Model.PendingCount در انتظار تایید</span>
+            }
+        </small>
     </div>
 </div>
 
@@ -21,6 +28,11 @@
                 @for (int i = 5; i >= 1; i--)
                 { <option value="@i" selected="@(Model.FilterRating == i)">@i ستاره</option> }
             </select>
+            <select name="FilterStatus" class="form-select form-select-sm" style="width:auto">
+                <option value="" selected="@(Model.FilterStatus == null)">همه وضعیت‌ها</option>
+                <option value="pending" selected="@(Model.FilterStatus == "pending")">در انتظار تایید</option>
+                <option value="approved" selected="@(Model.FilterStatus == "approved")">تایید شده</option>
+            </select>
             <button type="submit" class="btn btn-outline-secondary btn-sm">جستجو</button>
         </form>
     </div>
@@ -28,13 +40,14 @@
 
 <div class="card shadow-sm">
     <div class="table-responsive">
-        <table class="table table-hover mb-0">
+        <table class="table table-hover mb-0 align-middle">
             <thead class="table-light">
                 <tr>
                     <th>ابزار</th>
                     <th>کاربر</th>
                     <th class="text-center">امتیاز</th>
                     <th>متن نظر</th>
+                    <th class="text-center">وضعیت</th>
                     <th>تاریخ</th>
                     <th class="text-center">عملیات</th>
                 </tr>
@@ -50,19 +63,51 @@
                             {
                                 <i class="fas fa-star @(i <= r.Rating ? "text-warning" : "text-muted")" style="font-size:.7rem"></i>
                             }
+                            <span class="text-muted small ms-1">(@r.Rating)</span>
                         </td>
-                        <td class="small text-muted" style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-                            @(r.Comment ?? "-")
+                        <td class="small text-muted" style="max-width:250px;">
+                            <span class="d-inline-block text-truncate" style="max-width:230px;" title="@r.Comment">@(r.Comment ?? "-")</span>
+                            @if (!string.IsNullOrEmpty(r.CreatorReply))
+                            {
+                                <br /><span class="text-primary"><i class="fas fa-reply fa-xs"></i> @r.CreatorReply</span>
+                            }
+                        </td>
+                        <td class="text-center">
+                            @if (r.IsApproved)
+                            {
+                                <span class="badge bg-success-subtle text-success border border-success-subtle">تایید شده</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-warning-subtle text-warning border border-warning-subtle">در انتظار</span>
+                            }
                         </td>
                         <td class="small text-muted">@r.CreatedAt.ToShamsi("yy/MM/dd")</td>
                         <td class="text-center">
-                            <form method="post" asp-page-handler="Delete" class="d-inline">
-                                <input type="hidden" name="id" value="@r.Id" />
-                                <button type="submit" class="btn btn-sm btn-outline-danger"
-                                        data-confirm="این نظر حذف شود؟">حذف</button>
-                            </form>
+                            <div class="d-flex gap-1 justify-content-center">
+                                @if (!r.IsApproved)
+                                {
+                                    <form method="post" asp-page-handler="Approve" class="d-inline">
+                                        <input type="hidden" name="id" value="@r.Id" />
+                                        <button type="submit" class="btn btn-sm btn-outline-success" title="تایید">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                    </form>
+                                }
+                                <form method="post" asp-page-handler="Delete" class="d-inline">
+                                    <input type="hidden" name="id" value="@r.Id" />
+                                    <button type="submit" class="btn btn-sm btn-outline-danger"
+                                            data-confirm="این نظر حذف شود؟" title="حذف">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
+                }
+                @if (!Model.Reviews.Any())
+                {
+                    <tr><td colspan="7" class="text-center text-muted py-4">نظری یافت نشد.</td></tr>
                 }
             </tbody>
         </table>
@@ -80,7 +125,7 @@
             {
                 <li class="page-item @(i == Model.PageNumber ? "active" : "")">
                     <a class="page-link" asp-page="/Reviews/Index" asp-area="Admin"
-                       asp-all-route-data='@(new Dictionary<string,string>{{"Search",Model.Search??""}, {"FilterRating",Model.FilterRating?.ToString()??""}, {"PageNumber",i.ToString()}})'>@i</a>
+                       asp-all-route-data='@(new Dictionary<string,string>{{"Search",Model.Search??""}, {"FilterRating",Model.FilterRating?.ToString()??""}, {"FilterStatus",Model.FilterStatus??""}, {"PageNumber",i.ToString()}})'>@i</a>
                 </li>
             }
         </ul>

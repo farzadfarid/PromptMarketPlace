@@ -582,3 +582,12 @@ footer a:hover { color: rgba(255,255,255,.9) !important; }
 ::-webkit-scrollbar-track { background: var(--pm-bg-2); }
 ::-webkit-scrollbar-thumb { background: var(--pm-border-dark); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--pm-muted-light); }
+
+/* Help Popovers — RTL support */
+.help-popover { direction: rtl; max-width: 320px; }
+.help-popover .popover-header { font-weight: 600; font-size: .85rem; }
+.help-popover .popover-body { font-size: .82rem; line-height: 1.7; padding: .75rem 1rem; }
+.help-popover dl dt { font-size: .8rem; margin-bottom: .15rem; }
+.help-popover dl dd { padding-right: .5rem; }
+.help-popover-btn { font-size: .85rem; opacity: .6; transition: opacity .15s; }
+.help-popover-btn:hover { opacity: 1; }

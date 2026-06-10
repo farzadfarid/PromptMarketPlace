@@ -46,11 +46,16 @@ public class DetailModel : PageModel
 
     public async Task<IActionResult> OnPostToggleBlockAsync(string id)
     {
-        var user = await _db.Users.FindAsync(id);
+        var user = await _userManager.FindByIdAsync(id);
         if (user == null) return NotFound();
 
         user.IsActive = !user.IsActive;
-        await _db.SaveChangesAsync();
+        await _userManager.UpdateAsync(user);
+
+        // باطل کردن تمام session‌های فعال کاربر
+        if (!user.IsActive)
+            await _userManager.UpdateSecurityStampAsync(user);
+
         await AddAuditAsync(user.IsActive ? "UnblockUser" : "BlockUser", "User", id,
             $"کاربر {user.Email} {(user.IsActive ? "فعال" : "مسدود")} شد");
 

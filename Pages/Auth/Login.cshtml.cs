@@ -41,10 +41,18 @@ public class LoginModel : PageModel
 
         if (result.Succeeded)
         {
+            var user = await _userManager.FindByEmailAsync(Form.Email);
+
+            if (user != null && !user.IsActive)
+            {
+                await _signIn.SignOutAsync();
+                ModelState.AddModelError("", "حساب کاربری شما مسدود شده است. برای اطلاعات بیشتر با پشتیبانی تماس بگیرید.");
+                return Page();
+            }
+
             if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
                 return LocalRedirect(returnUrl);
 
-            var user = await _userManager.FindByEmailAsync(Form.Email);
             if (user != null)
             {
                 if (await _userManager.IsInRoleAsync(user, "Admin"))

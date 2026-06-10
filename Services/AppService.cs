@@ -256,7 +256,7 @@ public class AppService : IAppService
     public async Task RecalculateRatingAsync(int appId)
     {
         var avg = await _db.Reviews
-            .Where(r => r.AppId == appId)
+            .Where(r => r.AppId == appId && r.IsApproved)
             .AverageAsync(r => (double?)r.Rating);
 
         if (avg == null) return;

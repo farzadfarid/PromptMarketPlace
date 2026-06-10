@@ -141,7 +141,7 @@ public class ExecutionService : IExecutionService
             await ProcessOutputAsync(execution, aiResponse, app.OutputType, apiKey);
 
             execution.Status = ExecutionStatus.Completed;
-            execution.TokensUsed = aiResponse.TokensUsed;
+            execution.TokensUsed = aiResponse.TokensUsed > 0 ? aiResponse.TokensUsed : (int?)null;
             execution.ActualApiCost = aiResponse.ActualCost;
             execution.Duration = DateTime.UtcNow - startTime;
             await _db.SaveChangesAsync();

@@ -1,5 +1,6 @@
 @inject PromptMarketPlace.Services.Interfaces.IMessageService _msgSvc
 @inject PromptMarketPlace.Services.Interfaces.ICreatorHelper _ch
+@inject PromptMarketPlace.Services.Interfaces.IReviewService _reviewSvc
 @{ var _cid = await _ch.GetCreatorProfileIdAsync(User); var _creatorUnread = _cid.HasValue ? await _msgSvc.UnreadCountAsync(forAdmin: false, creatorProfileId: _cid.Value) : 0; }
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
@@ -52,6 +53,17 @@
             <a class="creator-nav__item @(ViewContext.RouteData.Values["page"]?.ToString()?.Contains("Earnings") == true ? "active" : "")"
                asp-area="Creator" asp-page="/Earnings/Index">
                 <i class="fas fa-money-bill-wave"></i><span>درآمد و برداشت</span>
+            </a>
+
+            <div class="creator-nav__section">نظرات کاربران</div>
+            @{ var _pendingReviews = _cid.HasValue ? await _reviewSvc.GetPendingCountForCreatorAsync(_cid.Value) : 0; }
+            <a class="creator-nav__item @(ViewContext.RouteData.Values["page"]?.ToString()?.Contains("Reviews") == true ? "active" : "")"
+               asp-area="Creator" asp-page="/Reviews/Index">
+                <i class="fas fa-star"></i><span>نظرات</span>
+                @if (_pendingReviews > 0)
+                {
+                    <span class="creator-nav__badge" style="background:#f59e0b;">@_pendingReviews</span>
+                }
             </a>
 
             <div class="creator-nav__section">ارتباط با ادمین</div>

@@ -44,6 +44,11 @@ try
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
 
+    builder.Services.Configure<Microsoft.AspNetCore.Identity.SecurityStampValidatorOptions>(o =>
+    {
+        o.ValidationInterval = TimeSpan.FromMinutes(1);
+    });
+
     builder.Services.ConfigureApplicationCookie(options =>
     {
         options.LoginPath = "/Auth/Login";

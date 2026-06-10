@@ -90,7 +90,12 @@ public class DetailModel : PageModel
         if (app == null) return NotFound();
 
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
-        await _reviews.AddReviewAsync(userId, app.Id, rating, comment);
+        var result = await _reviews.AddReviewAsync(userId, app.Id, rating, comment);
+
+        if (result.IsSuccess)
+            TempData["ReviewPending"] = "true";
+        else
+            TempData["ReviewError"] = result.ErrorMessage;
 
         return RedirectToPage("/App/Detail", new { slug });
     }
