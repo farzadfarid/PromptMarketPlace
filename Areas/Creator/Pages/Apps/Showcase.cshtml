@@ -93,10 +93,13 @@
                     <input type="file" asp-for="Form.ImageFile" class="form-control form-control-sm" accept="image/*" />
                 </div>
                 <div id="media-url-input" class="mb-3 d-none">
-                    <label class="form-label small" id="media-url-label">لینک ویدیو</label>
+                    <label class="form-label small" id="media-url-label">آپلود فایل یا لینک مستقیم</label>
+                    <input type="file" asp-for="Form.MediaFile" class="form-control form-control-sm mb-2"
+                           id="media-file-field" accept="video/*,audio/*" />
+                    <div class="text-center small text-muted mb-2">— یا —</div>
                     <input type="url" asp-for="Form.MediaUrl" class="form-control form-control-sm" dir="ltr"
-                           placeholder="https://..." id="media-url-field" />
-                    <div class="form-text" id="media-url-hint">لینک مستقیم فایل mp4 یا آدرس CDN</div>
+                           placeholder="https://example.com/video.mp4" id="media-url-field" />
+                    <div class="form-text" id="media-url-hint">فایل آپلود کنید یا لینک مستقیم بدهید</div>
                 </div>
                 <div id="text-input" class="mb-3">
                     <label class="form-label small">متن خروجی نمونه</label>

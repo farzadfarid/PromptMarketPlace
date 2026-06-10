@@ -57,6 +57,17 @@ public class ShowcaseModel : PageModel
             await Form.ImageFile.CopyToAsync(fs);
             item.OutputUrl = $"/uploads/showcase/{fileName}";
         }
+        else if (Form.MediaFile != null && Form.MediaFile.Length > 0)
+        {
+            var folder = Form.OutputType == OutputType.Video ? "showcase/videos" : "showcase/audio";
+            var dir = Path.Combine(_env.WebRootPath, "uploads", folder);
+            Directory.CreateDirectory(dir);
+            var ext = Path.GetExtension(Form.MediaFile.FileName);
+            var fileName = $"{Guid.NewGuid():N}{ext}";
+            await using var fs = new FileStream(Path.Combine(dir, fileName), FileMode.Create);
+            await Form.MediaFile.CopyToAsync(fs);
+            item.OutputUrl = $"/uploads/{folder}/{fileName}";
+        }
         else if ((Form.OutputType == OutputType.Video || Form.OutputType == OutputType.Audio)
                  && !string.IsNullOrWhiteSpace(Form.MediaUrl))
         {
@@ -91,6 +102,7 @@ public class ShowcaseModel : PageModel
     {
         public OutputType OutputType { get; set; } = OutputType.Text;
         public IFormFile? ImageFile { get; set; }
+        public IFormFile? MediaFile { get; set; }
         public string? MediaUrl { get; set; }
         public string? TextOutput { get; set; }
         public string? Caption { get; set; }
