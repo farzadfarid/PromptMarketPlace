@@ -1,3 +1,6 @@
+@inject PromptMarketPlace.Services.Interfaces.IMessageService _msgSvc
+@inject PromptMarketPlace.Services.Interfaces.ICreatorHelper _ch
+@{ var _cid = await _ch.GetCreatorProfileIdAsync(User); var _creatorUnread = _cid.HasValue ? await _msgSvc.UnreadCountAsync(forAdmin: false, creatorProfileId: _cid.Value) : 0; }
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
@@ -49,6 +52,16 @@
             <a class="creator-nav__item @(ViewContext.RouteData.Values["page"]?.ToString()?.Contains("Earnings") == true ? "active" : "")"
                asp-area="Creator" asp-page="/Earnings/Index">
                 <i class="fas fa-money-bill-wave"></i><span>درآمد و برداشت</span>
+            </a>
+
+            <div class="creator-nav__section">ارتباط با ادمین</div>
+            <a class="creator-nav__item @(ViewContext.RouteData.Values["page"]?.ToString()?.Contains("Messages") == true ? "active" : "")"
+               asp-area="Creator" asp-page="/Messages/Index">
+                <i class="fas fa-comments"></i><span>پیام‌ها</span>
+                @if (_creatorUnread > 0)
+                {
+                    <span class="creator-nav__badge" style="background:#ef4444;">@_creatorUnread</span>
+                }
             </a>
 
             <div class="creator-nav__section">حساب کاربری</div>

@@ -2,108 +2,378 @@
 @model EditModel
 @{ ViewData["Title"] = "ویرایش: " + Model.App.Title; }
 
-@if (TempData["Error"] != null) { <div class="alert alert-danger">@TempData["Error"]</div> }
-
-@if (!Model.CanEditPrompt)
+@if (TempData["Error"] != null)
 {
-    <div class="alert alert-info mb-4">
-        <i class="fas fa-info-circle me-2"></i>
-        ابزار فعال است. فقط عنوان و توضیحات قابل ویرایش است.
-        برای ویرایش پرامپت، باید ابتدا ابزار را تعلیق کنید.
+    <div class="alert alert-danger alert-dismissible fade show">
+        @TempData["Error"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 }
 
-<form method="post" asp-route-appId="@Model.App.Id" enctype="multipart/form-data">
-    <div asp-validation-summary="All" class="alert alert-danger small py-2"></div>
-    <div class="card border-0 shadow-sm p-4 mb-4">
-        <div class="mb-3">
-            <label class="form-label">عنوان</label>
-            <input asp-for="Form.Title" class="form-control" />
-            <span asp-validation-for="Form.Title" class="text-danger small"></span>
-        </div>
-        <div class="mb-3">
-            <label class="form-label">توضیح کوتاه</label>
-            <input asp-for="Form.ShortDescription" class="form-control" maxlength="160" />
-        </div>
-        <div class="mb-3">
-            <label class="form-label">توضیح کامل</label>
-            <textarea asp-for="Form.Description" class="form-control" rows="5"></textarea>
-        </div>
-        <div class="mb-3">
-            <label class="form-label">تصویر کاور <small class="text-muted">(JPG، PNG، WEBP — اختیاری)</small></label>
-            <div class="thumbnail-upload-box" id="thumbnail-box" onclick="document.getElementById('thumbnail-input').click()">
-                @if (!string.IsNullOrEmpty(Model.App.ThumbnailUrl))
-                {
-                    <img id="thumbnail-preview" src="@Model.App.ThumbnailUrl" alt="thumbnail" style="width:100%;height:100%;object-fit:cover;" />
-                    <div id="thumbnail-placeholder" class="d-none">
-                        <i class="fas fa-cloud-upload-alt fa-2x mb-2"></i>
-                        <div class="small">کلیک برای تغییر تصویر</div>
-                    </div>
-                }
-                else
-                {
-                    <img id="thumbnail-preview" src="" class="d-none" alt="preview" />
-                    <div id="thumbnail-placeholder">
-                        <i class="fas fa-cloud-upload-alt fa-2x mb-2"></i>
-                        <div class="small">کلیک کنید یا تصویر را اینجا بکشید</div>
-                        <div class="text-muted" style="font-size:.72rem;">حداکثر ۲ مگابایت</div>
-                    </div>
-                }
-            </div>
-            <input type="file" asp-for="Form.Thumbnail" id="thumbnail-input" accept=".jpg,.jpeg,.png,.webp" class="d-none" />
-            <div class="form-text text-muted mt-1">
-                <i class="fas fa-info-circle me-1"></i>اندازه توصیه‌شده: <strong>۷۵۰ × ۴۰۴</strong> پیکسل — فرمت: JPG، PNG، WEBP — حداکثر ۲ مگابایت
-            </div>
-        </div>
-        <div class="row g-3">
-            <div class="col-md-4">
-                <label class="form-label">دسته‌بندی</label>
-                <select asp-for="Form.CategoryId" asp-items="Model.CategoryList" class="form-select"></select>
-            </div>
-            <div class="col-md-4">
-                <label class="form-label">هزینه اعتباری</label>
-                <input asp-for="Form.CreditCost" type="number" min="1" class="form-control" dir="ltr" />
-            </div>
-            <div class="col-md-4">
-                <label class="form-label">تگ‌ها</label>
-                <input asp-for="Form.Tags" class="form-control" placeholder="با کاما جدا کنید" />
-            </div>
-        </div>
-    </div>
+<div class="row justify-content-center">
+    <div class="col-lg-9">
 
-    <div class="card border-0 shadow-sm p-4 mb-4">
-        <h6 class="fw-semibold mb-3">پرامپت</h6>
-        <div class="mb-3">
-            <label class="form-label">System Context</label>
-            @if (Model.CanEditPrompt)
+        <!-- Wizard Steps -->
+        <div class="d-flex gap-0 mb-4" id="wizard-steps">
+            @foreach (var (num, title) in new[] { (1,"اطلاعات پایه"), (2,"تنظیمات AI"), (3,"فیلدها و پرامپت") })
             {
-                <textarea asp-for="Form.SystemContext" class="form-control" rows="2" dir="ltr"></textarea>
-            }
-            else
-            {
-                <textarea asp-for="Form.SystemContext" class="form-control" rows="2" dir="ltr" readonly></textarea>
-            }
-            @if (!Model.CanEditPrompt)
-            {
-                <div class="form-text text-muted">
-                    <i class="fas fa-lock me-1"></i>برای ویرایش، ابتدا ابزار را تعلیق کنید.
+                <div class="wizard-step flex-fill text-center py-2 px-3 border @(num==1?"border-primary bg-primary fw-semibold":"text-muted")"
+                     id="step-indicator-@num" style="cursor:pointer" onclick="goToStep(@num)">
+                    <span class="badge @(num==1?"bg-white text-primary":"bg-secondary") me-1">@num</span>
+                    @title
                 </div>
             }
         </div>
-        @if (Model.CanEditPrompt)
-        {
-            <div class="mb-3">
-                <label class="form-label">پرامپت</label>
-                <textarea asp-for="Form.NewPrompt" class="form-control" rows="8"></textarea>
-            </div>
-        }
-    </div>
 
-    <div class="d-flex gap-2">
-        <button type="submit" class="btn btn-primary">ذخیره تغییرات</button>
-        <a asp-area="Creator" asp-page="/Apps/Index" class="btn btn-outline-secondary">انصراف</a>
+        <form method="post" asp-route-appId="@Model.App.Id" enctype="multipart/form-data">
+            <div asp-validation-summary="All" class="alert alert-danger small py-2"></div>
+
+            <!-- ─── مرحله ۱: اطلاعات پایه ─── -->
+            <div id="step-1" class="wizard-step-content">
+                <div class="card border-0 shadow-sm p-4 mb-3">
+                    <h6 class="fw-bold mb-4">اطلاعات پایه</h6>
+                    <div class="mb-3">
+                        <label class="form-label">عنوان ابزار <span class="text-danger">*</span></label>
+                        <input asp-for="Form.Title" class="form-control" />
+                        <span asp-validation-for="Form.Title" class="text-danger small"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">توضیح کوتاه <span class="text-danger">*</span>
+                            <small class="text-muted">(حداکثر ۱۶۰ کاراکتر)</small>
+                        </label>
+                        <input asp-for="Form.ShortDescription" class="form-control" maxlength="160" />
+                        <span asp-validation-for="Form.ShortDescription" class="text-danger small"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">توضیح کامل <span class="text-danger">*</span></label>
+                        <textarea asp-for="Form.Description" class="form-control" rows="5"></textarea>
+                        <span asp-validation-for="Form.Description" class="text-danger small"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">تصویر کاور <small class="text-muted">(اختیاری — JPG، PNG، WEBP)</small></label>
+                        <div class="thumbnail-upload-box" id="thumbnail-box" onclick="document.getElementById('thumbnail-input').click()">
+                            @if (!string.IsNullOrEmpty(Model.App.ThumbnailUrl))
+                            {
+                                <img id="thumbnail-preview" src="@Model.App.ThumbnailUrl" alt="thumbnail" style="width:100%;height:100%;object-fit:cover;" />
+                                <div id="thumbnail-placeholder" class="d-none">
+                                    <i class="fas fa-cloud-upload-alt fa-2x mb-2"></i>
+                                    <div class="small">کلیک برای تغییر تصویر</div>
+                                </div>
+                            }
+                            else
+                            {
+                                <img id="thumbnail-preview" src="" class="d-none" alt="preview" />
+                                <div id="thumbnail-placeholder">
+                                    <i class="fas fa-cloud-upload-alt fa-2x mb-2"></i>
+                                    <div class="small">کلیک کنید یا تصویر را اینجا بکشید</div>
+                                    <div class="text-muted" style="font-size:.72rem;">حداکثر ۵ مگابایت</div>
+                                </div>
+                            }
+                        </div>
+                        <input type="file" asp-for="Form.Thumbnail" id="thumbnail-input" accept=".jpg,.jpeg,.png,.webp" class="d-none" />
+                        <div class="form-text text-muted mt-1">
+                            <i class="fas fa-info-circle me-1"></i>اندازه توصیه‌شده: <strong>۷۵۰ × ۴۰۴</strong> — JPG، PNG، WEBP — حداکثر ۵ مگابایت
+                        </div>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">دسته‌بندی <span class="text-danger">*</span></label>
+                            <select asp-for="Form.CategoryId" asp-items="Model.CategoryList" class="form-select"></select>
+                            <span asp-validation-for="Form.CategoryId" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">تگ‌ها <small class="text-muted">(با کاما جدا کنید)</small></label>
+                            <input asp-for="Form.Tags" class="form-control" placeholder="تبلیغات، مارکتینگ، محتوا" />
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-end">
+                    <button type="button" class="btn btn-primary" onclick="goToStep(2)">
+                        بعدی <i class="fas fa-arrow-left ms-1"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- ─── مرحله ۲: تنظیمات AI ─── -->
+            <div id="step-2" class="wizard-step-content d-none">
+                <div class="card border-0 shadow-sm p-4 mb-3">
+                    <h6 class="fw-bold mb-4">تنظیمات هوش مصنوعی</h6>
+
+                    @if (!Model.CanEditPrompt)
+                    {
+                        <div class="alert alert-info small mb-3">
+                            <i class="fas fa-info-circle me-1"></i>
+                            ابزار فعال است. برای ویرایش مدل و پرامپت باید ابتدا ابزار را تعلیق کنید.
+                        </div>
+                    }
+
+                    <div class="mb-3">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <label class="form-label mb-0">نوع خروجی <span class="text-danger">*</span></label>
+                            <button type="button" tabindex="0" class="btn p-0 help-icon-btn"
+                                    data-bs-toggle="popover" data-bs-trigger="focus" data-bs-placement="top"
+                                    data-bs-title="نوع خروجی"
+                                    data-bs-content="نوع محتوایی که هوش مصنوعی تولید می‌کند. مدل‌های نمایش داده شده بر اساس این انتخاب فیلتر می‌شوند.">
+                                <i class="fas fa-question-circle" style="font-size:.85rem;color:var(--dk-muted);"></i>
+                            </button>
+                        </div>
+                        <div class="row g-2" id="output-type-selector">
+                            @foreach (var (type, icon, label) in new[] {
+                                (OutputType.Text,"fa-align-left","متن"),
+                                (OutputType.Image,"fa-image","تصویر"),
+                                (OutputType.Video,"fa-video","ویدیو"),
+                                (OutputType.Code,"fa-code","کد"),
+                                (OutputType.Audio,"fa-music","صدا"),
+                                (OutputType.Form,"fa-file-alt","فرم")
+                            })
+                            {
+                                <div class="col-4 col-md-2">
+                                    <input type="radio" asp-for="Form.OutputType" value="@type"
+                                           id="ot_@type" class="btn-check"
+                                           onchange="filterModels('@type')"
+                                           disabled="@(!Model.CanEditPrompt)" />
+                                    <label for="ot_@type" class="btn btn-outline-secondary w-100 py-3">
+                                        <i class="fas @icon d-block mb-1"></i>
+                                        <small>@label</small>
+                                    </label>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    @if (!Model.CanEditPrompt)
+                    {
+                        <input type="hidden" asp-for="Form.AiModelId" />
+                        <input type="hidden" asp-for="Form.OutputType" />
+                    }
+                    <div class="mb-3">
+                        <label class="form-label">مدل هوش مصنوعی <span class="text-danger">*</span></label>
+                        <select asp-for="Form.AiModelId" class="form-select" id="ai-model-select"
+                                disabled="@(!Model.CanEditPrompt)">
+                            <option value="0">انتخاب مدل...</option>
+                        </select>
+                        <span asp-validation-for="Form.AiModelId" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">هزینه اعتباری</label>
+                        <input asp-for="Form.CreditCost" type="number" min="1" class="form-control" dir="ltr" style="max-width:160px;" />
+                    </div>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-secondary" onclick="goToStep(1)">
+                        <i class="fas fa-arrow-right me-1"></i>قبلی
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="goToStep(3)">
+                        بعدی <i class="fas fa-arrow-left ms-1"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- ─── مرحله ۳: فیلدها و پرامپت ─── -->
+            <div id="step-3" class="wizard-step-content d-none">
+                <div class="row g-4 align-items-start">
+
+                    <!-- ستون فیلدها -->
+                    <div class="col-lg-5">
+                        <div class="card border-0 shadow-sm p-4" style="position:sticky;top:72px;">
+                            <div class="d-flex align-items-center justify-content-between mb-3">
+                                <div class="d-flex align-items-center gap-2">
+                                    <h6 class="fw-bold mb-0">فیلدهای ورودی</h6>
+                                    <button type="button" tabindex="0" class="btn p-0 help-icon-btn"
+                                            data-bs-toggle="popover" data-bs-trigger="focus" data-bs-placement="right"
+                                            data-bs-title="فیلدهای ورودی"
+                                            data-bs-content="هر فیلد یک متغیر در پرامپت می‌شود که کاربر آن را پر می‌کند. تغییر فیلدها ممکن است روی پرامپت تأثیر بگذارد.">
+                                        <i class="fas fa-question-circle" style="font-size:.8rem;color:var(--dk-muted);"></i>
+                                    </button>
+                                </div>
+                                <span id="field-count-badge" class="badge rounded-pill"
+                                      style="background:rgba(249,115,22,.15);border:1px solid rgba(249,115,22,.3);color:#fed7aa;">
+                                    @toPersianNum(Model.ExistingFields.Count) فیلد
+                                </span>
+                            </div>
+
+                            <!-- فرم افزودن -->
+                            <div class="rounded-3 p-3 mb-3" style="background:var(--dk-surface2);border:1px dashed var(--dk-border2);">
+                                <div class="row g-2 mb-2">
+                                    <div class="col-6">
+                                        <label class="form-label small fw-semibold mb-1 d-flex align-items-center gap-1">
+                                            نام متغیر <span class="text-danger">*</span>
+                                            <button type="button" tabindex="0" class="btn p-0 help-icon-btn"
+                                                    data-bs-toggle="popover" data-bs-trigger="focus" data-bs-placement="top"
+                                                    data-bs-content="فقط حروف کوچک انگلیسی، عدد و _ مجاز است. مثال: subject یا brand_name">
+                                                <i class="fas fa-question-circle" style="font-size:.68rem;color:var(--dk-muted);"></i>
+                                            </button>
+                                        </label>
+                                        <input type="text" id="nf-name" class="form-control form-control-sm" dir="ltr" placeholder="subject" />
+                                        <div id="nf-name-err" class="text-danger d-none" style="font-size:.7rem;"></div>
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label small fw-semibold mb-1">نوع فیلد</label>
+                                        <select id="nf-type" class="form-select form-select-sm">
+                                            <option value="Text">متن ساده</option>
+                                            <option value="Textarea">متن چند خطی</option>
+                                            <option value="Select">انتخابی (dropdown)</option>
+                                            <option value="Number">عدد</option>
+                                            <option value="Checkbox">بله / خیر</option>
+                                            <option value="DatePicker">تاریخ</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small fw-semibold mb-1">عنوان نمایشی <span class="text-danger">*</span></label>
+                                    <input type="text" id="nf-label" class="form-control form-control-sm" placeholder="مثال: موضوع ایمیل" />
+                                    <div id="nf-label-err" class="text-danger d-none" style="font-size:.7rem;"></div>
+                                </div>
+                                <div class="row g-2 mb-2">
+                                    <div class="col-8">
+                                        <label class="form-label small mb-1">Placeholder <small class="text-muted">(اختیاری)</small></label>
+                                        <input type="text" id="nf-placeholder" class="form-control form-control-sm" />
+                                    </div>
+                                    <div class="col-4 d-flex align-items-end pb-1">
+                                        <div class="form-check mb-0">
+                                            <input type="checkbox" id="nf-required" class="form-check-input" checked />
+                                            <label class="form-check-label small" for="nf-required">اجباری</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="nf-options-wrap" class="mb-2 d-none">
+                                    <label class="form-label small fw-semibold mb-1 d-flex align-items-center gap-1">
+                                        گزینه‌ها
+                                        <button type="button" tabindex="0" class="btn p-0 help-icon-btn"
+                                                data-bs-toggle="popover" data-bs-trigger="focus" data-bs-placement="top"
+                                                data-bs-content="هر خط یک گزینه. مثال: فارسی / انگلیسی / آلمانی">
+                                            <i class="fas fa-question-circle" style="font-size:.68rem;color:var(--dk-muted);"></i>
+                                        </button>
+                                    </label>
+                                    <textarea id="nf-options" class="form-control form-control-sm" rows="3" dir="ltr"
+                                              placeholder="گزینه اول&#10;گزینه دوم&#10;گزینه سوم"></textarea>
+                                </div>
+                                <button type="button" class="btn btn-primary btn-sm w-100 mt-1" id="add-field-btn">
+                                    <i class="fas fa-plus me-1"></i>افزودن به لیست
+                                </button>
+                            </div>
+
+                            <div id="fields-empty-state" class="text-center py-3 @(Model.ExistingFields.Any() ? "d-none" : "")" style="color:var(--dk-muted);font-size:.82rem;">
+                                <i class="fas fa-layer-group fa-2x mb-2 d-block opacity-25"></i>
+                                هنوز فیلدی اضافه نشده.
+                            </div>
+                            <div id="fields-cards-list"></div>
+                        </div>
+                    </div>
+
+                    <!-- ستون پرامپت -->
+                    <div class="col-lg-7">
+                        <div class="alert small mb-3 d-flex gap-2 align-items-start"
+                             style="background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.2);color:var(--dk-text);border-radius:10px;">
+                            <i class="fas fa-lightbulb mt-1 flex-shrink-0" style="color:#f97316;"></i>
+                            <span>فیلدها را از پنل سمت چپ مدیریت کنید. در پرامپت <code dir="ltr">{</code> بزنید تا لیست انتخاب فیلد ظاهر شود.</span>
+                        </div>
+
+                        <div class="card border-0 shadow-sm p-4">
+                            <!-- System Context -->
+                            <div class="mb-4">
+                                <div class="d-flex align-items-center gap-2 mb-2">
+                                    <label class="form-label fw-semibold mb-0">System Context</label>
+                                    <small class="text-muted">(اختیاری)</small>
+                                    <button type="button" tabindex="0" class="btn p-0 help-icon-btn"
+                                            data-bs-toggle="popover" data-bs-trigger="focus" data-bs-placement="top"
+                                            data-bs-title="System Context چیست؟"
+                                            data-bs-content="شخصیت و نقش هوش مصنوعی را تعریف می‌کند. قبل از هر درخواست کاربر مخفیانه ارسال می‌شود. مثال: You are a professional email writer.">
+                                        <i class="fas fa-question-circle" style="font-size:.85rem;color:var(--dk-muted);"></i>
+                                    </button>
+                                </div>
+                                @if (Model.CanEditPrompt)
+                                {
+                                    <textarea asp-for="Form.SystemContext" id="system-context" class="form-control" rows="2" dir="ltr"></textarea>
+                                    <div class="mt-1">
+                                        <button type="button" class="btn btn-sm py-0 px-2" onclick="toggleDir('system-context',this)" style="font-size:.72rem;border:1px solid var(--dk-border2);color:var(--dk-muted);">
+                                            <i class="fas fa-align-right me-1"></i>RTL / LTR
+                                        </button>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <textarea asp-for="Form.SystemContext" class="form-control" rows="2" dir="ltr" readonly></textarea>
+                                    <div class="form-text text-muted">
+                                        <i class="fas fa-lock me-1"></i>برای ویرایش، ابتدا ابزار را تعلیق کنید.
+                                    </div>
+                                }
+                            </div>
+
+                            <!-- پرامپت اصلی -->
+                            @if (Model.CanEditPrompt)
+                            {
+                                <div>
+                                    <div class="d-flex align-items-center gap-2 mb-2">
+                                        <label class="form-label fw-semibold mb-0">پرامپت اصلی <span class="text-danger">*</span></label>
+                                        <button type="button" tabindex="0" class="btn p-0 help-icon-btn"
+                                                data-bs-toggle="popover" data-bs-trigger="focus" data-bs-placement="top"
+                                                data-bs-title="پرامپت اصلی"
+                                                data-bs-content="دستورالعمل اصلی برای هوش مصنوعی. وقتی { می‌زنید لیست فیلدهای تعریف‌شده ظاهر می‌شود.">
+                                            <i class="fas fa-question-circle" style="font-size:.85rem;color:var(--dk-muted);"></i>
+                                        </button>
+                                    </div>
+                                    <textarea asp-for="Form.NewPrompt" class="form-control" rows="11"
+                                              id="prompt-textarea"
+                                              style="font-family:monospace;font-size:.9rem;"></textarea>
+                                    <div class="mt-1">
+                                        <button type="button" class="btn btn-sm py-0 px-2" onclick="toggleDir('prompt-textarea',this)" style="font-size:.72rem;border:1px solid var(--dk-border2);color:var(--dk-muted);">
+                                            <i class="fas fa-align-right me-1"></i>RTL / LTR
+                                        </button>
+                                    </div>
+
+                                    <!-- Field quick-picker -->
+                                    <div id="field-quickpick" class="d-none mt-2 p-2 rounded-2"
+                                         style="background:var(--dk-surface2);border:1px solid rgba(249,115,22,.3);">
+                                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                                            <small style="color:#f97316;font-size:.72rem;white-space:nowrap;">
+                                                <i class="fas fa-bolt me-1"></i>انتخاب فیلد:
+                                            </small>
+                                            <div id="quickpick-chips" class="d-flex gap-1 flex-wrap"></div>
+                                        </div>
+                                    </div>
+
+                                    <div class="d-flex align-items-start justify-content-between mt-2 gap-2">
+                                        <div id="variable-chips" class="d-flex flex-wrap gap-1 flex-fill"></div>
+                                    </div>
+
+                                    <div class="alert alert-warning small mt-3 mb-0">
+                                        <i class="fas fa-lock me-1"></i>
+                                        پرامپت با رمزنگاری AES-256 ذخیره می‌شود و هرگز به کاربران نمایش داده نخواهد شد.
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="alert alert-secondary small mb-0">
+                                    <i class="fas fa-lock me-1"></i>
+                                    پرامپت قفل است. برای ویرایش، ابتدا ابزار را از بخش مدیریت تعلیق کنید.
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <input type="hidden" id="fields-json-input" name="Form.FieldsJson" />
+
+                <div class="d-flex justify-content-between mt-4">
+                    <button type="button" class="btn btn-outline-secondary" onclick="goToStep(2)">
+                        <i class="fas fa-arrow-right me-1"></i>قبلی
+                    </button>
+                    <button type="submit" class="btn btn-success px-4" onclick="serializeFields()">
+                        <i class="fas fa-save me-1"></i>ذخیره تغییرات
+                    </button>
+                </div>
+            </div>
+
+        </form>
     </div>
-</form>
+</div>
+
+@functions {
+    string toPersianNum(int n) => System.Text.RegularExpressions.Regex.Replace(n.ToString(), @"\d",
+        m => "۰۱۲۳۴۵۶۷۸۹"[int.Parse(m.Value)].ToString());
+}
 
 @section Styles {
     <style>
@@ -129,10 +399,22 @@
         align-items: center; justify-content: center;
         text-align: center;
     }
+    .help-icon-btn:focus { outline: none; }
     </style>
 }
+
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        var createPageData = { allModels: @Html.Raw(Model.ModelsJson) };
+        var editPageData = {
+            existingFields: @Html.Raw(Model.ExistingFieldsJson),
+            canEditPrompt: @Html.Raw(Model.CanEditPrompt.ToString().ToLower()),
+            selectedModelId: @Model.App.AiModelId
+        };
+    </script>
+    <script src="~/js/pages/creator/apps/Create.js"></script>
+    <script src="~/js/pages/creator/apps/Edit.js"></script>
     <script>
     document.getElementById('thumbnail-input').addEventListener('change', function() {
         var file = this.files[0];

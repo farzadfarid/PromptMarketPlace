@@ -1,3 +1,5 @@
+@inject PromptMarketPlace.Services.Interfaces.IMessageService _msgSvc
+@{ var _adminUnread = await _msgSvc.UnreadCountAsync(forAdmin: true); }
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
@@ -87,6 +89,15 @@
             <a class="admin-nav__item @(ViewContext.RouteData.Values["page"]?.ToString()?.Contains("Reviews") == true ? "active" : "")"
                asp-area="Admin" asp-page="/Reviews/Index">
                 <i class="fas fa-star-half-alt"></i><span>نظرات</span>
+            </a>
+
+            <a class="admin-nav__item @(ViewContext.RouteData.Values["page"]?.ToString()?.Contains("Messages") == true ? "active" : "")"
+               asp-area="Admin" asp-page="/Messages/Index">
+                <i class="fas fa-comments"></i><span>پیام‌ها</span>
+                @if (_adminUnread > 0)
+                {
+                    <span class="creator-nav__badge" style="background:#ef4444;">@_adminUnread</span>
+                }
             </a>
 
             <div class="admin-nav__section">گزارش‌ها</div>

@@ -1,0 +1,146 @@
+@page "/Creator/Messages/{id:int}"
+@model CreatorThreadModel
+@{ ViewData["Title"] = Model.Thread.Subject; }
+
+<!-- Header -->
+<div class="d-flex align-items-center gap-3 mb-4">
+    <a asp-area="Creator" asp-page="/Messages/Index" class="btn btn-sm btn-outline-secondary">
+        <i class="fas fa-arrow-right"></i>
+    </a>
+    <div class="flex-fill">
+        <h6 class="fw-bold mb-0">@Model.Thread.Subject</h6>
+        <div class="d-flex align-items-center gap-2 mt-1 flex-wrap">
+            <span class="text-muted small"><i class="fas fa-shield-alt me-1"></i>ادمین سایت</span>
+            @if (Model.Thread.App != null)
+            {
+                <span class="thread-app-tag">
+                    <i class="fas fa-robot me-1" style="font-size:.6rem;"></i>@Model.Thread.App.Title
+                </span>
+            }
+            <span class="text-muted" style="font-size:.72rem;">
+                شروع: @Model.Thread.CreatedAt.ToShamsi("yyyy/MM/dd")
+            </span>
+        </div>
+    </div>
+</div>
+
+<!-- Chat window -->
+<div class="card shadow-sm mb-3">
+    <div class="chat-window p-4" id="chat-window">
+        @if (!Model.Thread.Messages.Any())
+        {
+            <div class="text-center text-muted py-4" style="font-size:.85rem;">
+                <i class="fas fa-comment-slash fa-2x mb-2 d-block opacity-25"></i>
+                هنوز پیامی ارسال نشده.
+            </div>
+        }
+        @foreach (var msg in Model.Thread.Messages)
+        {
+            var isAdmin = msg.IsFromAdmin;
+            <div class="d-flex mb-3 @(isAdmin ? "justify-content-start" : "justify-content-end")">
+                @if (isAdmin)
+                {
+                    <div class="chat-avatar chat-avatar--admin flex-shrink-0 ms-2">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                }
+                <div class="chat-bubble @(isAdmin ? "chat-bubble--admin" : "chat-bubble--creator")">
+                    <div class="chat-bubble__sender">@(isAdmin ? "ادمین" : "شما")</div>
+                    <div class="chat-bubble__text">@msg.Content</div>
+                    <div class="chat-bubble__meta">
+                        <span>@msg.SentAt.ToShamsi("HH:mm — yy/MM/dd")</span>
+                        @if (!isAdmin)
+                        {
+                            <span class="me-2">
+                                @if (msg.IsRead)
+                                {
+                                    <i class="fas fa-check-double" style="color:#34d399;" title="خوانده شده توسط ادمین"></i>
+                                }
+                                else
+                                {
+                                    <i class="fas fa-check" style="color:var(--dk-muted);" title="ارسال شده"></i>
+                                }
+                            </span>
+                        }
+                    </div>
+                </div>
+                @if (!isAdmin)
+                {
+                    <div class="chat-avatar chat-avatar--creator flex-shrink-0 me-2">
+                        <i class="fas fa-user"></i>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Reply box -->
+<form method="post" asp-page-handler="Send">
+    <input type="hidden" name="id" value="@Model.Thread.Id" />
+    <div class="card shadow-sm">
+        <div class="card-body p-3">
+            <textarea name="content" class="form-control border-0 bg-transparent resize-none"
+                      rows="3" placeholder="پیام خود را بنویسید..." required
+                      style="outline:none;box-shadow:none;font-size:.9rem;"></textarea>
+            <div class="d-flex justify-content-between align-items-center mt-2">
+                <span class="text-muted small"><i class="fas fa-lock me-1"></i>فقط ادمین پاسخ شما را می‌بیند</span>
+                <button type="submit" class="btn btn-primary px-4">
+                    <i class="fas fa-paper-plane ms-2"></i>ارسال
+                </button>
+            </div>
+        </div>
+    </div>
+</form>
+
+@section Styles {
+    <style>
+    .chat-window { min-height: 300px; max-height: 560px; overflow-y: auto; }
+
+    .chat-avatar {
+        width: 36px; height: 36px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: .8rem; flex-shrink: 0;
+    }
+    .chat-avatar--admin {
+        background: rgba(99,102,241,.15); border: 1px solid rgba(99,102,241,.3); color: #a5b4fc;
+    }
+    .chat-avatar--creator {
+        background: rgba(249,115,22,.15); border: 1px solid rgba(249,115,22,.3); color: #f97316;
+    }
+
+    .chat-bubble { max-width: 68%; }
+    .chat-bubble--admin {
+        background: var(--dk-surface2);
+        border: 1px solid var(--dk-border2);
+        border-radius: 4px 16px 16px 16px;
+        padding: 10px 14px;
+    }
+    .chat-bubble--creator {
+        background: rgba(249,115,22,.1);
+        border: 1px solid rgba(249,115,22,.2);
+        border-radius: 16px 4px 16px 16px;
+        padding: 10px 14px;
+    }
+    .chat-bubble__sender { font-size: .7rem; font-weight: 700; margin-bottom: 4px; color: var(--dk-muted); }
+    .chat-bubble--creator .chat-bubble__sender { color: #f97316; }
+    .chat-bubble__text { font-size: .875rem; line-height: 1.7; white-space: pre-wrap; }
+    .chat-bubble__meta {
+        font-size: .68rem; color: var(--dk-muted); margin-top: 6px;
+        display: flex; align-items: center; justify-content: flex-end; gap: 6px;
+    }
+
+    .thread-app-tag {
+        font-size: .68rem; padding: 2px 8px; border-radius: 20px;
+        background: rgba(249,115,22,.12); border: 1px solid rgba(249,115,22,.25); color: #f97316;
+    }
+    .resize-none { resize: none; }
+    </style>
+}
+
+@section Scripts {
+    <script>
+    var cw = document.getElementById('chat-window');
+    if (cw) cw.scrollTop = cw.scrollHeight;
+    </script>
+}

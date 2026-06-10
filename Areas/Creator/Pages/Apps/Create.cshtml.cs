@@ -3,6 +3,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using PromptMarketPlace.Data;
 using PromptMarketPlace.Models;
 using PromptMarketPlace.Models.Domain;
 using PromptMarketPlace.Models.Enums;
@@ -17,14 +18,16 @@ public class CreateModel : PageModel
     private readonly ICreatorHelper _creatorHelper;
     private readonly IWebHostEnvironment _env;
     private readonly ISettingService _settings;
+    private readonly ApplicationDbContext _db;
 
-    public CreateModel(IAppService apps, IAiProviderService providers, ICreatorHelper creatorHelper, IWebHostEnvironment env, ISettingService settings)
+    public CreateModel(IAppService apps, IAiProviderService providers, ICreatorHelper creatorHelper, IWebHostEnvironment env, ISettingService settings, ApplicationDbContext db)
     {
         _apps = apps;
         _providers = providers;
         _creatorHelper = creatorHelper;
         _env = env;
         _settings = settings;
+        _db = db;
     }
 
     public SelectList CategoryList { get; set; } = new(Enumerable.Empty<object>());
@@ -74,8 +77,38 @@ public class CreateModel : PageModel
             ThumbnailUrl = thumbnailUrl
         });
 
-        TempData["Success"] = "ابزار ساخته شد. حالا فیلدهای ورودی را تعریف کنید.";
-        return RedirectToPage("/Apps/Fields", new { area = "Creator", appId = app.Id });
+        if (!string.IsNullOrWhiteSpace(Form.FieldsJson))
+        {
+            try
+            {
+                var fieldDtos = JsonSerializer.Deserialize<List<FieldDto>>(Form.FieldsJson,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                if (fieldDtos != null)
+                {
+                    for (int i = 0; i < fieldDtos.Count; i++)
+                    {
+                        var f = fieldDtos[i];
+                        if (string.IsNullOrWhiteSpace(f.Name)) continue;
+                        _db.AppInputFields.Add(new AppInputField
+                        {
+                            AppId = app.Id,
+                            Name = f.Name.Trim().ToLower(),
+                            Label = f.Label ?? f.Name,
+                            Type = Enum.TryParse<FieldType>(f.Type, true, out var ft) ? ft : FieldType.Text,
+                            Placeholder = f.Placeholder,
+                            IsRequired = f.Required,
+                            Options = f.Options,
+                            SortOrder = i + 1
+                        });
+                    }
+                    await _db.SaveChangesAsync();
+                }
+            }
+            catch (JsonException) { /* FieldsJson malformed — skip fields */ }
+        }
+
+        TempData["Success"] = "ابزار با موفقیت ساخته شد.";
+        return RedirectToPage("/Apps/Index", new { area = "Creator" });
     }
 
     private async Task<string?> SaveThumbnailAsync(IFormFile? file)
@@ -152,5 +185,16 @@ public class CreateModel : PageModel
         public string? SystemContext { get; set; }
         public string? Tags { get; set; }
         public IFormFile? Thumbnail { get; set; }
+        public string? FieldsJson { get; set; }
+    }
+
+    public class FieldDto
+    {
+        public string Name { get; set; } = string.Empty;
+        public string? Label { get; set; }
+        public string? Type { get; set; }
+        public string? Placeholder { get; set; }
+        public bool Required { get; set; } = true;
+        public string? Options { get; set; }
     }
 }

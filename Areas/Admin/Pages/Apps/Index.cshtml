@@ -69,7 +69,7 @@
                         <td class="small text-muted">@a.UpdatedAt.ToShamsi("yy/MM/dd")</td>
                         <td class="text-center">
                             <div class="d-flex gap-1 justify-content-center">
-                                @if (a.Status != AppStatus.Suspended)
+                                @if (a.Status == AppStatus.Active)
                                 {
                                     <form method="post" asp-page-handler="ToggleStatus">
                                         <input type="hidden" name="id" value="@a.Id" />
@@ -79,12 +79,13 @@
                                                 data-confirm-type="warning">تعلیق</button>
                                     </form>
                                 }
-                                @if (a.Status == AppStatus.Suspended)
+                                @if (a.Status == AppStatus.Draft || a.Status == AppStatus.Suspended || a.Status == AppStatus.UnderReview)
                                 {
                                     <form method="post" asp-page-handler="ToggleStatus">
                                         <input type="hidden" name="id" value="@a.Id" />
                                         <input type="hidden" name="targetStatus" value="Active" />
-                                        <button type="submit" class="btn btn-sm btn-outline-success">فعال‌سازی</button>
+                                        <button type="submit" class="btn btn-sm btn-outline-success"
+                                                data-confirm="ابزار فعال شود؟">فعال‌سازی</button>
                                     </form>
                                 }
                             </div>

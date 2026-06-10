@@ -4,6 +4,19 @@
 
 <div class="row justify-content-center">
     <div class="col-lg-9">
+
+        <!-- بنر بازیابی پیش‌نویس -->
+        <div id="draft-restore-banner" class="d-none alert d-flex align-items-center justify-content-between gap-3 mb-3 py-2 px-3"
+             style="background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.3);border-radius:10px;">
+            <div class="small">
+                <i class="fas fa-history me-2" style="color:#f97316;"></i>
+                پیش‌نویس ذخیره‌شده از <strong id="draft-saved-time"></strong> بازیابی شد.
+            </div>
+            <button type="button" id="draft-clear-btn" class="btn btn-sm btn-outline-danger py-0 px-2" style="font-size:.75rem;">
+                <i class="fas fa-trash-alt me-1"></i>پاک کردن
+            </button>
+        </div>
+
         <!-- Wizard Steps -->
         <div class="d-flex gap-0 mb-4" id="wizard-steps">
             @foreach (var (num, title) in new[] {(1,"اطلاعات پایه"),(2,"تنظیمات AI"),(3,"پرامپت")})
@@ -25,20 +38,20 @@
                     <h6 class="fw-semibold mb-4">اطلاعات پایه</h6>
                     <div class="mb-3">
                         <label class="form-label">عنوان ابزار <span class="text-danger">*</span></label>
-                        <input asp-for="Form.Title" class="form-control" placeholder="مثال: تولید متن تبلیغاتی" />
+                        <input asp-for="Form.Title" id="form-title" class="form-control" placeholder="مثال: تولید متن تبلیغاتی" />
                         <span asp-validation-for="Form.Title" class="text-danger small"></span>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">توضیح کوتاه <span class="text-danger">*</span>
                             <small class="text-muted">(حداکثر ۱۶۰ کاراکتر)</small>
                         </label>
-                        <input asp-for="Form.ShortDescription" class="form-control"
+                        <input asp-for="Form.ShortDescription" id="form-short-desc" class="form-control"
                                placeholder="یک جمله که ابزار شما را توصیف کند" maxlength="160" />
                         <span asp-validation-for="Form.ShortDescription" class="text-danger small"></span>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">توضیح کامل <span class="text-danger">*</span></label>
-                        <textarea asp-for="Form.Description" class="form-control" rows="5"
+                        <textarea asp-for="Form.Description" id="form-description" class="form-control" rows="5"
                                   placeholder="توضیح کامل ابزار، موارد استفاده، نمونه‌ها..."></textarea>
                         <span asp-validation-for="Form.Description" class="text-danger small"></span>
                     </div>
@@ -60,7 +73,7 @@
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label">دسته‌بندی <span class="text-danger">*</span></label>
-                            <select asp-for="Form.CategoryId" asp-items="Model.CategoryList"
+                            <select asp-for="Form.CategoryId" id="form-category" asp-items="Model.CategoryList"
                                     class="form-select">
                                 <option value="0">انتخاب دسته‌بندی</option>
                             </select>
@@ -68,7 +81,7 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">تگ‌ها <small class="text-muted">(با کاما جدا کنید)</small></label>
-                            <input asp-for="Form.Tags" class="form-control" placeholder="تبلیغات، مارکتینگ، محتوا" />
+                            <input asp-for="Form.Tags" id="form-tags" class="form-control" placeholder="تبلیغات، مارکتینگ، محتوا" />
                         </div>
                     </div>
                 </div>
@@ -113,33 +126,21 @@
                         </select>
                         <span asp-validation-for="Form.AiModelId" class="text-danger small"></span>
                     </div>
-                    <div class="alert alert-info small">
-                        <i class="fas fa-info-circle me-1"></i>
-                        هزینه اعتباری هر اجرا توسط <strong>ادمین</strong> هنگام تایید ابزار تعیین می‌شود.
-                        <hr class="my-2">
-                        <div>پیشنهاد سیستم بر اساس نوع خروجی انتخابی:</div>
-                        <div class="fw-bold mt-1" id="pricing-hint">
-                            <i class="fas fa-coins me-1"></i>
-                            <span id="pricing-value">—</span> اعتبار به ازای هر اجرا
+                    <div class="mb-3">
+                        <label class="form-label d-flex align-items-center gap-2">
+                            هزینه اعتباری پیشنهادی
+                            <span class="badge" style="background:rgba(249,115,22,.12);border:1px solid rgba(249,115,22,.25);color:#fed7aa;font-size:.65rem;font-weight:500;">ادمین می‌تواند تغییر دهد</span>
+                        </label>
+                        <div class="input-group" style="max-width:200px;">
+                            <span class="input-group-text"><i class="fas fa-coins"></i></span>
+                            <input asp-for="Form.CreditCost" type="number" class="form-control" min="1" max="1000" id="credit-cost-input" />
+                            <span class="input-group-text small">اعتبار</span>
                         </div>
-                        <div class="text-muted mt-1" style="font-size:.75rem;">ادمین می‌تواند این مقدار را تغییر دهد.</div>
+                        <div class="text-muted mt-1 small">
+                            پیشنهاد بر اساس نوع خروجی: <strong id="pricing-value">—</strong> اعتبار
+                        </div>
+                        <span asp-validation-for="Form.CreditCost" class="text-danger small"></span>
                     </div>
-                    <script>
-                        var pricingMap = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PricingByType));
-                        function updatePricingHint() {
-                            var selected = document.querySelector('input[name="Form.OutputType"]:checked');
-                            if (selected) {
-                                var val = pricingMap[selected.value] || '?';
-                                document.getElementById('pricing-value').textContent = val;
-                            }
-                        }
-                        document.addEventListener('DOMContentLoaded', function() {
-                            document.querySelectorAll('input[name="Form.OutputType"]').forEach(function(r) {
-                                r.addEventListener('change', updatePricingHint);
-                            });
-                            updatePricingHint();
-                        });
-                    </script>
                 </div>
                 <div class="d-flex justify-content-between">
                     <button type="button" class="btn btn-outline-secondary" onclick="goToStep(1)">
@@ -153,38 +154,181 @@
 
             <!-- مرحله ۳ -->
             <div id="step-3" class="wizard-step-content d-none">
-                <div class="card border-0 shadow-sm p-4 mb-3">
-                    <h6 class="fw-semibold mb-4">پرامپت</h6>
-                    <div class="alert alert-info small mb-3">
-                        <i class="fas fa-info-circle me-1"></i>
-                        برای تعریف متغیر از قالب <code dir="ltr">{variable_name}</code> استفاده کنید.
-                        مثال: <code dir="ltr">یک متن تبلیغاتی برای {brand_name} بنویس</code>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">System Context <small class="text-muted">(اختیاری)</small></label>
-                        <textarea asp-for="Form.SystemContext" class="form-control" rows="2" dir="ltr"
-                                  placeholder="You are a professional marketing copywriter..."></textarea>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">پرامپت اصلی <span class="text-danger">*</span></label>
-                        <textarea asp-for="Form.Prompt" class="form-control" rows="8" id="prompt-textarea"
-                                  placeholder="پرامپت خود را اینجا بنویسید...&#10;&#10;از {variable_name} برای تعریف ورودی‌ها استفاده کنید."></textarea>
-                        <div class="d-flex justify-content-between">
-                            <span asp-validation-for="Form.Prompt" class="text-danger small"></span>
-                            <small class="text-muted" id="variable-list"></small>
+                <div class="row g-4 align-items-start">
+
+                    <!-- ستون فیلدها -->
+                    <div class="col-lg-5">
+                        <div class="card border-0 shadow-sm p-4" style="position:sticky;top:72px;">
+                            <div class="d-flex align-items-center justify-content-between mb-3">
+                                <div class="d-flex align-items-center gap-2">
+                                    <h6 class="fw-bold mb-0">فیلدهای ورودی</h6>
+                                    <button type="button" tabindex="0" class="btn p-0 help-icon-btn"
+                                            data-bs-toggle="popover" data-bs-trigger="focus" data-bs-placement="right"
+                                            data-bs-title="فیلدهای ورودی چیست؟"
+                                            data-bs-content="فیلدها اطلاعاتی هستند که کاربر هنگام استفاده از ابزار وارد می‌کند. هر فیلد یک متغیر در پرامپت می‌شود. مثلاً فیلدی با نام subject در پرامپت به صورت {subject} استفاده می‌شود.">
+                                        <i class="fas fa-question-circle" style="font-size:.8rem;color:var(--dk-muted);"></i>
+                                    </button>
+                                </div>
+                                <span id="field-count-badge" class="badge rounded-pill"
+                                      style="background:rgba(249,115,22,.15);border:1px solid rgba(249,115,22,.3);color:#fed7aa;">
+                                    ۰ فیلد
+                                </span>
+                            </div>
+
+                            <!-- فرم افزودن -->
+                            <div class="rounded-3 p-3 mb-3" style="background:var(--dk-surface2);border:1px dashed var(--dk-border2);">
+                                <div class="row g-2 mb-2">
+                                    <div class="col-6">
+                                        <label class="form-label small fw-semibold mb-1 d-flex align-items-center gap-1">
+                                            نام متغیر <span class="text-danger">*</span>
+                                            <button type="button" tabindex="0" class="btn p-0 help-icon-btn"
+                                                    data-bs-toggle="popover" data-bs-trigger="focus" data-bs-placement="top"
+                                                    data-bs-content="نامی که در پرامپت استفاده می‌شود. فقط حروف کوچک انگلیسی، عدد و _ مجاز است. مثال: subject یا brand_name">
+                                                <i class="fas fa-question-circle" style="font-size:.68rem;color:var(--dk-muted);"></i>
+                                            </button>
+                                        </label>
+                                        <input type="text" id="nf-name" class="form-control form-control-sm" dir="ltr" placeholder="subject" />
+                                        <div id="nf-name-err" class="text-danger d-none" style="font-size:.7rem;"></div>
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label small fw-semibold mb-1">نوع فیلد</label>
+                                        <select id="nf-type" class="form-select form-select-sm">
+                                            <option value="Text">متن ساده</option>
+                                            <option value="Textarea">متن چند خطی</option>
+                                            <option value="Select">انتخابی (dropdown)</option>
+                                            <option value="Number">عدد</option>
+                                            <option value="Checkbox">بله / خیر</option>
+                                            <option value="DatePicker">تاریخ</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small fw-semibold mb-1">عنوان نمایشی <span class="text-danger">*</span></label>
+                                    <input type="text" id="nf-label" class="form-control form-control-sm" placeholder="مثال: موضوع ایمیل" />
+                                    <div id="nf-label-err" class="text-danger d-none" style="font-size:.7rem;"></div>
+                                </div>
+                                <div class="row g-2 mb-2">
+                                    <div class="col-8">
+                                        <label class="form-label small mb-1">Placeholder <small class="text-muted">(اختیاری)</small></label>
+                                        <input type="text" id="nf-placeholder" class="form-control form-control-sm" />
+                                    </div>
+                                    <div class="col-4 d-flex align-items-end pb-1">
+                                        <div class="form-check mb-0">
+                                            <input type="checkbox" id="nf-required" class="form-check-input" checked />
+                                            <label class="form-check-label small" for="nf-required">اجباری</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="nf-options-wrap" class="mb-2 d-none">
+                                    <label class="form-label small fw-semibold mb-1 d-flex align-items-center gap-1">
+                                        گزینه‌ها
+                                        <button type="button" tabindex="0" class="btn p-0 help-icon-btn"
+                                                data-bs-toggle="popover" data-bs-trigger="focus" data-bs-placement="top"
+                                                data-bs-content="هر خط یک گزینه. مثال: فارسی / انگلیسی / آلمانی">
+                                            <i class="fas fa-question-circle" style="font-size:.68rem;color:var(--dk-muted);"></i>
+                                        </button>
+                                    </label>
+                                    <textarea id="nf-options" class="form-control form-control-sm" rows="3" dir="ltr"
+                                              placeholder="گزینه اول&#10;گزینه دوم&#10;گزینه سوم"></textarea>
+                                </div>
+                                <button type="button" class="btn btn-primary btn-sm w-100 mt-1" id="add-field-btn">
+                                    <i class="fas fa-plus me-1"></i>افزودن به لیست
+                                </button>
+                            </div>
+
+                            <!-- لیست فیلدها -->
+                            <div id="fields-empty-state" class="text-center py-3" style="color:var(--dk-muted);font-size:.82rem;">
+                                <i class="fas fa-layer-group fa-2x mb-2 d-block opacity-25"></i>
+                                هنوز فیلدی اضافه نشده.
+                            </div>
+                            <div id="fields-cards-list"></div>
                         </div>
                     </div>
-                    <div class="alert alert-warning small">
-                        <i class="fas fa-lock me-1"></i>
-                        پرامپت با رمزنگاری AES-256 ذخیره می‌شود و هرگز به کاربران نمایش داده نخواهد شد.
+
+                    <!-- ستون پرامپت -->
+                    <div class="col-lg-7">
+                        <div class="alert small mb-3 d-flex gap-2 align-items-start"
+                             style="background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.2);color:var(--dk-text);border-radius:10px;">
+                            <i class="fas fa-lightbulb mt-1 flex-shrink-0" style="color:#f97316;"></i>
+                            <span>فیلدها را از پنل سمت چپ اضافه کنید. سپس در پرامپت <code dir="ltr">{</code> بزنید تا لیست انتخاب فیلد ظاهر شود.</span>
+                        </div>
+
+                        <div class="card border-0 shadow-sm p-4">
+                            <!-- System Context -->
+                            <div class="mb-4">
+                                <div class="d-flex align-items-center gap-2 mb-2">
+                                    <label class="form-label fw-semibold mb-0">System Context</label>
+                                    <small class="text-muted">(اختیاری)</small>
+                                    <button type="button" tabindex="0" class="btn p-0 help-icon-btn"
+                                            data-bs-toggle="popover" data-bs-trigger="focus" data-bs-placement="top"
+                                            data-bs-title="System Context چیست؟"
+                                            data-bs-content="شخصیت و نقش هوش مصنوعی را تعریف می‌کند. قبل از هر درخواست کاربر، مخفیانه به مدل ارسال می‌شود. مثال: You are a professional email writer. Always write formal emails.">
+                                        <i class="fas fa-question-circle" style="font-size:.85rem;color:var(--dk-muted);"></i>
+                                    </button>
+                                </div>
+                                <textarea asp-for="Form.SystemContext" id="system-context" class="form-control" rows="2" dir="ltr"
+                                          placeholder="You are a professional email writer..."></textarea>
+                                <div class="mt-1">
+                                    <button type="button" class="btn btn-sm py-0 px-2 dir-toggle" onclick="toggleDir('system-context',this)" style="font-size:.72rem;border:1px solid var(--dk-border2);color:var(--dk-muted);">
+                                        <i class="fas fa-align-right me-1"></i>RTL / LTR
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- پرامپت اصلی -->
+                            <div>
+                                <div class="d-flex align-items-center gap-2 mb-2">
+                                    <label class="form-label fw-semibold mb-0">پرامپت اصلی <span class="text-danger">*</span></label>
+                                    <button type="button" tabindex="0" class="btn p-0 help-icon-btn"
+                                            data-bs-toggle="popover" data-bs-trigger="focus" data-bs-placement="top"
+                                            data-bs-title="پرامپت اصلی"
+                                            data-bs-content="دستورالعمل اصلی برای هوش مصنوعی. وقتی { می‌زنید لیست فیلدهای تعریف‌شده ظاهر می‌شود. مثال: یک ایمیل رسمی درباره {subject} برای {recipient} بنویس.">
+                                        <i class="fas fa-question-circle" style="font-size:.85rem;color:var(--dk-muted);"></i>
+                                    </button>
+                                </div>
+                                <textarea asp-for="Form.Prompt" class="form-control" rows="11"
+                                          id="prompt-textarea"
+                                          style="font-family:monospace;font-size:.9rem;"
+                                          placeholder="پرامپت خود را اینجا بنویسید...&#10;&#10;{ را بزنید تا فیلدهای تعریف‌شده نمایش داده شود."></textarea>
+                                <div class="mt-1">
+                                    <button type="button" class="btn btn-sm py-0 px-2 dir-toggle" onclick="toggleDir('prompt-textarea',this)" style="font-size:.72rem;border:1px solid var(--dk-border2);color:var(--dk-muted);">
+                                        <i class="fas fa-align-right me-1"></i>RTL / LTR
+                                    </button>
+                                </div>
+
+                                <!-- Field quick-picker (ظاهر می‌شود وقتی { زده می‌شود) -->
+                                <div id="field-quickpick" class="d-none mt-2 p-2 rounded-2"
+                                     style="background:var(--dk-surface2);border:1px solid rgba(249,115,22,.3);">
+                                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                                        <small style="color:#f97316;font-size:.72rem;white-space:nowrap;">
+                                            <i class="fas fa-bolt me-1"></i>انتخاب فیلد:
+                                        </small>
+                                        <div id="quickpick-chips" class="d-flex gap-1 flex-wrap"></div>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex align-items-start justify-content-between mt-2 gap-2">
+                                    <span asp-validation-for="Form.Prompt" class="text-danger small"></span>
+                                    <div id="variable-chips" class="d-flex flex-wrap gap-1 justify-content-end flex-fill"></div>
+                                </div>
+                            </div>
+
+                            <div class="alert alert-warning small mt-3 mb-0">
+                                <i class="fas fa-lock me-1"></i>
+                                پرامپت با رمزنگاری AES-256 ذخیره می‌شود و هرگز به کاربران نمایش داده نخواهد شد.
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="d-flex justify-content-between">
+
+                <input type="hidden" id="fields-json-input" name="Form.FieldsJson" />
+
+                <div class="d-flex justify-content-between mt-4">
                     <button type="button" class="btn btn-outline-secondary" onclick="goToStep(2)">
                         <i class="fas fa-arrow-right me-1"></i>قبلی
                     </button>
-                    <button type="submit" class="btn btn-success">
-                        <i class="fas fa-save me-1"></i>ذخیره و رفتن به تنظیم فیلدها
+                    <button type="submit" class="btn btn-success px-4" onclick="serializeFields()">
+                        <i class="fas fa-save me-1"></i>ذخیره ابزار
                     </button>
                 </div>
             </div>
@@ -223,6 +367,7 @@
     <partial name="_ValidationScriptsPartial" />
     <script>
         var createPageData = { allModels: @Html.Raw(Model.ModelsJson) };
+        var pricingMapData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PricingByType));
     </script>
     <script src="~/js/pages/creator/apps/Create.js"></script>
     <script>

@@ -75,6 +75,7 @@ try
     builder.Services.AddScoped<IReviewService, ReviewService>();
     builder.Services.AddScoped<IWithdrawalService, WithdrawalService>();
     builder.Services.AddScoped<ICreatorHelper, CreatorHelper>();
+    builder.Services.AddScoped<IMessageService, MessageService>();
     builder.Services.AddScoped<IEmailService, SmtpEmailService>();
     builder.Services.AddMemoryCache();
     builder.Services.AddDistributedMemoryCache();

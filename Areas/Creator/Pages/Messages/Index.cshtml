@@ -1,0 +1,122 @@
+@page
+@model CreatorMessagesIndexModel
+@{ ViewData["Title"] = "پیام‌ها"; }
+
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <h5 class="fw-bold mb-0"><i class="fas fa-comments me-2" style="color:var(--creator-accent);"></i>پیام‌ها</h5>
+    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#newThreadModal">
+        <i class="fas fa-plus me-1"></i>پیام جدید
+    </button>
+</div>
+
+@if (!Model.Threads.Any())
+{
+    <div class="card border-0 shadow-sm">
+        <div class="card-body text-center py-5 text-muted">
+            <i class="fas fa-inbox fa-3x mb-3 opacity-25 d-block"></i>
+            هیچ مکالمه‌ای ندارید.
+        </div>
+    </div>
+}
+else
+{
+    <div class="d-flex flex-column gap-2">
+        @foreach (var t in Model.Threads)
+        {
+            var lastMsg = t.Messages.FirstOrDefault();
+            var unread = t.Messages.Count(m => m.IsFromAdmin && !m.IsRead);
+            <a asp-area="Creator" asp-page="/Messages/Thread" asp-route-id="@t.Id"
+               class="text-decoration-none thread-row @(unread > 0 ? "thread-row--unread" : "")">
+                <div class="d-flex align-items-center gap-3 p-3">
+                    <div class="thread-avatar flex-shrink-0">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <div class="flex-fill" style="min-width:0;">
+                        <div class="d-flex align-items-center justify-content-between gap-2 mb-1">
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <span class="fw-semibold small">ادمین</span>
+                                @if (t.App != null)
+                                {
+                                    <span class="thread-app-tag">
+                                        <i class="fas fa-robot me-1" style="font-size:.6rem;"></i>@t.App.Title
+                                    </span>
+                                }
+                            </div>
+                            <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                                @if (unread > 0)
+                                {
+                                    <span class="thread-unread-badge">@unread</span>
+                                }
+                                <span class="text-muted" style="font-size:.72rem;">@t.LastMessageAt.ToShamsi("HH:mm — yy/MM/dd")</span>
+                            </div>
+                        </div>
+                        <div class="fw-semibold" style="font-size:.82rem;">@t.Subject</div>
+                        @if (lastMsg != null)
+                        {
+                            <div class="text-muted text-truncate" style="font-size:.75rem;max-width:500px;">
+                                @(lastMsg.IsFromAdmin ? "ادمین: " : "شما: ")@lastMsg.Content
+                            </div>
+                        }
+                    </div>
+                </div>
+            </a>
+        }
+    </div>
+}
+
+<!-- Modal پیام جدید -->
+<div class="modal fade" id="newThreadModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="NewThread">
+                <div class="modal-header border-0 pb-0">
+                    <h6 class="modal-title fw-bold">پیام جدید به ادمین</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">موضوع</label>
+                        <input type="text" name="subject" class="form-control" placeholder="مثال: سوال درباره پرداخت" required maxlength="200" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">پیام اول</label>
+                        <textarea name="firstMessage" class="form-control" rows="4" placeholder="پیام خود را بنویسید..." required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">انصراف</button>
+                    <button type="submit" class="btn btn-primary btn-sm px-4">
+                        <i class="fas fa-paper-plane ms-1"></i>ارسال
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+    .thread-row {
+        display: block; border-radius: 12px;
+        border: 1px solid var(--dk-border2); background: var(--dk-surface);
+        transition: border-color .15s, background .15s;
+    }
+    .thread-row:hover { border-color: rgba(249,115,22,.4); background: var(--dk-surface2); }
+    .thread-row--unread { border-color: rgba(249,115,22,.3); background: rgba(249,115,22,.04); }
+    .thread-avatar {
+        width: 40px; height: 40px; border-radius: 50%;
+        background: rgba(99,102,241,.15); border: 1px solid rgba(99,102,241,.3);
+        display: flex; align-items: center; justify-content: center;
+        color: #a5b4fc; font-size: .9rem;
+    }
+    .thread-app-tag {
+        font-size: .68rem; padding: 2px 8px; border-radius: 20px;
+        background: rgba(99,102,241,.12); border: 1px solid rgba(99,102,241,.25); color: #a5b4fc;
+    }
+    .thread-unread-badge {
+        display: inline-flex; align-items: center; justify-content: center;
+        min-width: 20px; height: 20px; border-radius: 10px; padding: 0 5px;
+        background: #f97316; color: #fff; font-size: .7rem; font-weight: 700;
+    }
+    </style>
+}

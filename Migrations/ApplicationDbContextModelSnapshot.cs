@@ -519,22 +519,6 @@ namespace PromptMarketPlace.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
-                    b.Property<bool>("IsActiveForAudio")
-                        .HasDefaultValue(false)
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsActiveForImage")
-                        .HasDefaultValue(false)
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsActiveForText")
-                        .HasDefaultValue(false)
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsActiveForVideo")
-                        .HasDefaultValue(false)
-                        .HasColumnType("bit");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -543,6 +527,26 @@ namespace PromptMarketPlace.Migrations
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
+
+                    b.Property<bool>("IsActiveForAudio")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsActiveForImage")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsActiveForText")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsActiveForVideo")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -561,6 +565,10 @@ namespace PromptMarketPlace.Migrations
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "گیت‌وی یکپارچه برای دسترسی به همه مدل‌های هوش مصنوعی",
                             IsActive = true,
+                            IsActiveForAudio = false,
+                            IsActiveForImage = false,
+                            IsActiveForText = false,
+                            IsActiveForVideo = false,
                             Name = "OpenRouter"
                         });
                 });
@@ -1100,6 +1108,39 @@ namespace PromptMarketPlace.Migrations
                     b.ToTable("ExecutionInputValues");
                 });
 
+            modelBuilder.Entity("PromptMarketPlace.Models.Domain.MessageThread", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("AppId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CreatorProfileId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("LastMessageAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AppId");
+
+                    b.HasIndex("CreatorProfileId");
+
+                    b.ToTable("MessageThreads");
+                });
+
             modelBuilder.Entity("PromptMarketPlace.Models.Domain.Payment", b =>
                 {
                     b.Property<long>("Id")
@@ -1258,6 +1299,37 @@ namespace PromptMarketPlace.Migrations
                             Key = "Registration:AutoApproveCreator",
                             Value = "true"
                         });
+                });
+
+            modelBuilder.Entity("PromptMarketPlace.Models.Domain.ThreadMessage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsFromAdmin")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("SentAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("ThreadId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ThreadId");
+
+                    b.ToTable("ThreadMessages");
                 });
 
             modelBuilder.Entity("PromptMarketPlace.Models.Domain.UserFavorite", b =>
@@ -1590,6 +1662,23 @@ namespace PromptMarketPlace.Migrations
                     b.Navigation("Execution");
                 });
 
+            modelBuilder.Entity("PromptMarketPlace.Models.Domain.MessageThread", b =>
+                {
+                    b.HasOne("PromptMarketPlace.Models.Domain.AiApp", "App")
+                        .WithMany()
+                        .HasForeignKey("AppId");
+
+                    b.HasOne("PromptMarketPlace.Models.Domain.CreatorProfile", "Creator")
+                        .WithMany("MessageThreads")
+                        .HasForeignKey("CreatorProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("App");
+
+                    b.Navigation("Creator");
+                });
+
             modelBuilder.Entity("PromptMarketPlace.Models.Domain.Payment", b =>
                 {
                     b.HasOne("PromptMarketPlace.Models.Domain.CreditPackage", "Package")
@@ -1607,6 +1696,17 @@ namespace PromptMarketPlace.Migrations
                     b.Navigation("Package");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("PromptMarketPlace.Models.Domain.ThreadMessage", b =>
+                {
+                    b.HasOne("PromptMarketPlace.Models.Domain.MessageThread", "Thread")
+                        .WithMany("Messages")
+                        .HasForeignKey("ThreadId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Thread");
                 });
 
             modelBuilder.Entity("PromptMarketPlace.Models.Domain.UserFavorite", b =>
@@ -1709,12 +1809,19 @@ namespace PromptMarketPlace.Migrations
                 {
                     b.Navigation("Apps");
 
+                    b.Navigation("MessageThreads");
+
                     b.Navigation("WithdrawalRequests");
                 });
 
             modelBuilder.Entity("PromptMarketPlace.Models.Domain.CreditPackage", b =>
                 {
                     b.Navigation("Payments");
+                });
+
+            modelBuilder.Entity("PromptMarketPlace.Models.Domain.MessageThread", b =>
+                {
+                    b.Navigation("Messages");
                 });
 #pragma warning restore 612, 618
         }

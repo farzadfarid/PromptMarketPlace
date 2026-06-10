@@ -176,6 +176,12 @@ public class AppService : IAppService
         app.CreditCost = dto.CreditCost;
         app.SystemContext = dto.SystemContext;
         if (dto.ThumbnailUrl != null) app.ThumbnailUrl = dto.ThumbnailUrl;
+        if (dto.OutputType.HasValue &&
+            (app.Status == AppStatus.Draft || app.Status == AppStatus.Suspended))
+            app.OutputType = dto.OutputType.Value;
+        if (dto.AiModelId.HasValue && dto.AiModelId.Value > 0 &&
+            (app.Status == AppStatus.Draft || app.Status == AppStatus.Suspended))
+            app.AiModelId = dto.AiModelId.Value;
         app.UpdatedAt = DateTime.UtcNow;
 
         if (!string.IsNullOrWhiteSpace(dto.NewPlainTextPrompt))

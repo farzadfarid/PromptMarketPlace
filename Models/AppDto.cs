@@ -24,6 +24,8 @@ public class UpdateAppDto
     public string Description { get; set; } = string.Empty;
     public int CategoryId { get; set; }
     public int CreditCost { get; set; }
+    public OutputType? OutputType { get; set; }
+    public int? AiModelId { get; set; }
     public string? NewPlainTextPrompt { get; set; }
     public string? SystemContext { get; set; }
     public List<string> Tags { get; set; } = new();

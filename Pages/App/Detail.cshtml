@@ -86,7 +86,16 @@
                                 }
                                 else if (field.Type == FieldType.Select && field.Options != null)
                                 {
-                                    var options = System.Text.Json.JsonSerializer.Deserialize<List<string>>(field.Options) ?? new();
+                                    // Options می‌تواند List<string> یا List<{value,label}> باشد
+                                    List<string> options;
+                                    try {
+                                        var objs = System.Text.Json.JsonSerializer.Deserialize<List<System.Text.Json.JsonElement>>(field.Options) ?? new();
+                                        options = objs.Select(o => o.ValueKind == System.Text.Json.JsonValueKind.String
+                                            ? o.GetString() ?? ""
+                                            : (o.TryGetProperty("label", out var lbl) ? lbl.GetString() ?? "" :
+                                               o.TryGetProperty("value", out var val) ? val.GetString() ?? "" : "")
+                                        ).Where(s => s != "").ToList();
+                                    } catch { options = new(); }
                                     <select name="Inputs[@field.Name]" class="form-select"
                                             @(field.IsRequired ? "required" : "")>
                                         <option value="">انتخاب کنید...</option>
@@ -255,22 +264,41 @@
                     <h6 class="fw-semibold mb-3">نمونه خروجی‌ها</h6>
                     @foreach (var item in Model.App.ShowcaseItems.Take(4))
                     {
-                        @if (item.OutputType == OutputType.Image && !string.IsNullOrEmpty(item.OutputUrl))
-                        {
-                            <img src="@item.OutputUrl" class="img-fluid rounded mb-2"
-                                 alt="@item.Caption" style="max-height:200px;object-fit:cover;width:100%;" />
-                        }
-                        else if (!string.IsNullOrEmpty(item.OutputText))
-                        {
-                            <div class="bg-light rounded p-2 mb-2 small" style="white-space:pre-wrap;max-height:120px;overflow:hidden;">
-                                @item.OutputText
-                            </div>
-                        }
-                        @if (!string.IsNullOrEmpty(item.Caption))
-                        {
-                            <p class="text-muted small mb-2">@item.Caption</p>
-                        }
+                        <div class="border rounded p-2 mb-2 showcase-item"
+                             role="button" style="cursor:pointer;"
+                             data-bs-toggle="modal" data-bs-target="#showcaseModal"
+                             data-caption="@(item.Caption ?? "")"
+                             data-text="@(item.OutputText ?? "")"
+                             data-imgurl="@(item.OutputUrl ?? "")"
+                             data-type="@item.OutputType">
+                            @if (!string.IsNullOrEmpty(item.Caption))
+                            {
+                                <div class="fw-semibold small text-primary mb-1">@item.Caption</div>
+                            }
+                            @if (item.OutputType == OutputType.Image && !string.IsNullOrEmpty(item.OutputUrl))
+                            {
+                                <img src="@item.OutputUrl" class="img-fluid rounded"
+                                     alt="@item.Caption" style="max-height:150px;object-fit:cover;width:100%;" />
+                            }
+                            else if (!string.IsNullOrEmpty(item.OutputText))
+                            {
+                                <div class="text-muted small" style="white-space:pre-wrap;max-height:56px;overflow:hidden;line-height:1.4;">@item.OutputText</div>
+                                <div class="text-primary small mt-1"><i class="fas fa-eye me-1"></i>مشاهده کامل</div>
+                            }
+                        </div>
                     }
+                </div>
+
+                <div class="modal fade" id="showcaseModal" tabindex="-1">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h6 class="modal-title fw-semibold" id="showcaseModalTitle">نمونه خروجی</h6>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body p-3" id="showcaseModalBody"></div>
+                        </div>
+                    </div>
                 </div>
             }
 

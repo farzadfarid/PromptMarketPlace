@@ -17,15 +17,17 @@ public class DetailModel : PageModel
     private readonly ApplicationDbContext _db;
     private readonly IEncryptionService _encryption;
     private readonly IAiProviderService _providers;
+    private readonly IMessageService _msg;
 
     public SelectList? ModelSelectList { get; set; }
     public SelectList? CategorySelectList { get; set; }
 
-    public DetailModel(ApplicationDbContext db, IEncryptionService encryption, IAiProviderService providers)
+    public DetailModel(ApplicationDbContext db, IEncryptionService encryption, IAiProviderService providers, IMessageService msg)
     {
         _providers = providers;
         _db = db;
         _encryption = encryption;
+        _msg = msg;
     }
 
     public AiApp App { get; set; } = null!;
@@ -51,6 +53,7 @@ public class DetailModel : PageModel
             .Include(a => a.AiModel)
             .Include(a => a.InputFields)
             .Include(a => a.Tags)
+            .Include(a => a.ShowcaseItems.OrderBy(s => s.SortOrder))
             .FirstOrDefaultAsync(a => a.Id == id);
 
         if (app == null) return NotFound();
@@ -182,5 +185,20 @@ public class DetailModel : PageModel
         await _db.SaveChangesAsync();
         TempData["Success"] = $"مدل ابزار به «{model.Name}» تغییر یافت.";
         return RedirectToPage(new { id });
+    }
+
+    public async Task<IActionResult> OnPostSendMessageAsync(int id, string subject, string message)
+    {
+        var app = await _db.Apps.Include(a => a.Creator).FirstOrDefaultAsync(a => a.Id == id);
+        if (app == null) return NotFound();
+        if (string.IsNullOrWhiteSpace(subject) || string.IsNullOrWhiteSpace(message))
+        {
+            TempData["Error"] = "موضوع و پیام نمی‌توانند خالی باشند.";
+            return RedirectToPage(new { id });
+        }
+        var thread = await _msg.StartThreadAsync(app.CreatorProfileId, subject.Trim(), appId: id);
+        await _msg.SendAsync(thread.Id, isFromAdmin: true, content: message.Trim());
+        TempData["Success"] = "پیام برای سازنده ارسال شد.";
+        return RedirectToPage("/Messages/Thread", new { area = "Admin", id = thread.Id });
     }
 }

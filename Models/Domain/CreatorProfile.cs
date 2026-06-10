@@ -14,4 +14,5 @@ public class CreatorProfile
     public ApplicationUser User { get; set; } = null!;
     public ICollection<AiApp> Apps { get; set; } = new List<AiApp>();
     public ICollection<WithdrawalRequest> WithdrawalRequests { get; set; } = new List<WithdrawalRequest>();
+    public ICollection<MessageThread> MessageThreads { get; set; } = new List<MessageThread>();
 }

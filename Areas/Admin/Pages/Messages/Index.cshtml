@@ -1,0 +1,98 @@
+@page
+@model AdminMessagesIndexModel
+@{ ViewData["Title"] = "پیام‌ها"; }
+
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <h5 class="fw-bold mb-0"><i class="fas fa-comments me-2" style="color:#f97316;"></i>پیام‌ها</h5>
+    <span class="badge rounded-pill" style="background:rgba(249,115,22,.15);border:1px solid rgba(249,115,22,.3);color:#fed7aa;">
+        @Model.Threads.Count مکالمه
+    </span>
+</div>
+
+@if (!Model.Threads.Any())
+{
+    <div class="card shadow-sm">
+        <div class="card-body text-center py-5 text-muted">
+            <i class="fas fa-inbox fa-3x mb-3 opacity-25 d-block"></i>
+            هیچ مکالمه‌ای وجود ندارد.
+        </div>
+    </div>
+}
+else
+{
+    <div class="d-flex flex-column gap-2">
+        @foreach (var t in Model.Threads)
+        {
+            var lastMsg = t.Messages.FirstOrDefault();
+            var unread = t.Messages.Count(m => !m.IsFromAdmin && !m.IsRead);
+            <a asp-area="Admin" asp-page="/Messages/Thread" asp-route-id="@t.Id"
+               class="text-decoration-none thread-row @(unread > 0 ? "thread-row--unread" : "")">
+                <div class="d-flex align-items-center gap-3 p-3">
+                    <!-- Avatar -->
+                    <div class="thread-avatar flex-shrink-0">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <!-- Body -->
+                    <div class="flex-fill" style="min-width:0;">
+                        <div class="d-flex align-items-center justify-content-between gap-2 mb-1">
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <span class="fw-semibold small">@t.Creator.User?.DisplayName</span>
+                                @if (t.App != null)
+                                {
+                                    <span class="thread-app-tag">
+                                        <i class="fas fa-robot me-1" style="font-size:.6rem;"></i>@t.App.Title
+                                    </span>
+                                }
+                            </div>
+                            <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                                @if (unread > 0)
+                                {
+                                    <span class="thread-unread-badge">@unread</span>
+                                }
+                                <span class="text-muted" style="font-size:.72rem;">@t.LastMessageAt.ToShamsi("HH:mm — yy/MM/dd")</span>
+                            </div>
+                        </div>
+                        <div class="fw-semibold" style="font-size:.82rem;color:var(--dk-text);">@t.Subject</div>
+                        @if (lastMsg != null)
+                        {
+                            <div class="text-muted text-truncate" style="font-size:.75rem;max-width:500px;">
+                                @(lastMsg.IsFromAdmin ? "شما: " : $"{t.Creator.User?.DisplayName}: ")@lastMsg.Content
+                            </div>
+                        }
+                    </div>
+                </div>
+            </a>
+        }
+    </div>
+}
+
+@section Styles {
+    <style>
+    .thread-row {
+        display: block;
+        border-radius: 12px;
+        border: 1px solid var(--dk-border2);
+        background: var(--dk-surface);
+        transition: border-color .15s, background .15s;
+    }
+    .thread-row:hover { border-color: rgba(249,115,22,.4); background: var(--dk-surface2); }
+    .thread-row--unread { border-color: rgba(249,115,22,.3); background: rgba(249,115,22,.04); }
+    .thread-avatar {
+        width: 40px; height: 40px; border-radius: 50%;
+        background: rgba(249,115,22,.15);
+        border: 1px solid rgba(249,115,22,.3);
+        display: flex; align-items: center; justify-content: center;
+        color: #f97316; font-size: .9rem;
+    }
+    .thread-app-tag {
+        font-size: .68rem; padding: 2px 8px; border-radius: 20px;
+        background: rgba(99,102,241,.12); border: 1px solid rgba(99,102,241,.25);
+        color: #a5b4fc;
+    }
+    .thread-unread-badge {
+        display: inline-flex; align-items: center; justify-content: center;
+        min-width: 20px; height: 20px; border-radius: 10px; padding: 0 5px;
+        background: #f97316; color: #fff; font-size: .7rem; font-weight: 700;
+    }
+    </style>
+}

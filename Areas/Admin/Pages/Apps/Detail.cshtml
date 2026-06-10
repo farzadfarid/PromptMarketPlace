@@ -63,7 +63,7 @@
                     <a href="/app/@a.Slug" target="_blank" class="btn btn-sm btn-outline-secondary">
                         <i class="fas fa-external-link-alt me-1"></i>مشاهده عمومی
                     </a>
-                    @if (a.Status != AppStatus.Suspended)
+                    @if (a.Status == AppStatus.Active)
                     {
                         <form method="post" asp-page-handler="ToggleStatus" asp-route-id="@a.Id" class="d-inline">
                             <input type="hidden" name="targetStatus" value="Suspended" />
@@ -74,11 +74,12 @@
                             </button>
                         </form>
                     }
-                    @if (a.Status == AppStatus.Suspended)
+                    @if (a.Status == AppStatus.Draft || a.Status == AppStatus.Suspended || a.Status == AppStatus.UnderReview)
                     {
                         <form method="post" asp-page-handler="ToggleStatus" asp-route-id="@a.Id" class="d-inline">
                             <input type="hidden" name="targetStatus" value="Active" />
-                            <button type="submit" class="btn btn-sm btn-outline-success">
+                            <button type="submit" class="btn btn-sm btn-outline-success"
+                                    data-confirm="ابزار فعال شود؟">
                                 <i class="fas fa-check me-1"></i>فعال‌سازی
                             </button>
                         </form>
@@ -89,6 +90,10 @@
                             <i class="fas fa-eye me-1"></i>بررسی در صف
                         </a>
                     }
+                    <button type="button" class="btn btn-sm btn-outline-primary"
+                            data-bs-toggle="modal" data-bs-target="#msgModal">
+                        <i class="fas fa-comment-dots me-1"></i>ارسال پیام
+                    </button>
                 </div>
             </div>
         </div>
@@ -309,6 +314,54 @@
             </div>
         </div>
 
+        <!-- نمونه خروجی‌ها -->
+        @if (a.ShowcaseItems.Any())
+        {
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <h6 class="fw-semibold mb-0">
+                            <i class="fas fa-images me-2" style="color:#f97316;"></i>نمونه خروجی‌ها
+                        </h6>
+                        <span class="badge rounded-pill" style="background:rgba(249,115,22,.15);border:1px solid rgba(249,115,22,.3);color:#fed7aa;font-size:.72rem;">
+                            @a.ShowcaseItems.Count.N0Fa() نمونه
+                        </span>
+                    </div>
+                    <div class="row g-3">
+                        @{ int showcaseIdx = 0; }
+                        @foreach (var item in a.ShowcaseItems)
+                        {
+                            showcaseIdx++;
+                            <div class="col-md-6">
+                                <div class="showcase-card h-100 rounded-3 overflow-hidden" style="border:1px solid rgba(255,255,255,.07);">
+                                    <div class="px-3 py-2 d-flex align-items-center justify-content-between"
+                                         style="background:rgba(249,115,22,.08);border-bottom:1px solid rgba(249,115,22,.12);">
+                                        <span style="font-size:.72rem;color:#f97316;font-weight:600;">
+                                            نمونه @showcaseIdx.ToFarsiDigits()
+                                        </span>
+                                        @if (!string.IsNullOrEmpty(item.Caption))
+                                        {
+                                            <span class="text-muted" style="font-size:.7rem;">@item.Caption</span>
+                                        }
+                                    </div>
+                                    @if (item.OutputType == OutputType.Image && !string.IsNullOrEmpty(item.OutputUrl))
+                                    {
+                                        <img src="@item.OutputUrl" class="w-100" style="max-height:220px;object-fit:cover;display:block;" />
+                                    }
+                                    else if (!string.IsNullOrEmpty(item.OutputText))
+                                    {
+                                        <div style="max-height:220px;overflow-y:auto;">
+                                            <pre style="white-space:pre-wrap;font-size:.8rem;line-height:1.85;font-family:inherit;color:inherit;margin:0;padding:18px 22px;">@item.OutputText</pre>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+
         <!-- نظرات -->
         <div class="card shadow-sm">
             <div class="card-body">
@@ -378,6 +431,43 @@
                     }
                 }
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal ارسال پیام -->
+<div class="modal fade" id="msgModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="SendMessage" asp-route-id="@a.Id">
+                <div class="modal-header border-0 pb-0">
+                    <h6 class="modal-title fw-bold"><i class="fas fa-comment-dots me-2" style="color:#6366f1;"></i>پیام به سازنده</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="p-2 mb-3 rounded" style="background:rgba(249,115,22,.06);border:1px solid rgba(249,115,22,.2);">
+                        <div class="d-flex align-items-center gap-2 text-muted small">
+                            <i class="fas fa-robot" style="color:#f97316;"></i>
+                            <span>درباره ابزار: <strong class="text-white">@a.Title</strong></span>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">موضوع</label>
+                        <input type="text" name="subject" class="form-control" required maxlength="200"
+                               value="درباره ابزار: @a.Title" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">پیام</label>
+                        <textarea name="message" class="form-control" rows="4" required placeholder="پیام خود را بنویسید..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">انصراف</button>
+                    <button type="submit" class="btn btn-primary btn-sm px-4">
+                        <i class="fas fa-paper-plane ms-1"></i>ارسال پیام
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

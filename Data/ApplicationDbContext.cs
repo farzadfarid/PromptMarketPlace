@@ -31,6 +31,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
     public DbSet<UserFavorite> Favorites => Set<UserFavorite>();
     public DbSet<AdminAuditLog> AuditLogs => Set<AdminAuditLog>();
+    public DbSet<MessageThread> MessageThreads => Set<MessageThread>();
+    public DbSet<ThreadMessage> ThreadMessages => Set<ThreadMessage>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
