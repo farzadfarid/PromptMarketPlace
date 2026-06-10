@@ -67,7 +67,7 @@
                 }
                 else
                 {
-                    <form method="post" asp-page-handler="Run">
+                    <form method="post" asp-page-handler="Run" enctype="multipart/form-data">
                         @foreach (var field in Model.App.InputFields)
                         {
                             <div class="mb-3">
@@ -121,6 +121,30 @@
                                                class="form-check-input" id="field_@field.Id"
                                                @(savedVal == "true" ? "checked" : "") />
                                         <label class="form-check-label" for="field_@field.Id">@field.HelpText</label>
+                                    </div>
+                                }
+                                else if (field.Type == FieldType.FileUpload)
+                                {
+                                    <div class="upload-drop-area border border-2 rounded-3 p-3 text-center position-relative"
+                                         id="uploadArea_@field.Name"
+                                         style="border-style:dashed!important;cursor:pointer;transition:background .2s;"
+                                         onclick="document.getElementById('file_@field.Name').click()">
+                                        <div id="uploadPlaceholder_@field.Name">
+                                            <i class="fas fa-cloud-upload-alt fa-2x text-muted mb-2"></i>
+                                            <div class="small text-muted">برای آپلود کلیک کنید یا تصویر را اینجا رها کنید</div>
+                                            <div class="text-muted" style="font-size:.72rem;">JPG، PNG، WEBP — حداکثر ۱۰ مگابایت</div>
+                                        </div>
+                                        <div id="uploadPreview_@field.Name" class="d-none">
+                                            <img id="previewImg_@field.Name" src="#" alt="پیش‌نمایش"
+                                                 class="img-fluid rounded mb-2" style="max-height:200px;object-fit:contain;" />
+                                            <div class="small text-muted" id="uploadFileName_@field.Name"></div>
+                                        </div>
+                                        <input type="file" name="Files[@field.Name]"
+                                               id="file_@field.Name" accept="image/*"
+                                               @(field.IsRequired ? "required" : "")
+                                               class="position-absolute top-0 start-0 w-100 h-100 opacity-0"
+                                               style="cursor:pointer;"
+                                               onchange="handleFileUpload(this, '@field.Name')" />
                                     </div>
                                 }
                                 else

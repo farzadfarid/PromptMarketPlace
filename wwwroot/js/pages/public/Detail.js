@@ -1,3 +1,27 @@
+function handleFileUpload(input, fieldName) {
+    var preview = document.getElementById('uploadPreview_' + fieldName);
+    var placeholder = document.getElementById('uploadPlaceholder_' + fieldName);
+    var img = document.getElementById('previewImg_' + fieldName);
+    var nameEl = document.getElementById('uploadFileName_' + fieldName);
+    var area = document.getElementById('uploadArea_' + fieldName);
+    if (!input.files || !input.files[0]) return;
+    var file = input.files[0];
+    if (file.size > 10 * 1024 * 1024) {
+        alert('حجم فایل نباید بیشتر از ۱۰ مگابایت باشد.');
+        input.value = '';
+        return;
+    }
+    var reader = new FileReader();
+    reader.onload = function (e) {
+        if (img) img.src = e.target.result;
+        if (nameEl) nameEl.textContent = file.name;
+        if (preview) preview.classList.remove('d-none');
+        if (placeholder) placeholder.classList.add('d-none');
+        if (area) area.style.background = 'rgba(249,115,22,.04)';
+    };
+    reader.readAsDataURL(file);
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     // Star rating
     var starContainer = document.getElementById('starRating');

@@ -23,16 +23,16 @@ public class AiService : IAiService
     }
 
     public async Task<AiResponse> RunAsync(AiModel model, string? apiKey, string? systemContext,
-        string prompt, OutputType outputType)
+        string prompt, OutputType outputType, List<string>? inputImageUrls = null)
     {
         return outputType switch
         {
             OutputType.Text or OutputType.Code or OutputType.Form
-                => await RunChatCompletionAsync(model, apiKey, systemContext, prompt),
+                => await RunChatCompletionAsync(model, apiKey, systemContext, prompt, inputImageUrls),
             OutputType.Image
                 => await RunImageGenerationAsync(model, apiKey, prompt),
             OutputType.Video
-                => await RunVideoGenerationAsync(model, apiKey, prompt),
+                => await RunVideoGenerationAsync(model, apiKey, prompt, inputImageUrls),
             OutputType.Audio
                 => await RunAudioGenerationAsync(model, apiKey, prompt),
             _ => AiResponse.Fail("نوع خروجی پشتیبانی نمی‌شود.")
@@ -40,7 +40,7 @@ public class AiService : IAiService
     }
 
     private async Task<AiResponse> RunChatCompletionAsync(AiModel model, string? apiKey,
-        string? systemContext, string prompt)
+        string? systemContext, string prompt, List<string>? inputImageUrls = null)
     {
         try
         {
@@ -49,7 +49,21 @@ public class AiService : IAiService
             var messages = new List<object>();
             if (!string.IsNullOrWhiteSpace(systemContext))
                 messages.Add(new { role = "system", content = systemContext });
-            messages.Add(new { role = "user", content = prompt });
+
+            // Build multimodal content when images are provided (vision API)
+            object userContent;
+            if (inputImageUrls != null && inputImageUrls.Count > 0)
+            {
+                var parts = new List<object> { new { type = "text", text = prompt } };
+                foreach (var url in inputImageUrls)
+                    parts.Add(new { type = "image_url", image_url = new { url } });
+                userContent = parts;
+            }
+            else
+            {
+                userContent = prompt;
+            }
+            messages.Add(new { role = "user", content = userContent });
 
             var body = JsonSerializer.Serialize(new
             {
@@ -259,14 +273,17 @@ public class AiService : IAiService
         return null;
     }
 
-    private async Task<AiResponse> RunVideoGenerationAsync(AiModel model, string? apiKey, string prompt)
+    private async Task<AiResponse> RunVideoGenerationAsync(AiModel model, string? apiKey, string prompt, List<string>? inputImageUrls = null)
     {
         var baseUrl = model.Provider?.BaseUrl ?? throw new InvalidOperationException("مدل هوش مصنوعی به سرویس‌دهنده متصل نیست.");
         try
         {
             var client = BuildClient(baseUrl, apiKey);
 
-            var body = JsonSerializer.Serialize(new { model = model.ModelId, prompt });
+            object requestPayload = (inputImageUrls != null && inputImageUrls.Count > 0)
+                ? new { model = model.ModelId, prompt, images = inputImageUrls }
+                : (object)new { model = model.ModelId, prompt };
+            var body = JsonSerializer.Serialize(requestPayload);
             var request = BuildRequest(HttpMethod.Post, "video/generations",
                 new StringContent(body, Encoding.UTF8, "application/json"), apiKey);
             var response = await client.SendAsync(request);

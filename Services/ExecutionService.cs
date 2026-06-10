@@ -33,7 +33,7 @@ public class ExecutionService : IExecutionService
         _logger = logger;
     }
 
-    public async Task<ExecutionResult> ExecuteAsync(string userId, int appId, Dictionary<string, string> inputs)
+    public async Task<ExecutionResult> ExecuteAsync(string userId, int appId, Dictionary<string, string> inputs, List<string>? inputImageUrls = null)
     {
         // ─── ۱. بارگذاری ابزار ────────────────────────────────────
         var app = await _db.Apps
@@ -128,7 +128,7 @@ public class ExecutionService : IExecutionService
         {
             // ─── ۹. فراخوانی AI (خارج از transaction چون کند است) ─
             var aiResponse = await _ai.RunAsync(activeModel, apiKey, app.SystemContext,
-                finalPrompt, app.OutputType);
+                finalPrompt, app.OutputType, inputImageUrls);
 
             if (!aiResponse.IsSuccess)
             {

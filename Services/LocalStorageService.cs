@@ -80,6 +80,24 @@ public class LocalStorageService : IStorageService
         return $"/uploads/{folder}/{fileName}";
     }
 
+    public async Task<string> SaveUploadAsync(IFormFile file, string folder)
+    {
+        var uploadDir = Path.Combine(_env.WebRootPath, "uploads", folder);
+        Directory.CreateDirectory(uploadDir);
+
+        var ext = Path.GetExtension(file.FileName);
+        if (string.IsNullOrEmpty(ext)) ext = ".jpg";
+
+        var fileName = $"{Guid.NewGuid():N}{ext.ToLowerInvariant()}";
+        var filePath = Path.Combine(uploadDir, fileName);
+
+        await using var stream = new FileStream(filePath, FileMode.Create);
+        await file.CopyToAsync(stream);
+
+        _logger.LogInformation("Uploaded file saved: {Path}", filePath);
+        return $"/uploads/{folder}/{fileName}";
+    }
+
     public string GetPublicUrl(string relativePath) => relativePath;
 
     public async Task DeleteAsync(string relativePath)

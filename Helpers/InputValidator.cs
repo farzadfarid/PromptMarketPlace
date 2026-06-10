@@ -15,7 +15,7 @@ public static class InputValidator
             if (field.IsRequired && isEmpty)
                 return $"فیلد «{field.Label}» الزامی است.";
 
-            if (isEmpty) continue;
+            if (isEmpty || field.Type == FieldType.FileUpload) continue;
 
             if (field.MaxLength.HasValue && value!.Length > field.MaxLength.Value)
                 return $"فیلد «{field.Label}» نباید بیشتر از {field.MaxLength.Value} کاراکتر باشد.";

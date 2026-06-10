@@ -13,14 +13,19 @@ public class DetailModel : PageModel
     private readonly IExecutionService _execution;
     private readonly ICreditService _credits;
     private readonly IReviewService _reviews;
+    private readonly IStorageService _storage;
+    private readonly ILogger<DetailModel> _logger;
 
     public DetailModel(IAppService apps, IExecutionService execution,
-        ICreditService credits, IReviewService reviews)
+        ICreditService credits, IReviewService reviews,
+        IStorageService storage, ILogger<DetailModel> logger)
     {
         _apps = apps;
         _execution = execution;
         _credits = credits;
         _reviews = reviews;
+        _storage = storage;
+        _logger = logger;
     }
 
     public AiApp App { get; set; } = null!;
@@ -69,7 +74,29 @@ public class DetailModel : PageModel
         App = app;
 
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
-        var result = await _execution.ExecuteAsync(userId, app.Id, Inputs);
+
+        // Process uploaded files for FileUpload fields
+        var imageUrls = new List<string>();
+        foreach (var formFile in Request.Form.Files)
+        {
+            if (!formFile.Name.StartsWith("Files[") || !formFile.Name.EndsWith("]")) continue;
+            if (formFile.Length == 0) continue;
+
+            var fieldName = formFile.Name[6..^1];
+            try
+            {
+                var relativePath = await _storage.SaveUploadAsync(formFile, "inputs");
+                Inputs[fieldName] = relativePath;
+                imageUrls.Add($"{Request.Scheme}://{Request.Host}{relativePath}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to save uploaded file for field {Field}", fieldName);
+            }
+        }
+
+        var result = await _execution.ExecuteAsync(userId, app.Id, Inputs,
+            imageUrls.Count > 0 ? imageUrls : null);
 
         if (!result.IsSuccess)
         {

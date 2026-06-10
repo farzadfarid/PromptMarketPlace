@@ -41,6 +41,7 @@
                         <option value="Select">Select — انتخابی</option>
                         <option value="Number">Number — عدد</option>
                         <option value="Checkbox">Checkbox — بله/خیر</option>
+                        <option value="FileUpload">FileUpload — آپلود تصویر</option>
                         <option value="DatePicker">DatePicker — تاریخ</option>
                     </select>
                 </div>
@@ -141,6 +142,11 @@
                             <select class="form-select form-select-sm" disabled><option>انتخاب...</option></select>
                         } else if (field.Type == FieldType.Checkbox) {
                             <div class="form-check"><input type="checkbox" class="form-check-input" disabled /><label class="form-check-label small">@field.HelpText</label></div>
+                        } else if (field.Type == FieldType.FileUpload) {
+                            <div class="border border-2 rounded p-2 text-center" style="border-style:dashed!important;">
+                                <i class="fas fa-cloud-upload-alt text-muted"></i>
+                                <div class="text-muted" style="font-size:.7rem;">آپلود تصویر</div>
+                            </div>
                         } else {
                             <input type="text" class="form-control form-control-sm" disabled placeholder="@field.Placeholder" />
                         }

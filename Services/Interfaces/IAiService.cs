@@ -6,6 +6,6 @@ namespace PromptMarketPlace.Services.Interfaces;
 
 public interface IAiService
 {
-    Task<AiResponse> RunAsync(AiModel model, string? apiKey, string? systemContext, string prompt, OutputType outputType);
+    Task<AiResponse> RunAsync(AiModel model, string? apiKey, string? systemContext, string prompt, OutputType outputType, List<string>? inputImageUrls = null);
     Task<AiResponse> CheckVideoStatusAsync(string jobId, AiModel model, string? apiKey);
 }
