@@ -72,10 +72,29 @@ document.addEventListener('DOMContentLoaded', function () {
         output.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
-    // Disable submit button while loading
+    // Disable submit button while loading + validate FileUpload required fields
     var form = document.querySelector('form[action*="Run"]');
+    if (!form) form = document.querySelector('form[asp-page-handler="Run"], form');
     if (form) {
-        form.addEventListener('submit', function () {
+        form.addEventListener('submit', function (e) {
+            // validate required FileUpload fields
+            var valid = true;
+            document.querySelectorAll('.upload-drop-area[data-required="true"]').forEach(function (area) {
+                var fieldName = area.dataset.fieldname;
+                var input = document.getElementById('file_' + fieldName);
+                var errEl = document.getElementById('uploadError_' + fieldName);
+                if (!input || !input.files || input.files.length === 0) {
+                    valid = false;
+                    area.style.borderColor = '#dc3545';
+                    if (errEl) errEl.classList.remove('d-none');
+                    area.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                } else {
+                    area.style.borderColor = '';
+                    if (errEl) errEl.classList.add('d-none');
+                }
+            });
+            if (!valid) { e.preventDefault(); return; }
+
             var btn = form.querySelector('button[type="submit"]');
             if (btn) {
                 btn.disabled = true;
