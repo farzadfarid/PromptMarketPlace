@@ -2,25 +2,34 @@
 @model IndexModel
 @{ ViewData["Title"] = Model.Category.Name; }
 
-<div class="container py-5">
+<!-- abstract animated background -->
+<div class="cat-bg" aria-hidden="true">
+    <div class="cat-blob cat-blob--1"></div>
+    <div class="cat-blob cat-blob--2"></div>
+    <div class="cat-blob cat-blob--3"></div>
+</div>
+
+<div class="dp container py-5" style="position:relative;z-index:1;">
+
     <div class="d-flex align-items-center gap-3 mb-5">
-        <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center"
-             style="width:56px;height:56px;">
-            <i class="@(Model.Category.IconClass ?? "fas fa-cube") text-primary fa-lg"></i>
+        <div class="d-flex align-items-center justify-content-center rounded-circle flex-shrink-0"
+             style="width:56px;height:56px;background:rgba(249,115,22,.12);border:2px solid rgba(249,115,22,.2);">
+            <i class="@(Model.Category.IconClass ?? "fas fa-cube") fa-lg" style="color:#f97316;"></i>
         </div>
         <div>
-            <h3 class="fw-bold mb-0">@Model.Category.Name</h3>
+            <h3 class="fw-bold mb-0" style="color:#e2e8f0;">@Model.Category.Name</h3>
             @if (!string.IsNullOrEmpty(Model.Category.Description))
             {
-                <p class="text-muted mb-0">@Model.Category.Description</p>
+                <p class="mb-0" style="color:#6b7fa0;">@Model.Category.Description</p>
             }
         </div>
     </div>
 
     @if (!Model.Result.Items.Any())
     {
-        <div class="text-center py-5 text-muted">
-            <p>هنوز ابزاری در این دسته‌بندی منتشر نشده است.</p>
+        <div class="text-center py-5" style="color:#4a5a78;">
+            <i class="fas fa-box-open fa-2x mb-3 d-block" style="color:#2a3a5a;"></i>
+            <p class="mb-0">هنوز ابزاری در این دسته‌بندی منتشر نشده است.</p>
         </div>
     }
     else
@@ -35,3 +44,8 @@
         </div>
     }
 </div>
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/dark-public.css" />
+    <link rel="stylesheet" href="~/css/pages/public/Category.css" />
+}

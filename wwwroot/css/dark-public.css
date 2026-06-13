@@ -1,0 +1,275 @@
+/* ═══════════════════════════════════════════════════════════
+   Public Dark Theme — shared across all public pages
+   Include this file before any page-specific CSS.
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Global background & text ─────────────────────────────── */
+html, body { background: #0b0f1a !important; color: #e2e8f0 !important; }
+main       { background: transparent !important; }
+footer     { background: #070c18 !important; border-top: 1px solid rgba(255,255,255,.05) !important; color: #6b7fa0 !important; }
+footer .text-muted { color: #4a5a78 !important; }
+footer a           { color: #6b7fa0 !important; }
+footer a:hover     { color: #f97316 !important; }
+
+/* ── Navbar ───────────────────────────────────────────────── */
+.pm-navbar {
+    background: rgba(11,15,26,.92) !important;
+    backdrop-filter: blur(18px);
+    border-bottom: 1px solid rgba(255,255,255,.06) !important;
+}
+html body .pm-navbar__brand,
+html body .pm-navbar__brand span { color: #e2e8f0 !important; }
+html body .pm-navbar__brand:hover { color: #f97316 !important; }
+html body .pm-navbar__logo-img { border-radius: 8px; }
+html body .pm-nav-link            { color: #8899b0 !important; }
+html body .pm-nav-link:hover,
+html body .pm-nav-link.active     { color: #e2e8f0 !important; background: rgba(255,255,255,.06) !important; }
+html body .pm-user-btn {
+    background:   rgba(255,255,255,.07) !important;
+    border-color: rgba(255,255,255,.12) !important;
+    color:        #e2e8f0 !important;
+}
+html body .pm-user-btn:hover {
+    background:   rgba(255,255,255,.11) !important;
+    border-color: rgba(249,115,22,.4)   !important;
+}
+html body .pm-user-btn span,
+html body .pm-user-btn .fa-chevron-down { color: #c5d0e0 !important; }
+html body .pm-navbar .btn-ghost         { color: #8899b0 !important; }
+html body .pm-navbar .btn-ghost:hover   { color: #1e293b !important; }
+.pm-navbar .text-muted, .pm-navbar .fa-bars { color: #8899b0 !important; }
+
+/* ── User dropdown ────────────────────────────────────────── */
+html body .pm-user-menu,
+html body ul.dropdown-menu.pm-user-menu {
+    background: #131929 !important; background-color: #131929 !important;
+    border: 1px solid rgba(255,255,255,.08) !important;
+    box-shadow: 0 8px 32px rgba(0,0,0,.55) !important;
+}
+html body .pm-user-menu .fw-semibold     { color: #e2e8f0 !important; }
+html body .pm-user-menu .text-muted      { color: #6b7fa0 !important; }
+html body .pm-user-menu .border-bottom   { border-bottom-color: rgba(255,255,255,.07) !important; }
+html body .pm-user-menu .dropdown-item,
+html body .pm-user-menu .pm-menu-item    { color: #c5d0e0 !important; background: transparent !important; }
+html body .pm-user-menu .dropdown-item:hover,
+html body .pm-user-menu .pm-menu-item:hover { background: rgba(255,255,255,.06) !important; color: #e2e8f0 !important; }
+html body .pm-user-menu .dropdown-divider   { border-color: rgba(255,255,255,.07) !important; }
+html body .pm-user-menu .pm-menu-item--admin { color: #fb923c !important; }
+html body .pm-user-menu .text-danger,
+html body .pm-user-menu button.dropdown-item { color: #f87171 !important; }
+
+/* ── CSS variables — propagate dark values to components ──── */
+/* Any descendant of .dp that uses var(--pm-*) automatically goes dark */
+.dp {
+    --pm-surface:      #131929;
+    --pm-bg:           #0b0f1a;
+    --pm-bg-2:         #0f1525;
+    --pm-border:       rgba(255,255,255,.08);
+    --pm-border-dark:  rgba(255,255,255,.13);
+    --pm-text:         #e2e8f0;
+    --pm-muted:        #6b7fa0;
+    --pm-muted-light:  #4a5a78;
+    --bs-body-bg:      #0b0f1a;
+    --bs-body-color:   #e2e8f0;
+    --bs-border-color: rgba(255,255,255,.08);
+    --bs-secondary-bg: #1a2237;
+    --bs-tertiary-bg:  #111827;
+}
+
+/* ── Form controls (explicit override — belt + suspenders) ── */
+html body .dp .form-control,
+html body .dp .form-select,
+html body .dp textarea.form-control {
+    background: #0d1525 !important; background-color: #0d1525 !important;
+    border-color: rgba(255,255,255,.1) !important;
+    color: #e2e8f0 !important;
+}
+html body .dp .form-control:focus,
+html body .dp .form-select:focus {
+    background: #0d1525 !important; background-color: #0d1525 !important;
+    border-color: #f97316 !important;
+    box-shadow: 0 0 0 3px rgba(249,115,22,.15) !important;
+}
+html body .dp .form-control::placeholder { color: #3e4f6e !important; }
+html body .dp .form-select option        { background: #131929; color: #e2e8f0; }
+html body .dp .form-control-sm,
+html body .dp .form-select-sm            { font-size: .85rem; }
+
+/* Form check (radio/checkbox) */
+html body .dp .form-check-input {
+    background-color: #0d1525 !important;
+    border-color: rgba(255,255,255,.2) !important;
+}
+html body .dp .form-check-input:checked {
+    background-color: #f97316 !important;
+    border-color: #f97316 !important;
+}
+html body .dp .form-check-label { color: #c5d0e0 !important; }
+
+/* ── Cards ────────────────────────────────────────────────── */
+.dp .card {
+    background: #131929 !important;
+    border: 1px solid rgba(255,255,255,.07) !important;
+    box-shadow: 0 4px 24px rgba(0,0,0,.3), 0 1px 0 rgba(255,255,255,.04) inset !important;
+    color: #e2e8f0;
+}
+.dp .card:hover { box-shadow: 0 8px 36px rgba(0,0,0,.42) !important; }
+
+/* ── Typography ───────────────────────────────────────────── */
+.dp h1,.dp h2,.dp h3,.dp h4,.dp h5,.dp h6 { color: #e2e8f0 !important; }
+.dp .text-muted    { color: #6b7fa0 !important; }
+.dp .text-dark     { color: #e2e8f0 !important; }
+.dp .fw-bold,
+.dp .fw-semibold   { color: #e2e8f0 !important; }
+.dp p              { color: #c5d0e0; }
+.dp .text-danger   { color: #f87171 !important; }
+.dp .text-success  { color: #4ade80 !important; }
+.dp .text-warning  { color: #fbbf24 !important; }
+.dp .text-primary  { color: #fb923c !important; }
+.dp a.text-decoration-none      { color: #c5d0e0; }
+.dp a.text-decoration-none:hover{ color: #f97316; }
+
+/* ── Borders / dividers ───────────────────────────────────── */
+.dp hr              { border-color: rgba(255,255,255,.06) !important; opacity:1; }
+.dp .border         { border-color: rgba(255,255,255,.07) !important; }
+.dp .border-bottom  { border-color: rgba(255,255,255,.07) !important; }
+.dp .border-top     { border-color: rgba(255,255,255,.07) !important; }
+
+/* ── Badges ───────────────────────────────────────────────── */
+.dp .badge.bg-secondary-subtle {
+    background: rgba(255,255,255,.08) !important;
+    color: #8897b0 !important;
+    border-color: rgba(255,255,255,.1) !important;
+}
+.dp .badge.bg-primary-subtle {
+    background: rgba(249,115,22,.15) !important;
+    color: #fb923c !important;
+    border-color: rgba(249,115,22,.25) !important;
+}
+.dp .badge.bg-success-subtle {
+    background: rgba(249,115,22,.12) !important;
+    color: #fb923c !important;
+    border-color: rgba(249,115,22,.2) !important;
+}
+.dp .badge.bg-warning-subtle {
+    background: rgba(245,158,11,.12) !important;
+    color: #fbbf24 !important;
+    border-color: rgba(245,158,11,.2) !important;
+}
+.dp .badge.bg-warning.text-dark {
+    background: rgba(245,158,11,.15) !important;
+    color: #fbbf24 !important;
+}
+.dp .badge.bg-light {
+    background: rgba(255,255,255,.06) !important;
+    color: #8897b0 !important;
+    border-color: rgba(255,255,255,.08) !important;
+}
+
+/* ── Alerts ───────────────────────────────────────────────── */
+.dp .alert-danger  { background: rgba(239,68,68,.1)   !important; color: #fca5a5 !important; border-left: 3px solid #ef4444 !important; }
+.dp .alert-info    { background: rgba(249,115,22,.1)  !important; color: #fdba74 !important; border-left: 3px solid #f97316 !important; }
+.dp .alert-warning { background: rgba(245,158,11,.1)  !important; color: #fcd34d !important; border-left: 3px solid #f59e0b !important; }
+.dp .alert-success { background: rgba(74,222,128,.08) !important; color: #86efac !important; border-left: 3px solid #4ade80 !important; }
+
+/* ── Misc UI components ───────────────────────────────────── */
+.dp .bg-primary.bg-opacity-10    { background: rgba(249,115,22,.12) !important; }
+.dp .bg-light                    { background: rgba(255,255,255,.04) !important; }
+.dp .bg-light.border-start       { background: rgba(249,115,22,.06) !important; }
+.dp .border-start.border-primary { border-color: #f97316 !important; }
+.dp .modal-content    { background: #131929 !important; border: 1px solid rgba(255,255,255,.08) !important; }
+.dp .modal-header     { border-bottom-color: rgba(255,255,255,.07) !important; color: #e2e8f0; }
+.dp .btn-close        { filter: invert(1) brightness(.8); }
+
+/* ── Pagination ───────────────────────────────────────────── */
+.dp .page-link {
+    background: #131929 !important;
+    border-color: rgba(255,255,255,.1) !important;
+    color: #8899b0 !important;
+}
+.dp .page-link:hover          { background: rgba(255,255,255,.08) !important; color: #e2e8f0 !important; }
+.dp .page-item.active .page-link { background: #f97316 !important; border-color: #f97316 !important; color: #fff !important; }
+.dp .page-item.disabled .page-link { background: #0d1525 !important; color: #4a5a78 !important; }
+
+/* ── App card dark (inherits vars but needs explicit fixes) ── */
+.dp .app-card { background: #131929 !important; border-color: rgba(255,255,255,.07) !important; }
+.dp .app-card:hover { border-color: #f97316 !important; box-shadow: 0 8px 32px rgba(0,0,0,.45) !important; }
+.dp .app-card__footer { border-top-color: rgba(255,255,255,.07) !important; }
+.dp .app-card__title  { color: #e2e8f0 !important; }
+.dp .app-card__desc   { color: #6b7fa0 !important; }
+.dp .app-card__exec   { color: #4a5a78 !important; }
+
+/* ══════════════════════════════════════════════════════════
+   Global dark overrides — applies to ALL public pages
+   (body is already dark via html,body rule above)
+   ══════════════════════════════════════════════════════════ */
+
+/* Cards */
+.card {
+    background: #131929 !important;
+    border-color: rgba(255,255,255,.07) !important;
+    color: #e2e8f0;
+}
+.card-header, .card-footer {
+    background: rgba(255,255,255,.02) !important;
+    border-color: rgba(255,255,255,.07) !important;
+    color: #e2e8f0;
+}
+
+/* Typography */
+h1,h2,h3,h4,h5,h6 { color: #e2e8f0; }
+.text-muted         { color: #6b7fa0 !important; }
+.text-dark          { color: #e2e8f0 !important; }
+p                   { color: #c5d0e0; }
+
+/* Forms */
+.form-control, .form-select, textarea.form-control {
+    background: #0d1525 !important;
+    border-color: rgba(255,255,255,.1) !important;
+    color: #e2e8f0 !important;
+}
+.form-control:focus, .form-select:focus {
+    background: #0d1525 !important;
+    border-color: #f97316 !important;
+    box-shadow: 0 0 0 3px rgba(249,115,22,.15) !important;
+    color: #e2e8f0 !important;
+}
+.form-control::placeholder { color: #3e4f6e !important; }
+.form-label                { color: #94a3b8 !important; }
+.form-text                 { color: #64748b !important; }
+.input-group-text {
+    background: #1c2539 !important;
+    border-color: rgba(255,255,255,.1) !important;
+    color: #94a3b8 !important;
+}
+
+/* Alerts */
+.alert-danger  { background: rgba(239,68,68,.1)   !important; color: #fca5a5 !important; border-color: rgba(239,68,68,.2)   !important; }
+.alert-info    { background: rgba(249,115,22,.08) !important; color: #fdba74 !important; border-color: rgba(249,115,22,.2)  !important; }
+.alert-warning { background: rgba(245,158,11,.1)  !important; color: #fcd34d !important; border-color: rgba(245,158,11,.2)  !important; }
+.alert-success { background: rgba(74,222,128,.08) !important; color: #86efac !important; border-color: rgba(74,222,128,.2)  !important; }
+
+/* Buttons outline */
+.btn-outline-secondary {
+    border-color: rgba(255,255,255,.2) !important;
+    color: #94a3b8 !important;
+}
+.btn-outline-secondary:hover {
+    background: rgba(255,255,255,.06) !important;
+    color: #e2e8f0 !important;
+}
+
+/* Borders */
+hr              { border-color: rgba(255,255,255,.07) !important; opacity:1; }
+.border         { border-color: rgba(255,255,255,.07) !important; }
+.border-bottom  { border-color: rgba(255,255,255,.07) !important; }
+.border-top     { border-color: rgba(255,255,255,.07) !important; }
+
+/* Dropdown */
+.dropdown-menu {
+    background: #131929 !important;
+    border-color: rgba(255,255,255,.08) !important;
+}
+.dropdown-item        { color: #c5d0e0 !important; }
+.dropdown-item:hover  { background: rgba(255,255,255,.06) !important; color: #e2e8f0 !important; }
+.dropdown-divider     { border-color: rgba(255,255,255,.07) !important; }

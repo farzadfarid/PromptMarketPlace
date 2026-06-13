@@ -1,25 +1,56 @@
-﻿@page
+@page
 @model IndexModel
 @{ ViewData["Title"] = "برترین سازندگان"; }
 
-<div class="container py-5">
-    <h3 class="fw-bold text-center mb-5">برترین سازندگان</h3>
+<canvas id="creators-canvas" aria-hidden="true"></canvas>
+
+<div class="dp container py-5" style="position:relative;z-index:1;">
+
+    <div class="text-center mb-5">
+        <h3 class="fw-bold mb-2" style="color:#e2e8f0;">برترین سازندگان</h3>
+        <p style="color:#6b7fa0;">افرادی که ابزارهای هوش مصنوعی می‌سازند</p>
+    </div>
+
     <div class="row g-3 justify-content-center">
         @foreach (var creator in Model.Creators)
         {
             var totalExec = creator.Apps.Sum(a => a.ExecutionCount);
             <div class="col-md-4 col-lg-3">
                 <a asp-page="/Creator/Profile" asp-route-username="@creator.User.UserName"
-                   class="card border-0 shadow-sm p-3 text-decoration-none text-center h-100">
-                    <div class="rounded-circle bg-primary bg-opacity-10 d-inline-flex align-items-center justify-content-center mx-auto mb-2"
-                         style="width:56px;height:56px;">
-                        <i class="fas fa-user text-primary"></i>
+                   class="card border-0 p-4 text-decoration-none text-center h-100 d-block creator-card">
+                    @if (!string.IsNullOrEmpty(creator.User?.AvatarUrl))
+                    {
+                        <img src="@creator.User.AvatarUrl" alt="@creator.User.DisplayName"
+                             class="rounded-circle mx-auto d-block mb-3"
+                             style="width:60px;height:60px;object-fit:cover;border:2px solid rgba(249,115,22,.2);"
+                             onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" />
+                        <div class="rounded-circle d-none align-items-center justify-content-center mx-auto mb-3"
+                             style="width:60px;height:60px;background:rgba(249,115,22,.12);border:2px solid rgba(249,115,22,.2);">
+                            <i class="fas fa-user" style="color:#f97316;font-size:1.2rem;"></i>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="rounded-circle d-inline-flex align-items-center justify-content-center mx-auto mb-3"
+                             style="width:60px;height:60px;background:rgba(249,115,22,.12);border:2px solid rgba(249,115,22,.2);">
+                            <i class="fas fa-user" style="color:#f97316;font-size:1.2rem;"></i>
+                        </div>
+                    }
+                    <div class="fw-semibold mb-1" style="color:#e2e8f0;">@creator.User.DisplayName</div>
+                    <div class="small mb-2" style="color:#6b7fa0;">
+                        @creator.Apps.Count ابزار
+                        <span style="color:#2a3a5a;margin:0 .3rem;">·</span>
+                        @totalExec.N0Fa() اجرا
                     </div>
-                    <div class="fw-semibold text-dark">@creator.User.DisplayName</div>
-                    <div class="text-muted small">@creator.Apps.Count ابزار · @totalExec.N0Fa() اجرا</div>
+                    @if (creator.IsVerified)
+                    {
+                        <span class="badge border mb-1" style="background:rgba(249,115,22,.12);color:#fb923c;border-color:rgba(249,115,22,.2)!important;font-size:.65rem;">
+                            <i class="fas fa-check me-1"></i>تأیید شده
+                        </span>
+                    }
                     @if (creator.IsFoundingCreator)
                     {
-                        <span class="badge bg-warning text-dark mt-2" style="font-size:.65rem;">
+                        <span class="badge border" style="background:rgba(245,158,11,.12);color:#fbbf24;border-color:rgba(245,158,11,.2)!important;font-size:.65rem;">
                             <i class="fas fa-star me-1"></i>بنیان‌گذار
                         </span>
                     }
@@ -28,3 +59,11 @@
         }
     </div>
 </div>
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/dark-public.css" />
+    <link rel="stylesheet" href="~/css/pages/public/Creators.css" />
+}
+@section Scripts {
+    <script src="~/js/pages/public/Creators.js"></script>
+}

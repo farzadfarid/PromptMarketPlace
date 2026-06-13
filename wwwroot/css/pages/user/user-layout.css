@@ -2,6 +2,15 @@
    User Layout — Full Dark Theme
    ══════════════════════════════ */
 
+/* ── App card در تم تاریک user layout ── */
+.user-layout .app-card { background: #131929 !important; border-color: rgba(255,255,255,.07) !important; }
+.user-layout .app-card:hover { border-color: #f97316 !important; box-shadow: 0 8px 32px rgba(0,0,0,.45) !important; }
+.user-layout .app-card__title { color: #e2e8f0 !important; }
+.user-layout .app-card__desc  { color: #94a3b8 !important; }
+.user-layout .app-card__footer { border-top-color: rgba(255,255,255,.07) !important; }
+.user-layout .app-card__exec  { color: #64748b !important; }
+.user-layout .app-card__credit { color: #94a3b8 !important; }
+
 :root {
     --dk-bg:       #0b0f1a;
     --dk-surface:  #131929;
@@ -143,3 +152,31 @@
 .user-layout .input-group-text { background: var(--dk-surface2) !important; border-color: var(--dk-border2) !important; color: var(--dk-muted2) !important; }
 .user-layout .rounded-circle.bg-secondary { background: var(--dk-surface2) !important; }
 .user-layout .form-text    { color: #64748b !important; }
+
+/* ── Responsive ─── */
+.sidebar-toggle { background: transparent; border: none; color: var(--dk-muted2); padding: .35rem .5rem; font-size: 1.1rem; cursor: pointer; }
+.sidebar-toggle:hover { color: var(--dk-text); }
+.sidebar-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 1049; }
+.sidebar-backdrop.show { display: block; }
+
+@media (max-width: 767.98px) {
+    body.user-layout { overflow-x: hidden; }
+    .user-shell { overflow-x: hidden; }
+    .user-content { padding: 1rem; }
+    .user-topbar { padding: .75rem 1rem; }
+    .user-sidebar {
+        position: fixed !important;
+        z-index: 1050;
+        top: 0;
+        right: -270px;
+        width: 260px;
+        height: 100vh;
+        transition: right .25s ease;
+        box-shadow: none;
+    }
+    .user-sidebar.open {
+        right: 0;
+        box-shadow: -8px 0 32px rgba(0,0,0,.5);
+    }
+    .user-main { width: 100%; min-width: 0; }
+}

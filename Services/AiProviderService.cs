@@ -26,13 +26,15 @@ public class AiProviderService : IAiProviderService
         => await _db.AiProviders.FindAsync(id);
 
     public async Task<AiProvider> CreateProviderAsync(string name, string baseUrl, string? apiKey,
-        string? description, string? balanceUrl = null, string? balanceJsonPath = null, string? balanceCurrency = null)
+        string? description, ProviderType providerType = ProviderType.OpenAiCompatible,
+        string? balanceUrl = null, string? balanceJsonPath = null, string? balanceCurrency = null)
     {
         var provider = new AiProvider
         {
             Name = name,
             BaseUrl = baseUrl,
             Description = description,
+            ProviderType = providerType,
             ApiKeyEncrypted = string.IsNullOrWhiteSpace(apiKey) ? null : _encryption.Encrypt(apiKey),
             IsActive = true,
             BalanceUrl = string.IsNullOrWhiteSpace(balanceUrl) ? null : balanceUrl.Trim(),
@@ -45,7 +47,8 @@ public class AiProviderService : IAiProviderService
     }
 
     public async Task UpdateProviderAsync(int id, string name, string baseUrl, string? newApiKey,
-        string? description, string? balanceUrl = null, string? balanceJsonPath = null, string? balanceCurrency = null)
+        string? description, ProviderType providerType = ProviderType.OpenAiCompatible,
+        string? balanceUrl = null, string? balanceJsonPath = null, string? balanceCurrency = null)
     {
         var provider = await _db.AiProviders.FindAsync(id)
             ?? throw new KeyNotFoundException($"Provider {id} not found.");
@@ -53,6 +56,7 @@ public class AiProviderService : IAiProviderService
         provider.Name = name;
         provider.BaseUrl = baseUrl;
         provider.Description = description;
+        provider.ProviderType = providerType;
         provider.BalanceUrl = string.IsNullOrWhiteSpace(balanceUrl) ? null : balanceUrl.Trim();
         provider.BalanceJsonPath = string.IsNullOrWhiteSpace(balanceJsonPath) ? null : balanceJsonPath.Trim();
         provider.BalanceCurrency = string.IsNullOrWhiteSpace(balanceCurrency) ? null : balanceCurrency.Trim();

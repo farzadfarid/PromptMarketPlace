@@ -1,9 +1,10 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using PromptMarketPlace.Models.Domain;
+using PromptMarketPlace.Services.Interfaces;
 
 namespace PromptMarketPlace.Areas.User.Pages.Profile;
 
@@ -12,11 +13,15 @@ public class EditModel : PageModel
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SignInManager<ApplicationUser> _signInManager;
+    private readonly IStorageService _storage;
 
-    public EditModel(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager)
+    public EditModel(UserManager<ApplicationUser> userManager,
+                     SignInManager<ApplicationUser> signInManager,
+                     IStorageService storage)
     {
         _userManager = userManager;
         _signInManager = signInManager;
+        _storage = storage;
     }
 
     [BindProperty] public string DisplayName { get; set; } = string.Empty;
@@ -25,24 +30,45 @@ public class EditModel : PageModel
     [BindProperty] public string? NewPassword { get; set; }
     [BindProperty] public string? ConfirmPassword { get; set; }
 
+    public string Email { get; set; } = string.Empty;
+
     public async Task<IActionResult> OnGetAsync()
     {
         var user = await _userManager.GetUserAsync(User);
         if (user == null) return NotFound();
         DisplayName = user.DisplayName;
         AvatarUrl = user.AvatarUrl;
+        Email = user.Email ?? string.Empty;
         return Page();
     }
 
     public async Task<IActionResult> OnPostAsync()
     {
         if (string.IsNullOrWhiteSpace(DisplayName))
-            ModelState.AddModelError(nameof(DisplayName), "Ù†Ø§Ù… Ù†Ù…Ø§ÛŒØ´ÛŒ Ø§Ù„Ø²Ø§Ù…ÛŒ Ø§Ø³Øª.");
+            ModelState.AddModelError(nameof(DisplayName), "نام نمایشی الزامی است.");
 
         if (!ModelState.IsValid) return Page();
 
         var user = await _userManager.GetUserAsync(User);
         if (user == null) return NotFound();
+
+        // handle avatar file upload
+        var avatarFile = Request.Form.Files["AvatarFile"];
+        if (avatarFile != null && avatarFile.Length > 0)
+        {
+            var allowed = new[] { "image/jpeg", "image/png", "image/webp", "image/gif" };
+            if (!allowed.Contains(avatarFile.ContentType))
+            {
+                ModelState.AddModelError(string.Empty, "فقط فایل‌های JPG، PNG، WebP و GIF قابل قبول هستند.");
+                return Page();
+            }
+            if (avatarFile.Length > 5 * 1024 * 1024)
+            {
+                ModelState.AddModelError(string.Empty, "حجم فایل نباید بیشتر از ۵ مگابایت باشد.");
+                return Page();
+            }
+            AvatarUrl = await _storage.SaveUploadAsync(avatarFile, "avatars");
+        }
 
         user.DisplayName = DisplayName.Trim();
         user.AvatarUrl = string.IsNullOrWhiteSpace(AvatarUrl) ? null : AvatarUrl.Trim();
@@ -58,7 +84,7 @@ public class EditModel : PageModel
         {
             if (NewPassword != ConfirmPassword)
             {
-                ModelState.AddModelError(nameof(ConfirmPassword), "Ø±Ù…Ø² Ø¹Ø¨ÙˆØ± Ø¬Ø¯ÛŒØ¯ Ùˆ ØªÚ©Ø±Ø§Ø± Ø¢Ù† Ù…Ø·Ø§Ø¨Ù‚Øª Ù†Ø¯Ø§Ø±Ù†Ø¯.");
+                ModelState.AddModelError(nameof(ConfirmPassword), "رمز عبور جدید و تکرار آن مطابقت ندارند.");
                 return Page();
             }
             var pwResult = await _userManager.ChangePasswordAsync(user, CurrentPassword, NewPassword);
@@ -71,8 +97,7 @@ public class EditModel : PageModel
             await _signInManager.RefreshSignInAsync(user);
         }
 
-        TempData["Success"] = "Ù¾Ø±ÙˆÙØ§ÛŒÙ„ Ø¨Ø§ Ù…ÙˆÙÙ‚ÛŒØª Ø¨Ù‡â€ŒØ±ÙˆØ² Ø´Ø¯.";
+        TempData["Success"] = "پروفایل با موفقیت به‌روز شد.";
         return RedirectToPage();
     }
 }
-

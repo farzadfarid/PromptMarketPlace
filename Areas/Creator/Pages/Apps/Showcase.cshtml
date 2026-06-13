@@ -136,25 +136,25 @@
         <div class="row g-2">
             @foreach (var item in Model.Items)
             {
-                <div class="col-md-6">
+                <div class="col-xl-4 col-md-6">
                     <div class="card border-0 shadow-sm h-100">
                         @if (item.OutputType == OutputType.Video && !string.IsNullOrEmpty(item.OutputUrl))
                         {
-                            <video controls class="w-100" style="height:140px;object-fit:cover;background:#000;">
+                            <video controls class="w-100" style="height:160px;object-fit:cover;background:#000;">
                                 <source src="@item.OutputUrl" />
                             </video>
                         }
                         else if (item.OutputType == OutputType.Audio && !string.IsNullOrEmpty(item.OutputUrl))
                         {
-                            <div class="p-2 d-flex align-items-center justify-content-center bg-light" style="height:80px;">
-                                <audio controls class="w-100" style="max-width:260px;">
+                            <div class="p-2 d-flex align-items-center justify-content-center bg-light" style="min-height:80px;">
+                                <audio controls class="w-100">
                                     <source src="@item.OutputUrl" />
                                 </audio>
                             </div>
                         }
                         else if (!string.IsNullOrEmpty(item.OutputUrl))
                         {
-                            <img src="@item.OutputUrl" class="card-img-top" style="height:140px;object-fit:cover;" />
+                            <img src="@item.OutputUrl" class="card-img-top" style="height:160px;object-fit:cover;" />
                         }
                         else if (!string.IsNullOrEmpty(item.OutputText))
                         {

@@ -2,113 +2,203 @@
 @model ExploreModel
 @{ ViewData["Title"] = "کشف ابزارها"; }
 
-<div class="container py-4">
+<!-- ── Animated background ───────────────────────────────────────── -->
+<div class="exp-bg" aria-hidden="true">
+    <div class="exp-orb exp-orb--1"></div>
+    <div class="exp-orb exp-orb--2"></div>
+    <div class="exp-orb exp-orb--3"></div>
+    <div class="exp-grid"></div>
+</div>
+
+<!-- ── Hero ─────────────────────────────────────────────────────── -->
+<section class="exp-hero" style="position:relative;z-index:1;">
+    <div class="container">
+        <div class="exp-hero__inner">
+            <div class="exp-hero__badge">
+                <i class="fas fa-compass"></i>
+                <span>@Model.Result.TotalCount.ToFarsiDigits() ابزار</span>
+            </div>
+            <h1 class="exp-hero__title">
+                کشف <span class="exp-hero__accent">ابزارهای</span> هوش مصنوعی
+            </h1>
+            <p class="exp-hero__sub">ابزارهای ساخته‌شده توسط سازندگان برای هر نیاز شما</p>
+
+            <!-- Search bar -->
+            <form method="get" class="exp-search" id="exp-search-form">
+                <input type="hidden" name="CategoryId" value="@Model.CategoryId" />
+                <input type="hidden" name="OutputType" id="exp-output-type-val" value="@Model.OutputType" />
+                <input type="hidden" name="MaxCost"    value="@Model.MaxCost" />
+                <input type="hidden" name="MinRating"  value="@Model.MinRating" />
+                <input type="hidden" name="SortBy"     value="@Model.SortBy" />
+                <i class="fas fa-search exp-search__icon"></i>
+                <input type="text" name="Search" value="@Model.Search"
+                       placeholder="جستجو در ابزارها..." class="exp-search__input" autocomplete="off" />
+                <button type="submit" class="exp-search__btn">جستجو</button>
+            </form>
+
+            <!-- Type filter pills -->
+            <div class="exp-type-pills">
+                <button type="button" onclick="setType('')"
+                        class="exp-type-pill @(Model.OutputType == null ? "active" : "")">
+                    <i class="fas fa-th-large"></i> همه
+                </button>
+                <button type="button" onclick="setType('Image')"
+                        class="exp-type-pill @(Model.OutputType == OutputType.Image ? "active" : "")">
+                    <i class="fas fa-image"></i> تصویر
+                </button>
+                <button type="button" onclick="setType('Video')"
+                        class="exp-type-pill @(Model.OutputType == OutputType.Video ? "active" : "")">
+                    <i class="fas fa-video"></i> ویدیو
+                </button>
+                <button type="button" onclick="setType('Text')"
+                        class="exp-type-pill @(Model.OutputType == OutputType.Text ? "active" : "")">
+                    <i class="fas fa-font"></i> متن
+                </button>
+                <button type="button" onclick="setType('Audio')"
+                        class="exp-type-pill @(Model.OutputType == OutputType.Audio ? "active" : "")">
+                    <i class="fas fa-music"></i> صدا
+                </button>
+                <button type="button" onclick="setType('Code')"
+                        class="exp-type-pill @(Model.OutputType == OutputType.Code ? "active" : "")">
+                    <i class="fas fa-code"></i> کد
+                </button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ── Main content ──────────────────────────────────────────────── -->
+<div class="dp container pb-5" style="position:relative;z-index:1;">
     <div class="row g-4">
-        <!-- Sidebar -->
+
+        <!-- Filter sidebar -->
         <div class="col-lg-3">
-            <div class="card border-0 shadow-sm p-3">
-                <form method="get">
-                    <h6 class="fw-bold mb-3">فیلتر</h6>
+            <div class="exp-sidebar" style="position:sticky;top:80px;">
+                <form method="get" id="filter-form">
+                    <input type="hidden" name="Search" value="@Model.Search" />
+                    <input type="hidden" name="OutputType" value="@Model.OutputType" />
+                    <input type="hidden" name="SortBy" value="@Model.SortBy" />
 
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">جستجو</label>
-                        <input type="text" name="Search" value="@Model.Search"
-                               class="form-control form-control-sm" placeholder="عنوان یا توضیح..." />
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">دسته‌بندی</label>
-                        @foreach (var cat in Model.Categories)
-                        {
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="CategoryId"
-                                       value="@cat.Id" id="cat_@cat.Id"
-                                       checked="@(Model.CategoryId == cat.Id)" />
-                                <label class="form-check-label small" for="cat_@cat.Id">@cat.Name</label>
-                            </div>
-                        }
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="CategoryId" value=""
-                                   id="cat_all" checked="@(Model.CategoryId == null)" />
-                            <label class="form-check-label small" for="cat_all">همه دسته‌ها</label>
+                    <div class="exp-sidebar__section">
+                        <p class="exp-sidebar__label"><i class="fas fa-layer-group me-2"></i>دسته‌بندی</p>
+                        <div class="exp-cat-list">
+                            <label class="exp-cat-item @(Model.CategoryId == null ? "active" : "")">
+                                <input type="radio" name="CategoryId" value="" @(Model.CategoryId == null ? "checked" : "") />
+                                <span>همه دسته‌ها</span>
+                            </label>
+                            @foreach (var cat in Model.Categories)
+                            {
+                                <label class="exp-cat-item @(Model.CategoryId == cat.Id ? "active" : "")">
+                                    <input type="radio" name="CategoryId" value="@cat.Id" @(Model.CategoryId == cat.Id ? "checked" : "") />
+                                    @if (!string.IsNullOrEmpty(cat.IconClass))
+                                    {
+                                        <i class="@cat.IconClass"></i>
+                                    }
+                                    <span>@cat.Name</span>
+                                </label>
+                            }
                         </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">نوع خروجی</label>
-                        <select name="OutputType" class="form-select form-select-sm">
-                            <option value="">همه</option>
-                            <option value="Text" selected="@(Model.OutputType == OutputType.Text)">متن</option>
-                            <option value="Image" selected="@(Model.OutputType == OutputType.Image)">تصویر</option>
-                            <option value="Video" selected="@(Model.OutputType == OutputType.Video)">ویدیو</option>
-                            <option value="Code" selected="@(Model.OutputType == OutputType.Code)">کد</option>
-                            <option value="Audio" selected="@(Model.OutputType == OutputType.Audio)">صدا</option>
-                            <option value="Form" selected="@(Model.OutputType == OutputType.Form)">فرم</option>
-                        </select>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">حداکثر اعتبار</label>
+                    <div class="exp-sidebar__section">
+                        <p class="exp-sidebar__label"><i class="fas fa-coins me-2"></i>حداکثر اعتبار</p>
                         <input type="number" name="MaxCost" value="@Model.MaxCost"
-                               class="form-control form-control-sm" placeholder="مثلاً 10" dir="ltr" />
+                               class="form-control form-control-sm" placeholder="مثلاً ۱۰" dir="ltr" />
                     </div>
 
-                    <div class="mb-4">
-                        <label class="form-label small fw-semibold">حداقل امتیاز</label>
-                        <select name="MinRating" class="form-select form-select-sm">
-                            <option value="">همه امتیازها</option>
-                            <option value="4" selected="@(Model.MinRating == 4)">۴+ ستاره</option>
-                            <option value="3" selected="@(Model.MinRating == 3)">۳+ ستاره</option>
-                        </select>
+                    <div class="exp-sidebar__section">
+                        <p class="exp-sidebar__label"><i class="fas fa-star me-2"></i>حداقل امتیاز</p>
+                        <div class="exp-rating-pills">
+                            <label class="exp-rating-pill @(Model.MinRating == null ? "active" : "")">
+                                <input type="radio" name="MinRating" value="" @(Model.MinRating == null ? "checked" : "") /> همه
+                            </label>
+                            <label class="exp-rating-pill @(Model.MinRating == 3 ? "active" : "")">
+                                <input type="radio" name="MinRating" value="3" @(Model.MinRating == 3 ? "checked" : "") /> ۳+
+                            </label>
+                            <label class="exp-rating-pill @(Model.MinRating == 4 ? "active" : "")">
+                                <input type="radio" name="MinRating" value="4" @(Model.MinRating == 4 ? "checked" : "") /> ۴+
+                            </label>
+                        </div>
                     </div>
 
-                    <button type="submit" class="btn btn-primary btn-sm w-100">اعمال فیلتر</button>
-                    <a asp-page="/Explore" class="btn btn-outline-secondary btn-sm w-100 mt-2">پاک کردن</a>
+                    <div class="exp-sidebar__actions">
+                        <button type="submit" class="btn btn-primary btn-sm w-100">اعمال فیلتر</button>
+                        <a asp-page="/Explore" class="exp-clear-btn">پاک کردن فیلترها</a>
+                    </div>
                 </form>
             </div>
         </div>
 
-        <!-- Grid -->
+        <!-- Results grid -->
         <div class="col-lg-9">
-            <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
-                <div class="text-muted small">@Model.Result.TotalCount ابزار یافت شد</div>
+
+            <!-- Sort / count bar -->
+            <div class="exp-bar">
+                <span class="exp-bar__count">
+                    <i class="fas fa-cubes me-1" style="color:#f97316;"></i>
+                    @Model.Result.TotalCount.ToFarsiDigits() ابزار
+                    @if (!string.IsNullOrWhiteSpace(Model.Search))
+                    {
+                        <span> برای «@Model.Search»</span>
+                    }
+                </span>
                 <form method="get" class="d-flex gap-2 align-items-center">
                     <input type="hidden" name="CategoryId" value="@Model.CategoryId" />
                     <input type="hidden" name="OutputType" value="@Model.OutputType" />
-                    <input type="hidden" name="Search" value="@Model.Search" />
-                    <select name="SortBy" class="form-select form-select-sm" style="width:auto"
+                    <input type="hidden" name="Search"     value="@Model.Search" />
+                    <input type="hidden" name="MaxCost"    value="@Model.MaxCost" />
+                    <input type="hidden" name="MinRating"  value="@Model.MinRating" />
+                    <select name="SortBy" class="form-select form-select-sm exp-sort-select"
                             onchange="this.form.submit()">
-                        <option value="MostUsed" selected="@(Model.SortBy == AppSortBy.MostUsed)">پرکاربردترین</option>
-                        <option value="Newest" selected="@(Model.SortBy == AppSortBy.Newest)">جدیدترین</option>
+                        <option value="MostUsed"     selected="@(Model.SortBy == AppSortBy.MostUsed)">پرکاربردترین</option>
+                        <option value="Newest"       selected="@(Model.SortBy == AppSortBy.Newest)">جدیدترین</option>
                         <option value="HighestRated" selected="@(Model.SortBy == AppSortBy.HighestRated)">بالاترین امتیاز</option>
-                        <option value="LowestCost" selected="@(Model.SortBy == AppSortBy.LowestCost)">کم‌هزینه‌ترین</option>
+                        <option value="LowestCost"   selected="@(Model.SortBy == AppSortBy.LowestCost)">کم‌هزینه‌ترین</option>
                     </select>
                 </form>
             </div>
 
             @if (!Model.Result.Items.Any())
             {
-                <div class="text-center py-5 text-muted">
-                    <i class="fas fa-search fa-3x mb-3 opacity-25"></i>
-                    <p>ابزاری با این مشخصات یافت نشد.</p>
-                    <a asp-page="/Explore" class="btn btn-outline-primary btn-sm">مشاهده همه ابزارها</a>
+                <div class="exp-empty">
+                    <div class="exp-empty__icon">
+                        <i class="fas fa-search"></i>
+                    </div>
+                    <p class="exp-empty__title">ابزاری یافت نشد</p>
+                    <p class="exp-empty__sub">فیلترها را تغییر دهید یا جستجوی جدیدی انجام دهید</p>
+                    <a asp-page="/Explore" class="btn btn-outline-primary btn-sm mt-2">مشاهده همه ابزارها</a>
                 </div>
             }
             else
             {
                 <div class="row g-3">
+                    @{ int cardIdx = 0; }
                     @foreach (var app in Model.Result.Items)
                     {
-                        <div class="col-md-6 col-xl-4">
+                        <div class="col-md-6 col-xl-4 exp-card-col" style="--i:@cardIdx">
                             @await Html.PartialAsync("_AppCard", app)
                         </div>
+                        cardIdx++;
                     }
                 </div>
 
                 @if (Model.Result.TotalPages > 1)
                 {
-                    <nav class="mt-4">
-                        <ul class="pagination justify-content-center">
+                    <nav class="mt-5">
+                        <ul class="pagination justify-content-center exp-pagination">
+                            @if (Model.Result.PageNumber > 1)
+                            {
+                                <li class="page-item">
+                                    <a class="page-link" asp-page="/Explore"
+                                       asp-route-PageNumber="@(Model.Result.PageNumber - 1)"
+                                       asp-route-CategoryId="@Model.CategoryId"
+                                       asp-route-SortBy="@Model.SortBy"
+                                       asp-route-Search="@Model.Search"
+                                       asp-route-OutputType="@Model.OutputType">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </a>
+                                </li>
+                            }
                             @for (int i = 1; i <= Model.Result.TotalPages; i++)
                             {
                                 <li class="page-item @(i == Model.Result.PageNumber ? "active" : "")">
@@ -116,7 +206,21 @@
                                        asp-route-PageNumber="@i"
                                        asp-route-CategoryId="@Model.CategoryId"
                                        asp-route-SortBy="@Model.SortBy"
-                                       asp-route-Search="@Model.Search">@i</a>
+                                       asp-route-Search="@Model.Search"
+                                       asp-route-OutputType="@Model.OutputType">@i.ToFarsiDigits()</a>
+                                </li>
+                            }
+                            @if (Model.Result.PageNumber < Model.Result.TotalPages)
+                            {
+                                <li class="page-item">
+                                    <a class="page-link" asp-page="/Explore"
+                                       asp-route-PageNumber="@(Model.Result.PageNumber + 1)"
+                                       asp-route-CategoryId="@Model.CategoryId"
+                                       asp-route-SortBy="@Model.SortBy"
+                                       asp-route-Search="@Model.Search"
+                                       asp-route-OutputType="@Model.OutputType">
+                                        <i class="fas fa-chevron-left"></i>
+                                    </a>
                                 </li>
                             }
                         </ul>
@@ -126,3 +230,22 @@
         </div>
     </div>
 </div>
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/dark-public.css" />
+    <link rel="stylesheet" href="~/css/pages/public/Explore.css" />
+}
+
+@section Scripts {
+    <script>
+        function setType(val) {
+            document.getElementById('exp-output-type-val').value = val;
+            document.getElementById('exp-search-form').submit();
+        }
+
+        // Auto-submit filter form on radio change
+        document.querySelectorAll('#filter-form input[type=radio]').forEach(r => {
+            r.addEventListener('change', () => document.getElementById('filter-form').submit());
+        });
+    </script>
+}

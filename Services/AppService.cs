@@ -268,4 +268,12 @@ public class AppService : IAppService
 
     public async Task<List<AppCategory>> GetCategoriesAsync()
         => await _db.Categories.OrderBy(c => c.SortOrder).ToListAsync();
+
+    public async Task<List<AiApp>> GetSimilarAppsAsync(int appId, int categoryId, int count = 4)
+        => await _db.Apps
+            .Include(a => a.Creator)
+            .Where(a => a.Id != appId && a.CategoryId == categoryId && a.Status == AppStatus.Active)
+            .OrderByDescending(a => a.ExecutionCount)
+            .Take(count)
+            .ToListAsync();
 }

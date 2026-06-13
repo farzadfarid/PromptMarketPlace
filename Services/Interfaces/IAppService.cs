@@ -19,4 +19,5 @@ public interface IAppService
     Task RecalculateRatingAsync(int appId);
 
     Task<List<AppCategory>> GetCategoriesAsync();
+    Task<List<AiApp>> GetSimilarAppsAsync(int appId, int categoryId, int count = 4);
 }

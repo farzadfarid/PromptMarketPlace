@@ -53,7 +53,7 @@
                     <dt class="col-5">وضعیت</dt>
                     <dd class="col-7">@(u.IsActive ? "فعال" : "مسدود")</dd>
                     <dt class="col-5">موجودی</dt>
-                    <dd class="col-7 fw-semibold">@Model.CreditBalance اعتبار</dd>
+                    <dd class="col-7 fw-semibold">@Model.CreditBalance.ToFarsiDigits() اعتبار</dd>
                     <dt class="col-5">تاریخ ثبت</dt>
                     <dd class="col-7">@u.CreatedAt.ToShamsi("yy/MM/dd")</dd>
                 </dl>
@@ -135,7 +135,7 @@
                     <div class="table-responsive">
                         <table class="table table-sm table-hover mb-0">
                             <thead class="table-light">
-                                <tr><th>ابزار</th><th class="text-center">وضعیت</th><th class="text-center">اعتبار</th><th>تاریخ</th><th></th></tr>
+                                <tr><th>ابزار</th><th>مدل AI</th><th class="text-center">وضعیت</th><th class="text-center">اعتبار</th><th>تاریخ</th><th></th></tr>
                             </thead>
                             <tbody>
                                 @foreach (var e in Model.RecentExecutions)
@@ -149,6 +149,7 @@
                                     <tr style="cursor:pointer"
                                         onclick="window.location='/Admin/Executions/@e.Id?userId=@u.Id'">
                                         <td class="small fw-semibold">@e.App?.Title</td>
+                                        <td class="small text-muted">@(e.App?.AiModel?.Name ?? "—")</td>
                                         <td class="text-center"><span class="badge bg-@ec">@el</span></td>
                                         <td class="text-center small">@e.CreditUsed.N0Fa()</td>
                                         <td class="small text-muted">@e.CreatedAt.ToShamsi("yy/MM/dd HH:mm")</td>
@@ -166,7 +167,9 @@
                                 @for (int i = 1; i <= totalExecPages; i++)
                                 {
                                     <li class="page-item @(i == Model.ExecPage ? "active" : "")">
-                                        <a class="page-link" asp-area="Admin" asp-page="/Users/Detail"
+                                        <a class="page-link"
+                                           style="@(i == Model.ExecPage ? "color:#fff!important;" : "")"
+                                           asp-area="Admin" asp-page="/Users/Detail"
                                            asp-route-id="@u.Id" asp-route-ExecPage="@i"
                                            asp-route-FilterStatus="@Model.FilterStatus">@i.ToFarsiDigits()</a>
                                     </li>
@@ -196,7 +199,7 @@
                                 {
                                     <tr>
                                         <td class="small">@p.Package?.Name</td>
-                                        <td class="text-center small">@p.CreditAmount</td>
+                                        <td class="text-center small">@p.CreditAmount.ToFarsiDigits()</td>
                                         <td class="text-center small">@p.Amount.N0Fa()</td>
                                         <td class="text-center"><span class="badge bg-@(p.Status == PaymentStatus.Verified ? "success" : "secondary")">@p.Status</span></td>
                                         <td class="small text-muted">@p.CreatedAt.ToShamsi("yy/MM/dd")</td>

@@ -80,6 +80,18 @@ public class LocalStorageService : IStorageService
         return $"/uploads/{folder}/{fileName}";
     }
 
+    public async Task<string> SaveBytesAsync(byte[] bytes, string folder, string extension)
+    {
+        var uploadDir = Path.Combine(_env.WebRootPath, "uploads", folder);
+        Directory.CreateDirectory(uploadDir);
+        if (string.IsNullOrEmpty(extension)) extension = ".bin";
+        var fileName = $"{Guid.NewGuid():N}{extension}";
+        var filePath = Path.Combine(uploadDir, fileName);
+        await File.WriteAllBytesAsync(filePath, bytes);
+        _logger.LogInformation("Bytes saved locally: {Path}", filePath);
+        return $"/uploads/{folder}/{fileName}";
+    }
+
     public async Task<string> SaveUploadAsync(IFormFile file, string folder)
     {
         var uploadDir = Path.Combine(_env.WebRootPath, "uploads", folder);

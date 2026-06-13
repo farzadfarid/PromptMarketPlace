@@ -8,5 +8,7 @@ public enum FieldType
     Number,
     Checkbox,
     FileUpload,
-    DatePicker
+    DatePicker,
+    ImageSelect,
+    AudioUpload
 }

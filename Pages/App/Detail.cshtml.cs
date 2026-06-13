@@ -31,6 +31,7 @@ public class DetailModel : PageModel
     public AiApp App { get; set; } = null!;
     public AppExecution? LastExecution { get; set; }
     public List<AppReview> Reviews { get; set; } = new();
+    public List<AiApp> SimilarApps { get; set; } = new();
     public int UserBalance { get; set; }
     public bool HasReviewed { get; set; }
     public string? RunError { get; set; }
@@ -45,6 +46,7 @@ public class DetailModel : PageModel
         App = app;
 
         Reviews = await _reviews.GetAppReviewsAsync(app.Id, pageSize: 5);
+        SimilarApps = await _apps.GetSimilarAppsAsync(app.Id, app.CategoryId);
 
         if (User.Identity?.IsAuthenticated == true)
         {
@@ -87,7 +89,11 @@ public class DetailModel : PageModel
             {
                 var relativePath = await _storage.SaveUploadAsync(formFile, "inputs");
                 Inputs[fieldName] = relativePath;
-                imageUrls.Add($"{Request.Scheme}://{Request.Host}{relativePath}");
+                // Use base64 data URL so AI strategies don't need an outbound HTTP request to this server
+                using var ms = new MemoryStream();
+                formFile.OpenReadStream().CopyTo(ms);
+                var mimeType = formFile.ContentType ?? "application/octet-stream";
+                imageUrls.Add($"data:{mimeType};base64,{Convert.ToBase64String(ms.ToArray())}");
             }
             catch (Exception ex)
             {

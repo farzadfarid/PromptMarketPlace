@@ -41,6 +41,7 @@ public class DetailModel : PageModel
     public List<AppExecution> RecentExecutions { get; set; } = new();
     public int ExecutionTotalCount { get; set; }
     [BindProperty(SupportsGet = true)] public ExecutionStatus? FilterStatus { get; set; }
+    [BindProperty(SupportsGet = true)] public string? ExecSearch { get; set; }
     [BindProperty(SupportsGet = true)] public int ExecPage { get; set; } = 1;
     private const int ExecPageSize = 15;
 
@@ -88,6 +89,9 @@ public class DetailModel : PageModel
 
         if (FilterStatus.HasValue)
             execQuery = execQuery.Where(e => e.Status == FilterStatus.Value);
+
+        if (!string.IsNullOrWhiteSpace(ExecSearch))
+            execQuery = execQuery.Where(e => e.User.DisplayName.Contains(ExecSearch));
 
         ExecutionTotalCount = await execQuery.CountAsync();
         RecentExecutions = await execQuery

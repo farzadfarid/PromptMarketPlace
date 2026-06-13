@@ -4,21 +4,42 @@ function openCreate() {
     document.querySelector('[name="Form.Name"]').value = '';
     document.querySelector('[name="Form.BaseUrl"]').value = '';
     document.querySelector('[name="Form.Description"]').value = '';
-    document.querySelector('[name="Form.ApiKey"]').value = '';
+    document.getElementById('formApiKeyInput').value = '';
+    document.getElementById('formProviderType').value = '0';
     document.getElementById('apiKeyHint').classList.add('d-none');
+    document.getElementById('showApiKeyBtn').classList.add('d-none');
     resetModalTestResult();
 }
 
-function openEdit(id, name, baseUrl, description, hasApiKey) {
+function openEdit(id, name, baseUrl, description, hasApiKey, providerType) {
     document.getElementById('modalTitle').textContent = 'ویرایش سرویس‌دهنده';
     document.getElementById('formId').value = id;
     document.querySelector('[name="Form.Name"]').value = name;
     document.querySelector('[name="Form.BaseUrl"]').value = baseUrl;
     document.querySelector('[name="Form.Description"]').value = description;
-    document.querySelector('[name="Form.ApiKey"]').value = '';
+    document.getElementById('formApiKeyInput').value = '';
+    document.getElementById('formProviderType').value = providerType ?? 0;
     document.getElementById('apiKeyHint').classList[hasApiKey ? 'remove' : 'add']('d-none');
+    var showBtn = document.getElementById('showApiKeyBtn');
+    showBtn.classList[hasApiKey ? 'remove' : 'add']('d-none');
+    showBtn.innerHTML = '<i class="fas fa-eye"></i>';
     resetModalTestResult();
     new bootstrap.Modal(document.getElementById('providerModal')).show();
+}
+
+async function showApiKey() {
+    var id = document.getElementById('formId').value;
+    if (!id || id === '0') return;
+    var btn = document.getElementById('showApiKeyBtn');
+    var input = document.getElementById('formApiKeyInput');
+    if (input.value) { input.value = ''; btn.innerHTML = '<i class="fas fa-eye"></i>'; return; }
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+    try {
+        var resp = await fetch('?handler=DecryptedKey&id=' + id);
+        var data = await resp.json();
+        if (data.success) { input.value = data.key; btn.innerHTML = '<i class="fas fa-eye-slash"></i>'; }
+        else { btn.innerHTML = '<i class="fas fa-eye"></i>'; alert('دریافت API Key ناموفق بود.'); }
+    } catch { btn.innerHTML = '<i class="fas fa-eye"></i>'; }
 }
 
 function resetModalTestResult() {

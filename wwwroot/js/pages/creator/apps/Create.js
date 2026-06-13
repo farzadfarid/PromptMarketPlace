@@ -24,6 +24,7 @@ function goToStep(n) {
             badge.classList.toggle('bg-secondary', !active);
         }
     }
+    if (typeof syncVideoTagsHelper === 'function') syncVideoTagsHelper();
 }
 
 function filterModels(outputType) {
@@ -42,6 +43,7 @@ function filterModels(outputType) {
         if (m.IsDefault) defaultId = m.Id;
     });
     if (defaultId) select.value = defaultId;
+    if (typeof syncVideoTagsHelper === 'function') syncVideoTagsHelper();
 }
 
 // ─── Field management ──────────────────────────────────────────────────────
@@ -50,11 +52,11 @@ var definedFields = [];
 
 var fieldTypeLabels = {
     Text: 'متن ساده', Textarea: 'چند خطی', Select: 'انتخابی',
-    Number: 'عدد', Checkbox: 'بله/خیر', DatePicker: 'تاریخ', FileUpload: 'فایل'
+    Number: 'عدد', Checkbox: 'بله/خیر', DatePicker: 'تاریخ', FileUpload: 'آپلود تصویر', ImageSelect: 'انتخاب تصویری', AudioUpload: 'آپلود صدا'
 };
 var fieldTypeIcons = {
     Text: 'fa-align-left', Textarea: 'fa-paragraph', Select: 'fa-list',
-    Number: 'fa-hashtag', Checkbox: 'fa-check-square', DatePicker: 'fa-calendar-alt', FileUpload: 'fa-file-upload'
+    Number: 'fa-hashtag', Checkbox: 'fa-check-square', DatePicker: 'fa-calendar-alt', FileUpload: 'fa-file-upload', ImageSelect: 'fa-th-large', AudioUpload: 'fa-microphone'
 };
 
 function toPersian(n) {
@@ -103,6 +105,17 @@ function addField() {
         var lines = optionsRaw.split('\n').map(function(l) { return l.trim(); }).filter(Boolean);
         options = JSON.stringify(lines.map(function(l) { return { value: l, label: l }; }));
     }
+    if (type === 'ImageSelect') {
+        var imgRows = document.querySelectorAll('#nf-imgopt-rows .img-opt-row');
+        var imgOpts = [];
+        imgRows.forEach(function(row) {
+            var lbl = row.querySelector('.img-opt-label').value.trim();
+            var img = row.querySelector('.img-opt-image').value.trim();
+            var val = row.querySelector('.img-opt-value').value.trim() || lbl;
+            if (lbl) imgOpts.push({ label: lbl, value: val, image: img });
+        });
+        if (imgOpts.length > 0) options = JSON.stringify(imgOpts);
+    }
 
     if (_editingIndex >= 0) {
         definedFields[_editingIndex] = { name: name, label: label, type: type, placeholder: placeholder, required: required, options: options };
@@ -125,6 +138,11 @@ function addField() {
     document.getElementById('nf-required').checked = true;
     document.getElementById('nf-options').value = '';
     document.getElementById('nf-options-wrap').classList.add('d-none');
+    var imgoptWrap = document.getElementById('nf-imgopt-wrap');
+    if (imgoptWrap) {
+        imgoptWrap.classList.add('d-none');
+        document.getElementById('nf-imgopt-rows').innerHTML = '';
+    }
     nameEl.focus();
 }
 
@@ -198,6 +216,13 @@ function editField(i) {
 
     var optionsWrap = document.getElementById('nf-options-wrap');
     var optionsEl = document.getElementById('nf-options');
+    var imgoptWrap = document.getElementById('nf-imgopt-wrap');
+    var imgoptRows = document.getElementById('nf-imgopt-rows');
+
+    optionsWrap.classList.add('d-none');
+    optionsEl.value = '';
+    if (imgoptWrap) { imgoptWrap.classList.add('d-none'); imgoptRows.innerHTML = ''; }
+
     if (f.type === 'Select') {
         optionsWrap.classList.remove('d-none');
         if (f.options) {
@@ -206,9 +231,14 @@ function editField(i) {
                 optionsEl.value = opts.map(function(o) { return o.label || o.value; }).join('\n');
             } catch(e) { optionsEl.value = ''; }
         }
-    } else {
-        optionsWrap.classList.add('d-none');
-        optionsEl.value = '';
+    } else if (f.type === 'ImageSelect' && imgoptWrap) {
+        imgoptWrap.classList.remove('d-none');
+        if (f.options) {
+            try {
+                var iopts = JSON.parse(f.options);
+                iopts.forEach(function(o) { addImgOptRow(o.label || '', o.image || '', o.value || ''); });
+            } catch(e) {}
+        }
     }
 
     _editingIndex = i;
@@ -221,11 +251,71 @@ function editField(i) {
     document.getElementById('nf-name').focus();
 }
 
+// ─── ImageSelect helpers ────────────────────────────────────────────────────
+
+function addImgOptRow(label, image, value) {
+    var rows = document.getElementById('nf-imgopt-rows');
+    if (!rows) return;
+    var uid = 'ior_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+    var div = document.createElement('div');
+    div.className = 'img-opt-row rounded-2 p-2 mb-2';
+    div.style.cssText = 'background:var(--dk-surface);border:1px solid var(--dk-border2);';
+    div.innerHTML =
+        '<div class="d-flex gap-2 align-items-start mb-1">' +
+        // thumbnail preview
+        '<div class="img-opt-thumb flex-shrink-0" style="width:56px;height:56px;border-radius:8px;overflow:hidden;background:#1c2539;border:1px solid rgba(255,255,255,.1);cursor:pointer;display:flex;align-items:center;justify-content:center;" onclick="document.getElementById(\'' + uid + '\').click()" title="کلیک برای آپلود تصویر">' +
+        (image ? '<img src="' + escHtml(image) + '" style="width:100%;height:100%;object-fit:cover;" />' : '<i class="fas fa-image" style="color:rgba(255,255,255,.2);font-size:1.2rem;"></i>') +
+        '</div>' +
+        '<input type="file" id="' + uid + '" accept="image/*" class="d-none" onchange="uploadImgOpt(this)" />' +
+        '<input type="hidden" class="img-opt-image" value="' + escHtml(image || '') + '" />' +
+        // label + remove
+        '<div class="flex-fill">' +
+        '<input type="text" class="form-control form-control-sm img-opt-label mb-1" placeholder="نام فارسی (مثال: استودیو کلاسیک)" value="' + escHtml(label || '') + '" />' +
+        '<textarea class="form-control form-control-sm img-opt-value" rows="2" dir="ltr" placeholder="مقدار ارسالی به پرامپت — اگر خالی باشد، نام فارسی استفاده می‌شود">' + escHtml(value || '') + '</textarea>' +
+        '</div>' +
+        '<button type="button" onclick="this.closest(\'.img-opt-row\').remove()" class="btn btn-sm text-danger p-0 flex-shrink-0" style="line-height:1;font-size:1.1rem;margin-top:2px;">×</button>' +
+        '</div>';
+    rows.appendChild(div);
+}
+
+function uploadImgOpt(input) {
+    if (!input.files || !input.files[0]) return;
+    var row = input.closest('.img-opt-row');
+    var thumb = row.querySelector('.img-opt-thumb');
+    var hiddenUrl = row.querySelector('.img-opt-image');
+    var formData = new FormData();
+    formData.append('file', input.files[0]);
+    thumb.innerHTML = '<div style="font-size:.6rem;color:#94a3b8;text-align:center;padding:4px;">آپلود...</div>';
+    fetch('/Creator/Apps/UploadOptionImage', { method: 'POST', body: formData, headers: { 'RequestVerificationToken': document.querySelector('input[name=__RequestVerificationToken]')?.value || '' } })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.url) {
+                hiddenUrl.value = data.url;
+                thumb.innerHTML = '<img src="' + data.url + '" style="width:100%;height:100%;object-fit:cover;" />';
+            } else {
+                thumb.innerHTML = '<i class="fas fa-exclamation-triangle" style="color:#f87171;font-size:1rem;"></i>';
+                alert(data.error || 'خطا در آپلود');
+            }
+        })
+        .catch(function() {
+            thumb.innerHTML = '<i class="fas fa-exclamation-triangle" style="color:#f87171;font-size:1rem;"></i>';
+        });
+}
+
 function escHtml(s) {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 function serializeFields() {
+    if (_editingIndex >= 0) {
+        var pendingName = (document.getElementById('nf-name') || {}).value || '';
+        if (pendingName.trim()) addField();
+        else {
+            _editingIndex = -1;
+            var btn = document.getElementById('add-field-btn');
+            if (btn) { btn.textContent = '+ افزودن فیلد'; btn.classList.add('btn-outline-primary'); btn.classList.remove('btn-warning'); }
+        }
+    }
     var inp = document.getElementById('fields-json-input');
     if (inp) inp.value = JSON.stringify(definedFields);
 }
@@ -414,8 +504,14 @@ document.addEventListener('DOMContentLoaded', function() {
     if (nfType) {
         nfType.addEventListener('change', function() {
             document.getElementById('nf-options-wrap').classList.toggle('d-none', this.value !== 'Select');
+            var imgWrap = document.getElementById('nf-imgopt-wrap');
+            if (imgWrap) imgWrap.classList.toggle('d-none', this.value !== 'ImageSelect');
         });
     }
+
+    // ImageSelect — افزودن ردیف
+    var addImgOptBtn = document.getElementById('add-imgopt-btn');
+    if (addImgOptBtn) addImgOptBtn.addEventListener('click', function() { addImgOptRow('', '', ''); });
 
     // add field button
     var addBtn = document.getElementById('add-field-btn');

@@ -1,50 +1,109 @@
-﻿@page "/creator/{username}"
+@page "/creator/{username}"
 @model ProfileModel
 @{ ViewData["Title"] = Model.Creator.User.DisplayName; }
 
-<div class="container py-5">
+<canvas id="creator-canvas" aria-hidden="true"></canvas>
+
+<div class="dp container py-5" style="position:relative;z-index:1;">
     <div class="row g-4">
-        <div class="col-md-3 text-center">
-            <div class="rounded-circle bg-primary bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3"
-                 style="width:80px;height:80px;">
-                <i class="fas fa-user fa-2x text-primary"></i>
-            </div>
-            <h5 class="fw-bold">@Model.Creator.User.DisplayName</h5>
-            @if (Model.Creator.IsFoundingCreator)
-            {
-                <span class="badge bg-warning text-dark mb-2">
-                    <i class="fas fa-star me-1"></i>بنیان‌گذار
-                </span>
-            }
-            @if (!string.IsNullOrEmpty(Model.Creator.Bio))
-            {
-                <p class="text-muted small">@Model.Creator.Bio</p>
-            }
-            <div class="d-flex justify-content-center gap-3 small text-muted mt-3">
-                <div class="text-center">
-                    <div class="fw-bold fs-5">@Model.Apps.Count</div>
-                    <div>ابزار</div>
-                </div>
-                <div class="text-center">
-                    <div class="fw-bold fs-5">@Model.TotalExecutions.N0Fa()</div>
-                    <div>اجرا</div>
-                </div>
-                <div class="text-center">
-                    <div class="fw-bold fs-5">@Model.AvgRating.ToFarsiDigits("0.0")</div>
-                    <div>امتیاز</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-9">
-            <h5 class="fw-bold mb-4">ابزارهای منتشر شده</h5>
-            <div class="row g-3">
-                @foreach (var app in Model.Apps)
+
+        <!-- پروفایل -->
+        <div class="col-md-3">
+            <div class="card border-0 p-4 text-center sticky-md-top" style="top:80px;">
+
+                @if (!string.IsNullOrEmpty(Model.Creator.User?.AvatarUrl))
                 {
-                    <div class="col-md-6">
-                        @await Html.PartialAsync("_AppCard", app)
+                    <img src="@Model.Creator.User.AvatarUrl" alt="@Model.Creator.User.DisplayName"
+                         class="rounded-circle mx-auto d-block mb-3"
+                         style="width:80px;height:80px;object-fit:cover;border:2px solid rgba(249,115,22,.3);"
+                         onerror="this.style.display='none'" />
+                }
+                else
+                {
+                    <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
+                         style="width:80px;height:80px;background:rgba(249,115,22,.12);border:2px solid rgba(249,115,22,.2);">
+                        <i class="fas fa-user fa-2x" style="color:#f97316;"></i>
                     </div>
                 }
+
+                <h5 class="fw-bold mb-1" style="color:#e2e8f0;">@Model.Creator.User.DisplayName</h5>
+
+                <div class="d-flex flex-wrap justify-content-center gap-1 mb-2">
+                    @if (Model.Creator.IsVerified)
+                    {
+                        <span class="badge border" style="background:rgba(249,115,22,.12);border-color:rgba(249,115,22,.25)!important;color:#fed7aa;font-size:.7rem;">
+                            <i class="fas fa-check me-1"></i>تأیید شده
+                        </span>
+                    }
+                    @if (Model.Creator.IsFoundingCreator)
+                    {
+                        <span class="badge border" style="background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.25)!important;color:#fcd34d;font-size:.7rem;">
+                            <i class="fas fa-star me-1"></i>بنیان‌گذار
+                        </span>
+                    }
+                </div>
+
+                @if (!string.IsNullOrEmpty(Model.Creator.Bio))
+                {
+                    <p class="small mb-3" style="color:#7b8db0;line-height:1.6;">@Model.Creator.Bio</p>
+                }
+
+                @if (!string.IsNullOrEmpty(Model.Creator.WebsiteUrl))
+                {
+                    <a href="@Model.Creator.WebsiteUrl" target="_blank" rel="noopener"
+                       class="btn btn-sm btn-outline-secondary w-100 mb-3" style="font-size:.8rem;">
+                        <i class="fas fa-external-link-alt me-1"></i>وب‌سایت
+                    </a>
+                }
+
+                <div class="d-flex justify-content-center gap-4 pt-3" style="border-top:1px solid rgba(255,255,255,.07);">
+                    <div class="text-center">
+                        <div class="fw-bold" style="font-size:1.2rem;color:#e2e8f0;">@Model.Apps.Count</div>
+                        <div style="font-size:.75rem;color:#6b7fa0;">ابزار</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="fw-bold" style="font-size:1.2rem;color:#e2e8f0;">@Model.TotalExecutions.N0Fa()</div>
+                        <div style="font-size:.75rem;color:#6b7fa0;">اجرا</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="fw-bold" style="font-size:1.2rem;color:#f59e0b;">@Model.AvgRating.ToFarsiDigits("0.0")</div>
+                        <div style="font-size:.75rem;color:#6b7fa0;">امتیاز</div>
+                    </div>
+                </div>
             </div>
         </div>
+
+        <!-- ابزارها -->
+        <div class="col-md-9">
+            <h5 class="fw-bold mb-4" style="color:#e2e8f0;">ابزارهای منتشر شده</h5>
+
+            @if (!Model.Apps.Any())
+            {
+                <div class="text-center py-5" style="color:#4a5a78;">
+                    <i class="fas fa-box-open fa-2x mb-3 d-block" style="color:#2a3a5a;"></i>
+                    <p class="mb-0">هنوز ابزاری منتشر نشده است.</p>
+                </div>
+            }
+            else
+            {
+                <div class="row g-3">
+                    @foreach (var app in Model.Apps)
+                    {
+                        <div class="col-sm-6 col-lg-4">
+                            @await Html.PartialAsync("_AppCard", app)
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+
     </div>
 </div>
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/dark-public.css" />
+    <link rel="stylesheet" href="~/css/pages/public/CreatorProfile.css" />
+}
+@section Scripts {
+    <script src="~/js/pages/public/CreatorProfile.js"></script>
+}

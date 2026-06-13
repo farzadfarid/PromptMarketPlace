@@ -7,7 +7,7 @@
     <div class="d-flex align-items-center justify-content-between">
         <div>
             <div class="small opacity-75 mb-1">موجودی اعتبار</div>
-            <div class="fs-2 fw-bold"><i class="fas fa-coins me-2 opacity-75"></i>@Model.CreditBalance</div>
+            <div class="fs-2 fw-bold"><i class="fas fa-coins me-2 opacity-75"></i>@Model.CreditBalance.ToFarsiDigits()</div>
         </div>
         <a asp-area="" asp-page="/Credits/Packages" class="btn btn-light fw-semibold text-primary px-4">
             <i class="fas fa-plus me-2"></i>خرید اعتبار
@@ -29,7 +29,7 @@
                     {
                         <tr>
                             <td class="small ps-4">@p.Package?.Name</td>
-                            <td class="text-center fw-semibold small text-primary">+@p.CreditAmount اعتبار</td>
+                            <td class="text-center fw-semibold small text-primary">+@p.CreditAmount.ToFarsiDigits() اعتبار</td>
                             <td class="small text-muted">@p.Amount.N0Fa() ریال</td>
                             <td class="small text-muted">@p.CreatedAt.ToShamsi("yy/MM/dd")</td>
                             <td class="pe-4">
@@ -60,9 +60,9 @@
                     <tr>
                         <td class="small ps-4">@t.Description</td>
                         <td class="text-center fw-semibold small @(isPositive ? "text-success" : "text-danger")">
-                            @(isPositive ? "+" : "")@t.CreditAmount اعتبار
+                            @(isPositive ? "+" : "")@((t.CreditAmount ?? 0).ToFarsiDigits()) اعتبار
                         </td>
-                        <td class="small text-muted pe-4">@t.CreatedAt.ToString("yy/MM/dd HH:mm")</td>
+                        <td class="small text-muted pe-4">@t.CreatedAt.ToShamsi("yy/MM/dd HH:mm")</td>
                     </tr>
                 }
             </tbody>

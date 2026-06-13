@@ -2,24 +2,67 @@
 @model EditModel
 @{ ViewData["Title"] = "ویرایش پروفایل سازنده"; }
 
-@if (TempData["Success"] != null) { <div class="alert alert-success alert-dismissible fade show">@TempData["Success"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div> }
+@if (TempData["Success"] != null) {
+    <div class="alert alert-success alert-dismissible fade show">
+        <i class="fas fa-check-circle me-2"></i>@TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
 
 <div class="row justify-content-center">
     <div class="col-lg-6">
         <div class="card border-0 shadow-sm p-4">
             <h5 class="fw-bold mb-4">ویرایش پروفایل سازنده</h5>
-            <form method="post">
+            <form method="post" enctype="multipart/form-data">
+                @if (!ViewData.ModelState.IsValid)
+                {
+                    <div class="alert alert-danger mb-3"><div asp-validation-summary="All"></div></div>
+                }
+
+                <div class="mb-4">
+                    <label class="form-label">تصویر آواتار <span class="text-muted small">(اختیاری — JPG، PNG، WebP، حداکثر ۵MB)</span></label>
+
+                    @{
+                        var currentAvatar = Model.Creator.User?.AvatarUrl;
+                    }
+                    @if (!string.IsNullOrEmpty(currentAvatar))
+                    {
+                        <div class="mb-2 d-flex align-items-center gap-3">
+                            <img id="avatarPreview" src="@currentAvatar" alt="آواتار فعلی"
+                                 class="rounded-circle border"
+                                 style="width:64px;height:64px;object-fit:cover;"
+                                 onerror="this.style.display='none'" />
+                            <span class="text-muted small">آواتار فعلی</span>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="mb-2">
+                            <img id="avatarPreview" src="" alt=""
+                                 class="rounded-circle border d-none"
+                                 style="width:64px;height:64px;object-fit:cover;" />
+                        </div>
+                    }
+
+                    <input type="file" name="AvatarFile" id="avatarFile"
+                           class="form-control" accept="image/jpeg,image/png,image/webp,image/gif"
+                           onchange="previewAvatar(this)" />
+                    <div class="form-text">آپلود فایل جدید، آواتار قبلی را جایگزین می‌کند.</div>
+                </div>
+
                 <div class="mb-3">
                     <label class="form-label">بیوگرافی</label>
                     <textarea asp-for="Form.Bio" class="form-control" rows="4"
                               placeholder="خودت رو معرفی کن..."></textarea>
                     <span asp-validation-for="Form.Bio" class="text-danger small"></span>
                 </div>
+
                 <div class="mb-4">
                     <label class="form-label">وب‌سایت</label>
                     <input asp-for="Form.WebsiteUrl" class="form-control" dir="ltr" placeholder="https://..." />
                     <span asp-validation-for="Form.WebsiteUrl" class="text-danger small"></span>
                 </div>
+
                 <div class="mb-4">
                     <label class="form-label">لینک اشتراک‌گذاری اختصاصی</label>
                     <div class="input-group">
@@ -28,6 +71,7 @@
                     </div>
                     <div class="form-text text-muted">این لینک برای اشتراک‌گذاری ابزارهای شما است.</div>
                 </div>
+
                 @if (Model.Creator.IsFoundingCreator)
                 {
                     <div class="alert alert-warning small mb-3">
@@ -35,10 +79,25 @@
                         شما یکی از سازندگان بنیان‌گذار هستید!
                     </div>
                 }
+
                 <button type="submit" class="btn btn-primary">ذخیره تغییرات</button>
             </form>
         </div>
     </div>
 </div>
 
-@section Scripts { <partial name="_ValidationScriptsPartial" /> }
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+    function previewAvatar(input) {
+        var preview = document.getElementById('avatarPreview');
+        if (!preview || !input.files || !input.files[0]) return;
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            preview.src = e.target.result;
+            preview.classList.remove('d-none');
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+    </script>
+}

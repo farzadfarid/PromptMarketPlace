@@ -16,19 +16,15 @@
     @await RenderSectionAsync("Styles", required: false)
 </head>
 <body class="creator-layout">
+<div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 <div class="creator-shell">
 
     <!-- Sidebar -->
-    <aside class="creator-sidebar">
+    <aside class="creator-sidebar" id="creatorSidebar">
         <div class="creator-sidebar__header">
             <div class="creator-brand">
-                <div class="creator-brand__icon">
-                    <i class="fas fa-robot"></i>
-                </div>
-                <div>
-                    <div class="creator-brand__name">پرامپت مارکت</div>
-                    <div class="creator-brand__label">پنل سازنده</div>
-                </div>
+                <img src="~/images/logo.png" alt="Prompt Market Place" class="creator-brand__logo" />
+                <div class="creator-brand__label-only">پنل سازنده</div>
             </div>
         </div>
 
@@ -98,7 +94,10 @@
     <!-- Main -->
     <div class="creator-main">
         <header class="creator-topbar">
-            <div class="creator-topbar__title">
+            <div class="creator-topbar__title d-flex align-items-center gap-2">
+                <button class="sidebar-toggle d-md-none" id="sidebarToggle" aria-label="منو">
+                    <i class="fas fa-bars"></i>
+                </button>
                 <h6 class="mb-0 fw-semibold">@ViewData["Title"]</h6>
             </div>
             <div class="creator-topbar__actions">
@@ -129,6 +128,16 @@ document.addEventListener('DOMContentLoaded', function () {
         var a = ul.closest('.alert'); if (a) a.style.display = 'none';
     });
 });
+(function(){
+    var toggle = document.getElementById('sidebarToggle');
+    var sidebar = document.getElementById('creatorSidebar');
+    var backdrop = document.getElementById('sidebarBackdrop');
+    if (!toggle) return;
+    function open(){ sidebar.classList.add('open'); backdrop.classList.add('show'); }
+    function close(){ sidebar.classList.remove('open'); backdrop.classList.remove('show'); }
+    toggle.addEventListener('click', open);
+    backdrop.addEventListener('click', close);
+})();
 </script>
 @await RenderSectionAsync("Scripts", required: false)
 </body>

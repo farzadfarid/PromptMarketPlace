@@ -8,8 +8,10 @@ public interface IAiProviderService
     Task<List<AiProvider>> GetAllProvidersAsync();
     Task<AiProvider?> GetProviderByIdAsync(int id);
     Task<AiProvider> CreateProviderAsync(string name, string baseUrl, string? apiKey, string? description,
+        ProviderType providerType = ProviderType.OpenAiCompatible,
         string? balanceUrl = null, string? balanceJsonPath = null, string? balanceCurrency = null);
     Task UpdateProviderAsync(int id, string name, string baseUrl, string? newApiKey, string? description,
+        ProviderType providerType = ProviderType.OpenAiCompatible,
         string? balanceUrl = null, string? balanceJsonPath = null, string? balanceCurrency = null);
     Task ToggleProviderActiveAsync(int id);
     Task DeleteProviderAsync(int id);

@@ -1,31 +1,41 @@
-﻿@page "/app/{slug}"
+@page "/app/{slug}"
 @model DetailModel
 @using System.Security.Claims
 @{ ViewData["Title"] = Model.App.Title; }
 
-<div class="container py-4">
+<canvas id="stars-canvas" aria-hidden="true"></canvas>
+
+<div class="dp container py-4" style="position:relative;z-index:1;">
     <div class="row g-4">
 
-        <!-- اطلاعات ابزار + فرم -->
+        <!-- اطلاعات ابزار + خروجی + فرم -->
         <div class="col-lg-8">
+
             <!-- هدر ابزار -->
-            <div class="d-flex gap-3 mb-4">
+            <div class="app-header d-flex gap-3">
                 @if (!string.IsNullOrEmpty(Model.App.ThumbnailUrl))
                 {
-                    <img src="@Model.App.ThumbnailUrl" class="rounded" width="80" height="80" style="object-fit:cover;" />
+                    <img src="@Model.App.ThumbnailUrl" class="app-thumb" alt="@Model.App.Title" />
+                }
+                else
+                {
+                    <div class="app-thumb d-flex align-items-center justify-content-center"
+                         style="background:rgba(249,115,22,.12);border:2px solid rgba(249,115,22,.25);border-radius:14px;width:72px;height:72px;flex-shrink:0;">
+                        <i class="fas fa-robot fa-xl" style="color:#f97316;"></i>
+                    </div>
                 }
                 <div class="flex-grow-1">
-                    <div class="d-flex align-items-start gap-2 flex-wrap">
-                        <h3 class="fw-bold mb-1">@Model.App.Title</h3>
-                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
+                    <div class="d-flex align-items-start gap-2 flex-wrap mb-1">
+                        <h3 class="app-title mb-0">@Model.App.Title</h3>
+                        <span class="badge bg-secondary-subtle border border-secondary-subtle">
                             @Model.App.OutputType
                         </span>
                     </div>
-                    <p class="text-muted mb-2">@Model.App.ShortDescription</p>
-                    <div class="d-flex gap-3 small text-muted">
-                        <span><i class="fas fa-play-circle me-1"></i>@Model.App.ExecutionCount.N0Fa() اجرا</span>
-                        <span><i class="fas fa-star text-warning me-1"></i>@Model.App.AverageRating.ToFarsiDigits("0.0")</span>
-                        <span><i class="fas fa-coins text-primary me-1"></i>@Model.App.CreditCost اعتبار / اجرا</span>
+                    <p class="app-desc mb-2">@Model.App.ShortDescription</p>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <span class="app-stat"><i class="fas fa-play-circle text-primary"></i>@Model.App.ExecutionCount.N0Fa() اجرا</span>
+                        <span class="app-stat"><i class="fas fa-star" style="color:#f59e0b;"></i>@Model.App.AverageRating.ToFarsiDigits("0.0")</span>
+                        <span class="app-stat"><i class="fas fa-coins text-primary"></i>@Model.App.CreditCost.ToFarsiDigits() اعتبار / اجرا</span>
                     </div>
                 </div>
             </div>
@@ -33,7 +43,7 @@
             <!-- خطا -->
             @if (!string.IsNullOrEmpty(Model.RunError))
             {
-                <div class="alert alert-danger">
+                <div class="alert alert-danger mb-3">
                     <i class="fas fa-exclamation-circle me-2"></i>@Model.RunError
                 </div>
             }
@@ -42,11 +52,77 @@
             @if (Model.LastExecution != null)
             {
                 @await Html.PartialAsync("_OutputRenderer", Model.LastExecution)
-                <hr class="my-4" />
+                <div id="inputPreviewContainer" class="d-none input-preview-strip"></div>
             }
 
+            <!-- Skeleton Loading (hidden by default, shown via JS) -->
+            <div id="outputSkeleton" class="output-card d-none" style="margin-bottom:1.5rem;">
+                <div class="output-card-header">
+                    <div class="output-card-title" style="color:#6b7fa0;">
+                        <span class="skel-status-icon"></span>
+                        <span id="skelLabel">در حال پردازش...</span>
+                    </div>
+                </div>
+
+                <!-- Text skeleton -->
+                <div id="skelText" class="d-none skel-lines">
+                    <div class="skel skel-line" style="width:100%;"></div>
+                    <div class="skel skel-line" style="width:88%;"></div>
+                    <div class="skel skel-line" style="width:100%;"></div>
+                    <div class="skel skel-line" style="width:72%;"></div>
+                    <div class="skel skel-line" style="width:93%;"></div>
+                    <div class="skel skel-line" style="width:56%;"></div>
+                </div>
+
+                <!-- Image skeleton -->
+                <div id="skelImage" class="d-none">
+                    <div class="skel skel-image"></div>
+                </div>
+
+                <!-- Video skeleton -->
+                <div id="skelVideo" class="d-none">
+                    <div class="skel-video-wrap">
+                        <div class="skel-video-shimmer"></div>
+                        <i class="fas fa-film skel-video-icon"></i>
+                        <div class="skel-video-label">در حال تولید ویدیو...</div>
+                        <div class="skel-dots">
+                            <span></span><span></span><span></span>
+                        </div>
+                        <div class="skel-video-eta">
+                            <i class="fas fa-clock me-1"></i>معمولاً ۴ تا ۸ دقیقه طول می‌کشد
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Audio skeleton -->
+                <div id="skelAudio" class="d-none">
+                    <div class="skel-audio-wrap">
+                        <i class="fas fa-music skel-audio-icon"></i>
+                        <div class="skel-waveform">
+                            <div class="skel-waveform-bar"></div>
+                            <div class="skel-waveform-bar"></div>
+                            <div class="skel-waveform-bar"></div>
+                            <div class="skel-waveform-bar"></div>
+                            <div class="skel-waveform-bar"></div>
+                            <div class="skel-waveform-bar"></div>
+                            <div class="skel-waveform-bar"></div>
+                            <div class="skel-waveform-bar"></div>
+                            <div class="skel-waveform-bar"></div>
+                            <div class="skel-waveform-bar"></div>
+                            <div class="skel-waveform-bar"></div>
+                            <div class="skel-waveform-bar"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Code skeleton -->
+                <div id="skelCode" class="d-none">
+                    <div class="skel skel-code"></div>
+                </div>
+            </div>
+
             <!-- فرم اجرا -->
-            <div class="card border-0 shadow-sm p-4 mb-4">
+            <div class="card border-0 p-4 mb-4">
                 <h5 class="fw-semibold mb-3">
                     <i class="fas fa-play me-2 text-primary"></i>اجرای ابزار
                 </h5>
@@ -67,7 +143,8 @@
                 }
                 else
                 {
-                    <form method="post" asp-page-handler="Run" enctype="multipart/form-data">
+                    <form method="post" asp-page-handler="Run" enctype="multipart/form-data"
+                          id="runForm" data-output-type="@Model.App.OutputType.ToString().ToLower()">
                         @foreach (var field in Model.App.InputFields)
                         {
                             <div class="mb-3">
@@ -86,7 +163,6 @@
                                 }
                                 else if (field.Type == FieldType.Select && field.Options != null)
                                 {
-                                    // Options می‌تواند List<string> یا List<{value,label}> باشد
                                     List<string> options;
                                     try {
                                         var objs = System.Text.Json.JsonSerializer.Deserialize<List<System.Text.Json.JsonElement>>(field.Options) ?? new();
@@ -108,6 +184,40 @@
                                         }
                                     </select>
                                 }
+                                else if (field.Type == FieldType.ImageSelect && field.Options != null)
+                                {
+                                    var imgOpts = new List<(string label, string val, string image)>();
+                                    try {
+                                        var els = System.Text.Json.JsonSerializer.Deserialize<List<System.Text.Json.JsonElement>>(field.Options) ?? new();
+                                        foreach (var el in els)
+                                        {
+                                            var lbl = el.TryGetProperty("label", out var lp) ? lp.GetString() ?? "" : "";
+                                            var v   = el.TryGetProperty("value", out var vp) ? vp.GetString() ?? lbl : lbl;
+                                            var img = el.TryGetProperty("image", out var ip) ? ip.GetString() ?? "" : "";
+                                            if (!string.IsNullOrEmpty(lbl)) imgOpts.Add((lbl, v, img));
+                                        }
+                                    } catch { }
+                                    <div class="img-select-grid">
+                                        @foreach (var opt in imgOpts)
+                                        {
+                                            var isSelected = opt.val == savedVal || opt.label == savedVal;
+                                            <label class="img-select-card @(isSelected ? "selected" : "")">
+                                                <input type="radio" name="Inputs[@field.Name]" value="@opt.val"
+                                                       class="d-none" @(isSelected ? "checked" : "")
+                                                       @(field.IsRequired ? "required" : "") />
+                                                @if (!string.IsNullOrEmpty(opt.image))
+                                                {
+                                                    <img src="@opt.image" alt="@opt.label" loading="lazy" />
+                                                }
+                                                else
+                                                {
+                                                    <div class="img-select-placeholder"><i class="fas fa-image"></i></div>
+                                                }
+                                                <div class="is-label">@opt.label</div>
+                                            </label>
+                                        }
+                                    </div>
+                                }
                                 else if (field.Type == FieldType.Number)
                                 {
                                     <input type="number" name="Inputs[@field.Name]" class="form-control"
@@ -123,11 +233,38 @@
                                         <label class="form-check-label" for="field_@field.Id">@field.HelpText</label>
                                     </div>
                                 }
+                                else if (field.Type == FieldType.AudioUpload)
+                                {
+                                    <div class="upload-drop-area border border-2 rounded-3 p-3 text-center"
+                                         id="uploadArea_@field.Name"
+                                         style="border-style:dashed!important;cursor:pointer;transition:all .2s;"
+                                         onclick="document.getElementById('file_@field.Name').click()"
+                                         data-required="@(field.IsRequired ? "true" : "false")"
+                                         data-fieldname="@field.Name"
+                                         data-filetype="audio">
+                                        <div id="uploadPlaceholder_@field.Name">
+                                            <i class="fas fa-microphone fa-2x text-muted mb-2"></i>
+                                            <div class="small text-muted">برای آپلود کلیک کنید یا فایل صوتی را اینجا رها کنید</div>
+                                            <div class="text-muted" style="font-size:.72rem;">MP3، WAV، M4A، OGG — حداکثر ۵۰ مگابایت</div>
+                                        </div>
+                                        <div id="uploadPreview_@field.Name" class="d-none py-2">
+                                            <i class="fas fa-music fa-2x mb-2" style="color:#f97316;"></i>
+                                            <div class="small fw-semibold mt-1" id="uploadFileName_@field.Name" style="color:#e2e8f0;"></div>
+                                        </div>
+                                    </div>
+                                    <div id="uploadError_@field.Name" class="text-danger small mt-1 d-none">
+                                        لطفاً یک فایل صوتی انتخاب کنید.
+                                    </div>
+                                    <input type="file" name="Files[@field.Name]"
+                                           id="file_@field.Name" accept="audio/*"
+                                           class="d-none"
+                                           onchange="handleAudioUpload(this, '@field.Name')" />
+                                }
                                 else if (field.Type == FieldType.FileUpload)
                                 {
                                     <div class="upload-drop-area border border-2 rounded-3 p-3 text-center"
                                          id="uploadArea_@field.Name"
-                                         style="border-style:dashed!important;cursor:pointer;transition:background .2s;"
+                                         style="border-style:dashed!important;cursor:pointer;transition:all .2s;"
                                          onclick="document.getElementById('file_@field.Name').click()"
                                          data-required="@(field.IsRequired ? "true" : "false")"
                                          data-fieldname="@field.Name">
@@ -160,14 +297,15 @@
 
                                 @if (!string.IsNullOrEmpty(field.HelpText) && field.Type != FieldType.Checkbox)
                                 {
-                                    <div class="form-text text-muted">@field.HelpText</div>
+                                    <div class="form-text">@field.HelpText</div>
                                 }
                             </div>
                         }
 
-                        <div class="d-flex align-items-center justify-content-between mt-3">
+                        <div class="d-flex align-items-center justify-content-between mt-3 pt-2"
+                             style="border-top:1px solid rgba(255,255,255,.06);">
                             <div class="small text-muted">
-                                موجودی: <strong>@Model.UserBalance اعتبار</strong>
+                                موجودی: <strong style="color:#e2e8f0;">@Model.UserBalance اعتبار</strong>
                                 @if (Model.UserBalance < Model.App.CreditCost)
                                 {
                                     <a asp-page="/Credits/Packages" class="text-danger ms-2 small">
@@ -175,9 +313,9 @@
                                     </a>
                                 }
                             </div>
-                            <button type="submit" class="btn btn-primary"
+                            <button type="submit" id="runBtn" class="btn btn-primary px-4"
                                     @(Model.UserBalance < Model.App.CreditCost ? "disabled" : "")>
-                                <i class="fas fa-play me-2"></i>اجرا (@Model.App.CreditCost اعتبار)
+                                <i class="fas fa-play me-2"></i>اجرا (@Model.App.CreditCost.ToFarsiDigits() اعتبار)
                             </button>
                         </div>
                     </form>
@@ -185,19 +323,23 @@
             </div>
 
             <!-- توضیحات کامل -->
-            <div class="card border-0 shadow-sm p-4 mb-4">
-                <h5 class="fw-semibold mb-3">درباره این ابزار</h5>
-                <div style="white-space:pre-wrap;line-height:1.8;">@Model.App.Description</div>
+            <div class="card border-0 p-4 mb-4">
+                <h5 class="fw-semibold mb-3">
+                    <i class="fas fa-info-circle text-primary me-2"></i>درباره این ابزار
+                </h5>
+                <div style="white-space:pre-wrap;line-height:1.9;color:#a0b0cc;">@Model.App.Description</div>
             </div>
 
             <!-- نظرات -->
-            <div class="card border-0 shadow-sm p-4">
-                <h5 class="fw-semibold mb-3">نظرات کاربران</h5>
+            <div class="card border-0 p-4">
+                <h5 class="fw-semibold mb-3">
+                    <i class="fas fa-comments text-primary me-2"></i>نظرات کاربران
+                </h5>
 
                 @if (TempData["ReviewPending"] != null)
                 {
                     <div class="alert alert-info alert-dismissible fade show small mb-3">
-                        <i class="fas fa-clock me-2"></i>نظر شما ثبت شد و پس از تایید سازنده نمایش داده می‌شود.
+                        <i class="fas fa-clock me-2"></i>نظر شما ثبت شد و پس از تایید نمایش داده می‌شود.
                         <button type="button" class="btn-close btn-sm" data-bs-dismiss="alert"></button>
                     </div>
                 }
@@ -211,7 +353,9 @@
 
                 @if (User.Identity.IsAuthenticated && !Model.HasReviewed)
                 {
-                    <form method="post" asp-page-handler="Review" class="border rounded p-3 mb-4">
+                    <form method="post" asp-page-handler="Review"
+                          class="p-3 mb-4 rounded"
+                          style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);">
                         <div class="mb-2">
                             <label class="form-label small">امتیاز شما</label>
                             <input type="hidden" name="rating" id="ratingValue" value="0" />
@@ -219,7 +363,7 @@
                                 @for (int i = 1; i <= 5; i++)
                                 {
                                     <span class="star-lbl" data-val="@i"
-                                          style="cursor:pointer;font-size:1.8rem;color:#ddd;line-height:1;transition:color .12s;">
+                                          style="cursor:pointer;font-size:1.8rem;line-height:1;transition:color .12s;">
                                         <i class="fas fa-star"></i>
                                     </span>
                                 }
@@ -234,37 +378,39 @@
 
                 @foreach (var review in Model.Reviews)
                 {
-                    <div class="d-flex gap-3 mb-3 pb-3 border-bottom">
-                        <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0"
-                             style="width:40px;height:40px;">
-                            <i class="fas fa-user text-primary small"></i>
+                    <div class="d-flex gap-3 mb-3 pb-3" style="border-bottom:1px solid rgba(255,255,255,.06);">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                             style="width:40px;height:40px;background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.15);">
+                            <i class="fas fa-user" style="color:#f97316;font-size:.8rem;"></i>
                         </div>
                         <div class="flex-grow-1">
                             <div class="d-flex align-items-center gap-2 mb-1">
-                                <strong class="small">@review.User?.DisplayName</strong>
+                                <strong class="small" style="color:#e2e8f0;">@review.User?.DisplayName</strong>
                                 <div>
                                     @for (int i = 1; i <= 5; i++)
                                     {
-                                        <i class="@(i <= review.Rating ? "fas" : "far") fa-star text-warning" style="font-size:.7rem;"></i>
+                                        <i class="@(i <= review.Rating ? "fas" : "far") fa-star"
+                                           style="font-size:.7rem;color:@(i <= review.Rating ? "#f59e0b" : "#2a3a5a");"></i>
                                     }
                                 </div>
                                 @if (review.IsVerifiedPurchase)
                                 {
-                                    <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size:.65rem;">
+                                    <span class="badge bg-success-subtle border border-success-subtle" style="font-size:.65rem;">
                                         <i class="fas fa-check me-1"></i>خریدار تأیید شده
                                     </span>
                                 }
-                                <span class="text-muted" style="font-size:.7rem;">@review.CreatedAt.ToShamsi("yy/MM/dd")</span>
+                                <span style="font-size:.7rem;color:#4a5a78;">@review.CreatedAt.ToShamsi("yy/MM/dd")</span>
                             </div>
                             @if (!string.IsNullOrEmpty(review.Comment))
                             {
-                                <p class="mb-0 small text-muted">@review.Comment</p>
+                                <p class="mb-0 small" style="color:#8897b0;">@review.Comment</p>
                             }
                             @if (!string.IsNullOrEmpty(review.CreatorReply))
                             {
-                                <div class="mt-2 me-3 p-2 rounded bg-light border-start border-primary border-2 small">
-                                    <span class="fw-semibold text-primary">پاسخ سازنده:</span>
-                                    <span class="text-muted me-1">@review.CreatorReply</span>
+                                <div class="mt-2 me-3 p-2 rounded border-start border-primary border-2 small"
+                                     style="background:rgba(249,115,22,.06);">
+                                    <span class="fw-semibold" style="color:#f97316;">پاسخ سازنده:</span>
+                                    <span style="color:#8897b0;margin-right:.35rem;">@review.CreatorReply</span>
                                 </div>
                             }
                         </div>
@@ -273,37 +419,42 @@
 
                 @if (!Model.Reviews.Any())
                 {
-                    <p class="text-muted small text-center py-3">هنوز نظری ثبت نشده است.</p>
+                    <p class="small text-center py-3" style="color:#4a5a78;">هنوز نظری ثبت نشده است.</p>
                 }
             </div>
         </div>
 
         <!-- Sidebar -->
         <div class="col-lg-4">
+
             <!-- سازنده -->
-            <div class="card border-0 shadow-sm p-3 mb-3">
-                <h6 class="fw-semibold mb-3">سازنده ابزار</h6>
+            <div class="card border-0 p-3 mb-3">
+                <h6 class="fw-semibold mb-3" style="color:#8897b0;font-size:.8rem;text-transform:uppercase;letter-spacing:.06em;">
+                    سازنده ابزار
+                </h6>
                 <a asp-page="/Creator/Profile"
                    asp-route-username="@Model.App.Creator.User.UserName"
                    class="d-flex align-items-center gap-3 text-decoration-none">
-                    <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0"
-                         style="width:48px;height:48px;">
-                        <i class="fas fa-user text-primary"></i>
+                    <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                         style="width:48px;height:48px;background:rgba(249,115,22,.12);border:1.5px solid rgba(249,115,22,.2);">
+                        <i class="fas fa-user" style="color:#f97316;"></i>
                     </div>
                     <div>
-                        <div class="fw-semibold text-dark">@Model.App.Creator.User.DisplayName</div>
-                        @if (Model.App.Creator.IsVerified)
-                        {
-                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size:.65rem;">
-                                <i class="fas fa-check me-1"></i>تأیید شده
-                            </span>
-                        }
-                        @if (Model.App.Creator.IsFoundingCreator)
-                        {
-                            <span class="badge bg-warning-subtle text-warning border border-warning-subtle" style="font-size:.65rem;">
-                                <i class="fas fa-star me-1"></i>بنیان‌گذار
-                            </span>
-                        }
+                        <div class="fw-semibold" style="color:#e2e8f0;">@Model.App.Creator.User.DisplayName</div>
+                        <div class="d-flex gap-1 flex-wrap mt-1">
+                            @if (Model.App.Creator.IsVerified)
+                            {
+                                <span class="badge bg-primary-subtle border border-primary-subtle" style="font-size:.65rem;">
+                                    <i class="fas fa-check me-1"></i>تأیید شده
+                                </span>
+                            }
+                            @if (Model.App.Creator.IsFoundingCreator)
+                            {
+                                <span class="badge bg-warning-subtle border border-warning-subtle" style="font-size:.65rem;">
+                                    <i class="fas fa-star me-1"></i>بنیان‌گذار
+                                </span>
+                            }
+                        </div>
                     </div>
                 </a>
             </div>
@@ -311,87 +462,150 @@
             <!-- گالری نمونه -->
             @if (Model.App.ShowcaseItems.Any())
             {
-                <div class="card border-0 shadow-sm p-3 mb-3">
-                    <h6 class="fw-semibold mb-3">نمونه خروجی‌ها</h6>
-                    @foreach (var item in Model.App.ShowcaseItems.Take(4))
+                <div class="card border-0 p-3 mb-3">
+                    <h6 class="fw-semibold mb-3" style="color:#8897b0;font-size:.8rem;text-transform:uppercase;letter-spacing:.06em;">
+                        نمونه خروجی‌ها
+                    </h6>
+                    <div class="row g-2">
+                    @foreach (var item in Model.App.ShowcaseItems.Take(6))
                     {
-                        <div class="border rounded p-2 mb-2 showcase-item"
+                        <div class="col-6 showcase-item"
                              role="button" style="cursor:pointer;"
                              data-bs-toggle="modal" data-bs-target="#showcaseModal"
                              data-caption="@(item.Caption ?? "")"
                              data-text="@(item.OutputText ?? "")"
                              data-imgurl="@(item.OutputUrl ?? "")"
                              data-type="@item.OutputType">
-                            @if (!string.IsNullOrEmpty(item.Caption))
-                            {
-                                <div class="fw-semibold small text-primary mb-1">@item.Caption</div>
-                            }
                             @if (item.OutputType == OutputType.Video && !string.IsNullOrEmpty(item.OutputUrl))
                             {
-                                <div class="rounded d-flex align-items-center justify-content-center"
-                                     style="height:80px;background:#111;position:relative;overflow:hidden;">
+                                <div class="rounded overflow-hidden d-flex align-items-center justify-content-center"
+                                     style="height:90px;background:#070d1a;position:relative;border:1px solid rgba(255,255,255,.07);">
                                     <video muted preload="metadata" style="width:100%;height:100%;object-fit:cover;opacity:.7;">
                                         <source src="@item.OutputUrl#t=0.1" />
                                     </video>
                                     <i class="fas fa-play-circle fa-2x text-white"
                                        style="position:absolute;filter:drop-shadow(0 1px 4px #000a);"></i>
+                                    @if (!string.IsNullOrEmpty(item.Caption))
+                                    {
+                                        <span class="position-absolute bottom-0 start-0 end-0 px-1 pb-1"
+                                              style="font-size:.6rem;color:#ffffffcc;background:linear-gradient(transparent,#000a);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">@item.Caption</span>
+                                    }
                                 </div>
                             }
                             else if (item.OutputType == OutputType.Audio && !string.IsNullOrEmpty(item.OutputUrl))
                             {
-                                <div class="rounded d-flex align-items-center justify-content-center gap-2"
-                                     style="height:60px;background:rgba(249,115,22,.08);border:1px dashed rgba(249,115,22,.3);">
-                                    <i class="fas fa-music text-warning"></i>
-                                    <span class="small text-muted">فایل صوتی</span>
+                                <div class="rounded d-flex flex-column align-items-center justify-content-center gap-1"
+                                     style="height:90px;background:rgba(249,115,22,.06);border:1px solid rgba(249,115,22,.15);">
+                                    <i class="fas fa-music fa-lg" style="color:#f97316;"></i>
+                                    <span style="font-size:.65rem;color:#6b7fa0;">@(item.Caption ?? "صدا")</span>
                                 </div>
                             }
                             else if (item.OutputType == OutputType.Image && !string.IsNullOrEmpty(item.OutputUrl))
                             {
-                                <img src="@item.OutputUrl" class="img-fluid rounded"
-                                     alt="@item.Caption" style="max-height:150px;object-fit:cover;width:100%;" />
+                                <img src="@item.OutputUrl" class="rounded w-100"
+                                     alt="@item.Caption" style="height:90px;object-fit:cover;display:block;border:1px solid rgba(255,255,255,.07);" />
                             }
                             else if (!string.IsNullOrEmpty(item.OutputText))
                             {
-                                <div class="text-muted small" style="white-space:pre-wrap;max-height:56px;overflow:hidden;line-height:1.4;">@item.OutputText</div>
-                                <div class="text-primary small mt-1"><i class="fas fa-eye me-1"></i>مشاهده کامل</div>
+                                <div class="rounded p-2"
+                                     style="height:90px;overflow:hidden;font-size:.7rem;line-height:1.4;color:#8897b0;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);">
+                                    @item.OutputText[..Math.Min(item.OutputText.Length, 120)]
+                                </div>
                             }
                         </div>
                     }
-                </div>
-
-                <div class="modal fade" id="showcaseModal" tabindex="-1">
-                    <div class="modal-dialog modal-lg">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h6 class="modal-title fw-semibold" id="showcaseModalTitle">نمونه خروجی</h6>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                            </div>
-                            <div class="modal-body p-3" id="showcaseModalBody"></div>
-                        </div>
                     </div>
                 </div>
             }
 
+
             <!-- تگ‌ها -->
             @if (Model.App.Tags.Any())
             {
-                <div class="card border-0 shadow-sm p-3">
-                    <h6 class="fw-semibold mb-2">تگ‌ها</h6>
+                <div class="card border-0 p-3">
+                    <h6 class="fw-semibold mb-2" style="color:#8897b0;font-size:.8rem;text-transform:uppercase;letter-spacing:.06em;">
+                        تگ‌ها
+                    </h6>
                     @foreach (var tag in Model.App.Tags)
                     {
                         <a asp-page="/Explore" asp-route-Search="@tag.TagName"
-                           class="badge bg-light text-secondary border me-1 mb-1 text-decoration-none">
+                           class="badge text-decoration-none me-1 mb-1"
+                           style="background:rgba(255,255,255,.06);color:#8897b0;border:1px solid rgba(255,255,255,.08);font-size:.8rem;">
                             #@tag.TagName
                         </a>
                     }
                 </div>
             }
-        </div>
 
+            <!-- ابزارهای مشابه -->
+            @if (Model.SimilarApps.Any())
+            {
+                <div class="card border-0 p-3 mt-2">
+                    <h6 class="fw-semibold mb-3 d-flex align-items-center gap-2" style="color:#8897b0;font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;">
+                        <i class="fas fa-layer-group" style="color:#f97316;font-size:.7rem;"></i>
+                        ابزارهای مشابه
+                    </h6>
+                    <div class="d-flex flex-column gap-2">
+                        @foreach (var similar in Model.SimilarApps)
+                        {
+                            
+                                var outIcon = similar.OutputType switch {
+                                    OutputType.Image => "fa-image",
+                                    OutputType.Video => "fa-video",
+                                    OutputType.Audio => "fa-music",
+                                    OutputType.Code  => "fa-code",
+                                    _                => "fa-font"
+                                };
+                            
+                            <a asp-page="/App/Detail" asp-route-slug="@similar.Slug"
+                               class="similar-app-card text-decoration-none">
+                                <div class="similar-app-thumb">
+                                    @if (!string.IsNullOrEmpty(similar.ThumbnailUrl))
+                                    {
+                                        <img src="@similar.ThumbnailUrl" alt="@similar.Title" />
+                                    }
+                                    else
+                                    {
+                                        <div class="similar-app-thumb-placeholder">
+                                            <i class="fas fa-robot"></i>
+                                        </div>
+                                    }
+                                </div>
+                                <div class="similar-app-info">
+                                    <div class="similar-app-title">@similar.Title</div>
+                                    <div class="similar-app-meta">
+                                        <span><i class="fas @outIcon me-1"></i>@similar.OutputType</span>
+                                        <span><i class="fas fa-coins me-1"></i>@similar.CreditCost.ToFarsiDigits()</span>
+                                    </div>
+                                </div>
+                                <i class="fas fa-chevron-left similar-app-arrow"></i>
+                            </a>
+                        }
+                    </div>
+                </div>
+            }
+
+        </div>
+    </div>
+</div>
+
+<!-- Modal خارج از .dp تا stacking context تداخل نداشته باشه -->
+<button id="showcaseModalTrigger" type="button" class="d-none"
+        data-bs-toggle="modal" data-bs-target="#showcaseModal"></button>
+<div class="modal fade" id="showcaseModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title fw-semibold" id="showcaseModalTitle">نمونه خروجی</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-3" id="showcaseModalBody"></div>
+        </div>
     </div>
 </div>
 
 @section Styles {
+    <link rel="stylesheet" href="~/css/dark-public.css" />
     <link rel="stylesheet" href="~/css/pages/public/Detail.css" />
 }
 @section Scripts {

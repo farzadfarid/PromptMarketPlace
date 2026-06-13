@@ -27,31 +27,9 @@
     border-bottom: 1px solid rgba(255,255,255,.07);
 }
 
-.admin-brand {
-    display: flex;
-    align-items: center;
-    gap: .7rem;
-}
-.admin-brand__icon {
-    width: 38px; height: 38px;
-    border-radius: 10px;
-    background: linear-gradient(135deg, #f97316, #fb923c);
-    display: flex; align-items: center; justify-content: center;
-    color: white;
-    font-size: 1rem;
-    flex-shrink: 0;
-}
-.admin-brand__name {
-    color: white;
-    font-weight: 700;
-    font-size: .95rem;
-    line-height: 1.2;
-}
-.admin-brand__label {
-    color: rgba(255,255,255,.4);
-    font-size: .72rem;
-    margin-top: .1rem;
-}
+.admin-brand { display: flex; align-items: center; gap: .7rem; }
+.admin-brand__logo { height: 44px; width: auto; border-radius: 8px; flex-shrink: 0; }
+.admin-brand__label-only { color: rgba(255,255,255,.4); font-size: .72rem; }
 
 /* Nav */
 .admin-nav {
@@ -197,3 +175,31 @@
 }
 .admin-stat__label { font-size: .8rem; color: #64748b; margin-bottom: .15rem; }
 .admin-stat__value { font-size: 1.5rem; font-weight: 700; color: #0f172a; line-height: 1; }
+
+/* ── Responsive ─── */
+.sidebar-toggle { background: transparent; border: none; color: rgba(255,255,255,.6); padding: .35rem .5rem; font-size: 1.1rem; cursor: pointer; }
+.sidebar-toggle:hover { color: #fff; }
+.sidebar-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 1049; }
+.sidebar-backdrop.show { display: block; }
+
+@media (max-width: 767.98px) {
+    body.admin-layout { overflow-x: hidden; }
+    .admin-shell { overflow-x: hidden; }
+    .admin-content { padding: 1rem; }
+    .admin-topbar { padding: .75rem 1rem; }
+    .admin-sidebar {
+        position: fixed !important;
+        z-index: 1050;
+        top: 0;
+        right: -266px;
+        width: 256px;
+        height: 100vh;
+        transition: right .25s ease;
+        box-shadow: none;
+    }
+    .admin-sidebar.open {
+        right: 0;
+        box-shadow: -8px 0 32px rgba(0,0,0,.6);
+    }
+    .admin-main { width: 100%; min-width: 0; }
+}

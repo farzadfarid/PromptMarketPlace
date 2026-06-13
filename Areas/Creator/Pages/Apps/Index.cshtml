@@ -8,7 +8,7 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h5 class="mb-1">ابزارهای من</h5>
-        <small class="text-muted">@Model.Result.TotalCount ابزار</small>
+        <small class="text-muted">@Model.Result.TotalCount.ToFarsiDigits() ابزار</small>
     </div>
     <a asp-area="Creator" asp-page="/Apps/Create" class="btn btn-primary btn-sm">
         <i class="fas fa-plus me-1"></i>ابزار جدید
@@ -114,13 +114,13 @@ else
                                    class="btn btn-sm btn-outline-primary me-1" title="ویرایش">
                                     <i class="fas fa-edit"></i>
                                 </a>
-                                <a asp-area="Creator" asp-page="/Apps/Fields" asp-route-appId="@app.Id"
-                                   class="btn btn-sm btn-outline-info me-1" title="فیلدها">
-                                    <i class="fas fa-list-ul"></i>
-                                </a>
                                 <a asp-area="Creator" asp-page="/Apps/Showcase" asp-route-appId="@app.Id"
                                    class="btn btn-sm btn-outline-secondary me-1" title="گالری">
                                     <i class="fas fa-images"></i>
+                                </a>
+                                <a asp-area="Creator" asp-page="/Apps/Executions" asp-route-appId="@app.Id"
+                                   class="btn btn-sm btn-outline-info me-1" title="اجراها">
+                                    <i class="fas fa-play-circle"></i>
                                 </a>
                                 @if (app.Status == AppStatus.Draft || app.Status == AppStatus.Suspended)
                                 {

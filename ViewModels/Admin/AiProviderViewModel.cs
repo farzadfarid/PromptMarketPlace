@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using PromptMarketPlace.Models.Enums;
 
 namespace PromptMarketPlace.ViewModels.Admin;
 
@@ -19,6 +20,8 @@ public class AiProviderFormViewModel
 
     public string? ApiKey { get; set; }
     public bool HasApiKey { get; set; }
+
+    public ProviderType ProviderType { get; set; } = ProviderType.OpenAiCompatible;
 
     // پیکربندی موجودی
     [MaxLength(500)]

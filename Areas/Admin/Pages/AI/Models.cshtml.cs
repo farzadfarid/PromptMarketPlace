@@ -148,12 +148,103 @@ public class ModelsModel : PageModel
         if (string.IsNullOrWhiteSpace(apiKey))
             return new JsonResult(new { success = false, message = "API Key تنظیم نشده است." });
 
+        var existingIds = await _db.AiModels
+            .Where(m => m.AiProviderId == dto.ProviderId)
+            .Select(m => m.ModelId)
+            .ToListAsync();
+
+        // AvalAI: no public /models endpoint — return known model list
+        if (provider.BaseUrl.Contains("avalai.ir", StringComparison.OrdinalIgnoreCase))
+        {
+            var avalaiKnown = new[]
+            {
+                // ── Video ──────────────────────────────────────────────
+                new { id = "sora-2",                        name = "Sora 2 (Video)" },
+                new { id = "sora-2-pro",                    name = "Sora 2 Pro (Video)" },
+                new { id = "veo-3.1-generate-001",          name = "Veo 3.1 (Video)" },
+                new { id = "veo-3.1-fast-generate-001",     name = "Veo 3.1 Fast (Video)" },
+                new { id = "veo-3.1-generate-preview",      name = "Veo 3.1 Preview (Video)" },
+                new { id = "veo-3.1-fast-generate-preview", name = "Veo 3.1 Fast Preview (Video)" },
+                new { id = "gen4.5",                        name = "Runway Gen 4.5 (Video)" },
+                new { id = "gen4_turbo",                    name = "Runway Gen 4 Turbo (Video)" },
+                // ── Image ──────────────────────────────────────────────
+                new { id = "dall-e-3",                      name = "DALL-E 3 (Image)" },
+                new { id = "gpt-image-1",                   name = "GPT Image 1 (Image)" },
+                new { id = "flux-dev",                      name = "Flux Dev (Image)" },
+                new { id = "flux-schnell",                  name = "Flux Schnell (Image)" },
+                // ── Chat / Text ────────────────────────────────────────
+                new { id = "gpt-4o",                        name = "GPT-4o" },
+                new { id = "gpt-4o-mini",                   name = "GPT-4o Mini" },
+                new { id = "gpt-4.1",                       name = "GPT-4.1" },
+                new { id = "gpt-4.1-mini",                  name = "GPT-4.1 Mini" },
+                new { id = "o3",                            name = "o3" },
+                new { id = "o4-mini",                       name = "o4 Mini" },
+                new { id = "claude-opus-4-5",               name = "Claude Opus 4.5" },
+                new { id = "claude-sonnet-4-5",             name = "Claude Sonnet 4.5" },
+                new { id = "claude-haiku-4-5",              name = "Claude Haiku 4.5" },
+                new { id = "gemini-2.5-pro",                name = "Gemini 2.5 Pro" },
+                new { id = "gemini-2.5-flash",              name = "Gemini 2.5 Flash" },
+                new { id = "gemini-2.0-flash",              name = "Gemini 2.0 Flash" },
+            };
+            var avalaiModels = avalaiKnown
+                .Select(m => new { m.id, m.name, alreadyAdded = existingIds.Contains(m.id) })
+                .ToList<object>();
+            return new JsonResult(new { success = true, models = avalaiModels, providerName = provider.Name });
+        }
+
+        // Google Vertex AI: return known model list
+        if (provider.BaseUrl.Contains("aiplatform.googleapis.com", StringComparison.OrdinalIgnoreCase))
+        {
+            var vertexKnown = new[]
+            {
+                new { id = "veo-3.1-fast-generate-001",    name = "Veo 3.1 Fast (Video)" },
+                new { id = "veo-3.0-generate-001",         name = "Veo 3.0 (Video)" },
+                new { id = "veo-2.0-generate-001",         name = "Veo 2.0 (Video)" },
+                new { id = "imagen-3.0-generate-002",      name = "Imagen 3 (Image)" },
+                new { id = "gemini-3-pro-image-preview",   name = "Gemini 3 Pro Image Preview (Image)" },
+                new { id = "gemini-3-pro-image",           name = "Gemini 3 Pro Image (Image)" },
+                new { id = "gemini-2.0-flash",             name = "Gemini 2.0 Flash (Text)" },
+            };
+            var vertexModels = vertexKnown
+                .Select(m => new { m.id, m.name, alreadyAdded = existingIds.Contains(m.id) })
+                .ToList<object>();
+            return new JsonResult(new { success = true, models = vertexModels, providerName = provider.Name });
+        }
+
+        // Google AI Studio: return known model list (API response format differs from OpenAI)
+        if (provider.BaseUrl.Contains("generativelanguage.googleapis.com", StringComparison.OrdinalIgnoreCase))
+        {
+            var googleKnown = new[]
+            {
+                // ── Video ──────────────────────────────────────────
+                new { id = "veo-2.0-generate-001",         name = "Veo 2 (Video)" },
+                // ── Image ──────────────────────────────────────────
+                new { id = "imagen-3.0-generate-002",      name = "Imagen 3 (Image)" },
+                new { id = "imagen-3.0-fast-generate-001", name = "Imagen 3 Fast (Image)" },
+                // ── Chat / Text ─────────────────────────────────────
+                new { id = "gemini-2.5-pro",               name = "Gemini 2.5 Pro" },
+                new { id = "gemini-2.5-flash",             name = "Gemini 2.5 Flash" },
+                new { id = "gemini-2.0-flash",             name = "Gemini 2.0 Flash" },
+                new { id = "gemini-1.5-pro",               name = "Gemini 1.5 Pro" },
+                new { id = "gemini-1.5-flash",             name = "Gemini 1.5 Flash" },
+            };
+            var googleModels = googleKnown
+                .Select(m => new { m.id, m.name, alreadyAdded = existingIds.Contains(m.id) })
+                .ToList<object>();
+            return new JsonResult(new { success = true, models = googleModels, providerName = provider.Name });
+        }
+
         try
         {
             var client = _httpFactory.CreateClient();
             client.Timeout = TimeSpan.FromSeconds(15);
             var request = new HttpRequestMessage(HttpMethod.Get, $"{provider.BaseUrl.TrimEnd('/')}/models");
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+
+            // Google uses X-goog-api-key; all others use Bearer
+            if (provider.BaseUrl.Contains("generativelanguage.googleapis.com", StringComparison.OrdinalIgnoreCase))
+                request.Headers.TryAddWithoutValidation("X-goog-api-key", apiKey);
+            else
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
 
             var response = await client.SendAsync(request);
             var json = await response.Content.ReadAsStringAsync();
@@ -162,20 +253,23 @@ public class ModelsModel : PageModel
                 return new JsonResult(new { success = false, message = $"خطا از سرویس‌دهنده: {(int)response.StatusCode}" });
 
             var node = JsonNode.Parse(json);
-            var dataArray = node?["data"]?.AsArray() ?? node?.AsArray();
-
-            var existingIds = await _db.AiModels
-                .Where(m => m.AiProviderId == dto.ProviderId)
-                .Select(m => m.ModelId)
-                .ToListAsync();
+            // Google returns { "models": [...] }, OpenAI-compatible returns { "data": [...] } or root array
+            var dataArray = node?["data"]?.AsArray()
+                         ?? node?["models"]?.AsArray()
+                         ?? node?.AsArray();
 
             var models = new List<object>();
             if (dataArray != null)
             {
                 foreach (var item in dataArray)
                 {
-                    var id   = item?["id"]?.GetValue<string>() ?? "";
-                    var name = item?["name"]?.GetValue<string>() ?? id;
+                    // Google: "name": "models/gemini-2.0-flash"  →  strip prefix
+                    var rawId = item?["id"]?.GetValue<string>()
+                             ?? item?["name"]?.GetValue<string>() ?? "";
+                    var id   = rawId.Contains('/') ? rawId.Split('/').Last() : rawId;
+                    var name = item?["displayName"]?.GetValue<string>()
+                            ?? item?["name"]?.GetValue<string>()
+                            ?? id;
                     if (!string.IsNullOrWhiteSpace(id))
                         models.Add(new { id, name, alreadyAdded = existingIds.Contains(id) });
                 }

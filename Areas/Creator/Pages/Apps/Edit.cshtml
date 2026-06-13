@@ -31,7 +31,7 @@
                     }
                     <span>
                         <span class="text-muted">هزینه اجرا: </span>
-                        <strong>@Model.App.CreditCost اعتبار</strong>
+                        <strong>@Model.App.CreditCost.ToFarsiDigits() اعتبار</strong>
                     </span>
                 </div>
                 @if (Model.IsUnprofitable)
@@ -67,7 +67,9 @@
                      id="creatorTokenCalc"
                      data-prompt="@Model.PromptCharCount"
                      data-sys="@Model.SystemContextCharCount"
-                     data-fields="@(System.Text.Json.JsonSerializer.Serialize(Model.ExistingFields.Select(f => f.Type.ToString())))">
+                     data-fields="@(System.Text.Json.JsonSerializer.Serialize(Model.ExistingFields.Select(f => f.Type.ToString())))"
+                     data-outputtype="@Model.App.OutputType"
+                     data-creditcost="@Model.App.CreditCost">
                     <table class="table table-sm small mb-2">
                         <tbody>
                             <tr>
@@ -260,6 +262,17 @@
                     <div class="mb-3">
                         <label class="form-label">هزینه اعتباری</label>
                         <input asp-for="Form.CreditCost" type="number" min="1" class="form-control" dir="ltr" style="max-width:160px;" />
+                        @{
+                            var creditHint = Model.App.OutputType switch {
+                                OutputType.Video => ("ویدیو: هر ~۸ ثانیه ≈ ۲۰ اعتبار (AvalAI Veo)", "fa-video"),
+                                OutputType.Audio => ("صدا: هر متن کوتاه ≈ ۳ اعتبار", "fa-music"),
+                                OutputType.Image => ("تصویر: هر تصویر ≈ ۵ اعتبار", "fa-image"),
+                                _                => ("متن/کد: ۱ اعتبار = ۱٬۰۰۰ توکن — از ماشین حساب استفاده کنید", "fa-calculator")
+                            };
+                        }
+                        <div class="text-muted mt-1 small">
+                            <i class="fas @creditHint.Item2 me-1"></i>@creditHint.Item1
+                        </div>
                     </div>
                 </div>
                 <div class="d-flex justify-content-between">
@@ -316,8 +329,11 @@
                                             <option value="Text">متن ساده</option>
                                             <option value="Textarea">متن چند خطی</option>
                                             <option value="Select">انتخابی (dropdown)</option>
+                                            <option value="ImageSelect">انتخاب تصویری</option>
                                             <option value="Number">عدد</option>
                                             <option value="Checkbox">بله / خیر</option>
+                                            <option value="FileUpload">آپلود تصویر</option>
+                                            <option value="AudioUpload">آپلود صدا</option>
                                             <option value="DatePicker">تاریخ</option>
                                         </select>
                                     </div>
@@ -351,6 +367,19 @@
                                     <textarea id="nf-options" class="form-control form-control-sm" rows="3" dir="ltr"
                                               placeholder="گزینه اول&#10;گزینه دوم&#10;گزینه سوم"></textarea>
                                 </div>
+
+                                <div id="nf-imgopt-wrap" class="mb-2 d-none">
+                                    <label class="form-label small fw-semibold mb-1">گزینه‌های تصویری</label>
+                                    <div class="small text-muted mb-2" style="font-size:.72rem;">
+                                        برای هر گزینه: نام فارسی + URL تصویر نمونه + مقدار ارسالی به پرامپت
+                                    </div>
+                                    <div id="nf-imgopt-rows"></div>
+                                    <button type="button" id="add-imgopt-btn" class="btn btn-sm w-100 mt-1"
+                                            style="background:rgba(249,115,22,.08);border:1px dashed rgba(249,115,22,.3);color:#f97316;font-size:.8rem;">
+                                        <i class="fas fa-plus me-1"></i>افزودن گزینه
+                                    </button>
+                                </div>
+
                                 <button type="button" class="btn btn-primary btn-sm w-100 mt-1" id="add-field-btn">
                                     <i class="fas fa-plus me-1"></i>افزودن به لیست
                                 </button>
@@ -440,6 +469,51 @@
                                         <div id="variable-chips" class="d-flex flex-wrap gap-1 flex-fill"></div>
                                     </div>
 
+                                    <!-- ─── Video Tags Helper ─── -->
+                                    <div id="video-tags-helper" class="d-none mt-3 rounded-3 p-3"
+                                         style="background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.22);">
+                                        <div class="d-flex align-items-center gap-2 mb-2">
+                                            <i class="fas fa-video" style="color:#818cf8;font-size:.82rem;"></i>
+                                            <span class="fw-semibold" style="font-size:.8rem;color:#a5b4fc;">تگ‌های کنترل ویدیو</span>
+                                            <span class="ms-auto" style="font-size:.68rem;color:var(--dk-muted);">کلیک کنید تا در پرامپت درج شود</span>
+                                        </div>
+
+                                        <div class="mb-2">
+                                            <div style="font-size:.7rem;color:var(--dk-muted);" class="mb-1">⏱ مدت ویدیو</div>
+                                            <div class="d-flex flex-wrap gap-1 align-items-center">
+                                                <button type="button" class="vt-chip" onclick="insertVideoTag('[seconds:4]')">[seconds:4]</button>
+                                                <button type="button" class="vt-chip" onclick="insertVideoTag('[seconds:8]')">[seconds:8]</button>
+                                                <button type="button" class="vt-chip" onclick="insertVideoTag('[seconds:{duration}]')">[seconds:{duration}]</button>
+                                                <span style="font-size:.68rem;color:var(--dk-muted);">مدت ثابت (ثانیه) یا از فیلد</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="mb-2">
+                                            <div style="font-size:.7rem;color:var(--dk-muted);" class="mb-1">📐 نسبت تصویر</div>
+                                            <div class="d-flex flex-wrap gap-1 align-items-center">
+                                                <button type="button" class="vt-chip" onclick="insertVideoTag('[aspect:16:9]')">[aspect:16:9]</button>
+                                                <button type="button" class="vt-chip" onclick="insertVideoTag('[aspect:9:16]')">[aspect:9:16]</button>
+                                                <button type="button" class="vt-chip" onclick="insertVideoTag('[aspect:1:1]')">[aspect:1:1]</button>
+                                                <button type="button" class="vt-chip" onclick="insertVideoTag('[aspect:{platform}]')">[aspect:{platform}]</button>
+                                                <span style="font-size:.68rem;color:var(--dk-muted);">افقی / عمودی / مربع / از فیلد</span>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <div style="font-size:.7rem;color:var(--dk-muted);" class="mb-1">👤 حضور انسان</div>
+                                            <div class="d-flex flex-wrap gap-1 mb-1">
+                                                <button type="button" class="vt-chip vt-green" onclick="insertVideoTag('[persons:dont_allow]')">[persons:dont_allow]</button>
+                                                <button type="button" class="vt-chip vt-yellow" onclick="insertVideoTag('[persons:allow_adults]')">[persons:allow_adults]</button>
+                                                <button type="button" class="vt-chip vt-red" onclick="insertVideoTag('[persons:allow_all]')">[persons:allow_all]</button>
+                                            </div>
+                                            <div class="d-flex flex-wrap gap-3" style="font-size:.68rem;color:var(--dk-muted);">
+                                                <span>🟢 <code>dont_allow</code> — بدون آدم (محصول‌محور، پیش‌فرض)</span>
+                                                <span>🟡 <code>allow_adults</code> — با بازیگر بزرگسال</span>
+                                                <span>🔴 <code>allow_all</code> — همه سنین</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     <div class="alert alert-warning small mt-3 mb-0">
                                         <i class="fas fa-lock me-1"></i>
                                         پرامپت با رمزنگاری AES-256 ذخیره می‌شود و هرگز به کاربران نمایش داده نخواهد شد.
@@ -503,6 +577,19 @@
         text-align: center;
     }
     .help-icon-btn:focus { outline: none; }
+    .vt-chip {
+        font-family: monospace; font-size: .7rem; padding: .18rem .45rem;
+        border-radius: 6px; border: 1px solid rgba(99,102,241,.3);
+        background: rgba(99,102,241,.1); color: #a5b4fc;
+        cursor: pointer; transition: all .15s; white-space: nowrap;
+    }
+    .vt-chip:hover { background: rgba(99,102,241,.25); border-color: rgba(99,102,241,.55); color: #c7d2fe; }
+    .vt-green  { border-color: rgba(34,197,94,.3)  !important; background: rgba(34,197,94,.08)  !important; color: #86efac !important; }
+    .vt-green:hover  { background: rgba(34,197,94,.2)  !important; }
+    .vt-yellow { border-color: rgba(234,179,8,.3)   !important; background: rgba(234,179,8,.08)  !important; color: #fde047 !important; }
+    .vt-yellow:hover { background: rgba(234,179,8,.2)  !important; }
+    .vt-red    { border-color: rgba(239,68,68,.3)   !important; background: rgba(239,68,68,.08)  !important; color: #fca5a5 !important; }
+    .vt-red:hover    { background: rgba(239,68,68,.2)  !important; }
     </style>
 }
 
@@ -543,12 +630,30 @@
             var sysTokens    = Math.round((parseInt(el.dataset.sys)    || 0) / 3.5);
             var fields       = JSON.parse(el.dataset.fields || '[]');
             var fieldTokens  = fields.reduce(function (s, t) { return s + (FIELD_TOKENS[t] || 30); }, 0);
+            var outputType   = (el.dataset.outputtype || '').toLowerCase();
+            var creditCost   = parseInt(el.dataset.creditcost) || 0;
+            var isMediaOutput = outputType === 'video' || outputType === 'audio' || outputType === 'image';
 
             document.getElementById('ctc-sys').textContent    = sysTokens.toLocaleString('fa-IR');
             document.getElementById('ctc-prompt').textContent = promptTokens.toLocaleString('fa-IR');
             document.getElementById('ctc-fields').textContent = fieldTokens.toLocaleString('fa-IR');
 
+            if (isMediaOutput) {
+                // Video/Audio/Image: token estimation is not meaningful — cost is API-based, not token-based
+                var sliderRow = document.getElementById('ctc-slider');
+                if (sliderRow) sliderRow.closest('tr').style.opacity = '0.35';
+                document.getElementById('ctc-out').textContent = '—';
+                document.getElementById('ctc-total').textContent = '—';
+                var typeLabel = outputType === 'video' ? 'ویدیو' : outputType === 'audio' ? 'صدا' : 'تصویر';
+                document.getElementById('ctc-credits').textContent = creditCost.toLocaleString('fa-IR') + ' اعتبار';
+                var noteEl = document.querySelector('#creatorCalcBox .text-muted.small');
+                if (noteEl) noteEl.textContent = 'هزینه ' + typeLabel + ' بر اساس API — از هزینه اجرای تنظیم‌شده استفاده می‌شود';
+                var subEl = document.querySelector('#ctc-credits + div');
+                if (subEl) subEl.textContent = 'اعتبار | هزینه ثابت API (نه توکن‌محور)';
+            }
+
             window.updateCreatorCalc = function () {
+                if (isMediaOutput) return;
                 var outVal = parseInt(document.getElementById('ctc-slider').value) || 500;
                 document.getElementById('ctc-out-lbl').textContent = outVal.toLocaleString('fa-IR');
                 document.getElementById('ctc-out').textContent     = outVal.toLocaleString('fa-IR');
@@ -626,5 +731,28 @@
             }
         });
     })();
+    </script>
+    <script>
+    // ─── Video Tags Helper ─────────────────────────────────────────────────────
+    function insertVideoTag(tag) {
+        var ta = document.getElementById('prompt-textarea');
+        if (!ta) return;
+        var s = ta.selectionStart, e = ta.selectionEnd;
+        ta.value = ta.value.substring(0, s) + tag + ta.value.substring(e);
+        ta.selectionStart = ta.selectionEnd = s + tag.length;
+        ta.focus();
+        ta.dispatchEvent(new Event('input'));
+    }
+    function syncVideoTagsHelper() {
+        var checked = document.querySelector('#output-type-selector input[type=radio]:checked');
+        var isVideo = checked && checked.value === 'Video';
+        var helper = document.getElementById('video-tags-helper');
+        if (helper) helper.classList.toggle('d-none', !isVideo);
+    }
+    document.querySelectorAll('#output-type-selector input[type=radio]').forEach(function(r) {
+        r.addEventListener('change', syncVideoTagsHelper);
+    });
+    // initialise based on current selection
+    syncVideoTagsHelper();
     </script>
 }

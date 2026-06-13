@@ -39,10 +39,10 @@ public class ProvidersModel : PageModel
 
         if (Form.Id == 0)
             await _providerService.CreateProviderAsync(Form.Name, Form.BaseUrl, Form.ApiKey, Form.Description,
-                Form.BalanceUrl, Form.BalanceJsonPath, Form.BalanceCurrency);
+                Form.ProviderType, Form.BalanceUrl, Form.BalanceJsonPath, Form.BalanceCurrency);
         else
             await _providerService.UpdateProviderAsync(Form.Id, Form.Name, Form.BaseUrl, Form.ApiKey, Form.Description,
-                Form.BalanceUrl, Form.BalanceJsonPath, Form.BalanceCurrency);
+                Form.ProviderType, Form.BalanceUrl, Form.BalanceJsonPath, Form.BalanceCurrency);
 
         TempData["Success"] = Form.Id == 0 ? "سرویس‌دهنده با موفقیت افزوده شد." : "سرویس‌دهنده بروزرسانی شد.";
         return RedirectToPage();
@@ -80,11 +80,55 @@ public class ProvidersModel : PageModel
 
         try
         {
+            // Vertex AI: test by refreshing OAuth token
+            if (baseUrl.Contains("aiplatform.googleapis.com", StringComparison.OrdinalIgnoreCase))
+            {
+                if (string.IsNullOrWhiteSpace(apiKey))
+                    return new JsonResult(new { success = false, message = "API Key (JSON credentials) تنظیم نشده." });
+                try
+                {
+                    var doc = System.Text.Json.JsonDocument.Parse(apiKey);
+                    var clientId     = doc.RootElement.GetProperty("client_id").GetString() ?? "";
+                    var clientSecret = doc.RootElement.GetProperty("client_secret").GetString() ?? "";
+                    var refreshToken = doc.RootElement.GetProperty("refresh_token").GetString() ?? "";
+
+                    var tokenClient = _httpFactory.CreateClient();
+                    tokenClient.Timeout = TimeSpan.FromSeconds(10);
+                    var form = new FormUrlEncodedContent(new Dictionary<string, string>
+                    {
+                        ["client_id"]     = clientId,
+                        ["client_secret"] = clientSecret,
+                        ["refresh_token"] = refreshToken,
+                        ["grant_type"]    = "refresh_token"
+                    });
+                    var tokenResp = await tokenClient.PostAsync("https://oauth2.googleapis.com/token", form);
+                    if (tokenResp.IsSuccessStatusCode)
+                        return new JsonResult(new { success = true, message = "اتصال Vertex AI برقرار شد — OAuth token دریافت شد." });
+
+                    var errBody = await tokenResp.Content.ReadAsStringAsync();
+                    var errNode = System.Text.Json.Nodes.JsonNode.Parse(errBody);
+                    var errMsg  = errNode?["error_description"]?.GetValue<string>() ?? errBody[..Math.Min(errBody.Length, 100)];
+                    return new JsonResult(new { success = false, message = $"OAuth token refresh ناموفق: {errMsg}" });
+                }
+                catch (Exception ex)
+                {
+                    return new JsonResult(new { success = false, message = $"JSON credentials نامعتبر: {ex.Message}" });
+                }
+            }
+
             var client = _httpFactory.CreateClient();
             client.Timeout = TimeSpan.FromSeconds(10);
+
+            // Google uses X-goog-api-key header instead of Bearer
+            bool isGoogle = baseUrl.Contains("generativelanguage.googleapis.com", StringComparison.OrdinalIgnoreCase);
             var request = new HttpRequestMessage(HttpMethod.Get, $"{baseUrl}/models");
             if (!string.IsNullOrWhiteSpace(apiKey))
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+            {
+                if (isGoogle)
+                    request.Headers.TryAddWithoutValidation("X-goog-api-key", apiKey);
+                else
+                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+            }
 
             var response = await client.SendAsync(request);
 
@@ -202,6 +246,13 @@ public class ProvidersModel : PageModel
         {
             return new JsonResult(new { success = false, message = ex.Message });
         }
+    }
+
+    public async Task<IActionResult> OnGetDecryptedKeyAsync(int id)
+    {
+        var key = await _providerService.GetDecryptedApiKeyAsync(id);
+        if (key == null) return new JsonResult(new { success = false });
+        return new JsonResult(new { success = true, key });
     }
 
     public record TestConnectionDto(string BaseUrl, string? ApiKey, int? ProviderId);

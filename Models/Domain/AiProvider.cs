@@ -1,3 +1,5 @@
+using PromptMarketPlace.Models.Enums;
+
 namespace PromptMarketPlace.Models.Domain;
 
 public class AiProvider
@@ -14,6 +16,8 @@ public class AiProvider
     public string? BalanceUrl { get; set; }
     public string? BalanceJsonPath { get; set; }
     public string? BalanceCurrency { get; set; }
+
+    public ProviderType ProviderType { get; set; } = ProviderType.OpenAiCompatible;
 
     // فعال بودن این provider برای هر نوع خروجی
     // حداکثر یک provider می‌تواند برای هر نوع فعال باشد

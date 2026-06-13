@@ -30,9 +30,9 @@
                             </span>
                         </td>
                         <td class="text-center fw-semibold small @(isPositive ? "text-success" : "text-danger")">
-                            @(isPositive ? "+" : "")@t.CreditAmount
+                            @(isPositive ? "+" : "")@((t.CreditAmount ?? 0).ToFarsiDigits())
                         </td>
-                        <td class="text-muted small">@t.CreatedAt.ToString("yy/MM/dd HH:mm")</td>
+                        <td class="text-muted small">@t.CreatedAt.ToShamsi("yy/MM/dd HH:mm")</td>
                     </tr>
                 }
             </tbody>

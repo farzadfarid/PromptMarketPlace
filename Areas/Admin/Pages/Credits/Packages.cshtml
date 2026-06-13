@@ -39,7 +39,7 @@
                 {
                     <tr>
                         <td class="fw-semibold">@p.Name</td>
-                        <td class="text-center">@p.CreditAmount</td>
+                        <td class="text-center">@p.CreditAmount.ToFarsiDigits()</td>
                         <td class="text-center">@p.PriceRial.N0Fa()</td>
                         <td class="text-center text-muted small">@((p.PriceRial / p.CreditAmount).N0Fa()) ریال</td>
                         <td class="text-center">

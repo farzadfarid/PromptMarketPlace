@@ -25,8 +25,9 @@
 
     @await Html.PartialAsync("_Navbar")
 
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
     <div class="user-shell">
-        <aside class="user-sidebar">
+        <aside class="user-sidebar" id="userSidebar">
             <div class="user-sidebar__profile">
                 <div class="d-flex align-items-center gap-3">
                     <div class="user-avatar-lg">
@@ -101,7 +102,12 @@
 
         <div class="user-main">
             <div class="user-topbar">
-                <div class="user-topbar__title">@ViewData["Title"]</div>
+                <div class="d-flex align-items-center gap-2">
+                    <button class="sidebar-toggle d-md-none" id="sidebarToggle" aria-label="منو">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div class="user-topbar__title">@ViewData["Title"]</div>
+                </div>
                 <a asp-area="" asp-page="/Explore" class="btn btn-sm btn-ghost d-none d-md-inline-flex align-items-center gap-2">
                     <i class="fas fa-compass fa-xs"></i>کشف ابزارها
                 </a>
@@ -116,5 +122,17 @@
     <script src="~/js/bootstrap5-3-3.js"></script>
     <script src="~/js/shared/toast.js"></script>
     @await RenderSectionAsync("Scripts", required: false)
+    <script>
+    (function(){
+        var toggle = document.getElementById('sidebarToggle');
+        var sidebar = document.getElementById('userSidebar');
+        var backdrop = document.getElementById('sidebarBackdrop');
+        if (!toggle) return;
+        function open(){ sidebar.classList.add('open'); backdrop.classList.add('show'); }
+        function close(){ sidebar.classList.remove('open'); backdrop.classList.remove('show'); }
+        toggle.addEventListener('click', open);
+        backdrop.addEventListener('click', close);
+    })();
+    </script>
 </body>
 </html>

@@ -10,7 +10,7 @@
     </div>
 }
 
-<form method="post">
+<form method="post" enctype="multipart/form-data">
     @if (!ViewData.ModelState.IsValid)
     {
         <div class="alert alert-danger mb-4"><div asp-validation-summary="All"></div></div>
@@ -22,23 +22,42 @@
                 <h6 class="fw-bold mb-4"><i class="fas fa-user me-2 text-primary"></i>اطلاعات عمومی</h6>
 
                 <div class="mb-3">
+                    <label class="form-label">ایمیل</label>
+                    <input type="email" class="form-control" value="@Model.Email" readonly />
+                </div>
+
+                <div class="mb-3">
                     <label asp-for="DisplayName" class="form-label">نام نمایشی <span class="text-danger">*</span></label>
                     <input asp-for="DisplayName" class="form-control" placeholder="نام نمایشی شما" required />
                     <span asp-validation-for="DisplayName" class="text-danger small"></span>
                 </div>
 
                 <div class="mb-3">
-                    <label asp-for="AvatarUrl" class="form-label">آدرس تصویر آواتار <span class="text-muted">(اختیاری)</span></label>
-                    <input asp-for="AvatarUrl" class="form-control" placeholder="https://..." />
+                    <label class="form-label">تصویر آواتار <span class="text-muted small">(اختیاری — JPG، PNG، WebP، حداکثر ۵MB)</span></label>
+
                     @if (!string.IsNullOrEmpty(Model.AvatarUrl))
                     {
-                        <div class="mt-2 d-flex align-items-center gap-2">
-                            <img src="@Model.AvatarUrl" alt="آواتار" class="rounded-circle border"
-                                 style="width:48px;height:48px;object-fit:cover;"
+                        <div class="mb-2 d-flex align-items-center gap-3">
+                            <img id="avatarPreview" src="@Model.AvatarUrl" alt="آواتار فعلی"
+                                 class="rounded-circle border"
+                                 style="width:64px;height:64px;object-fit:cover;"
                                  onerror="this.style.display='none'" />
                             <span class="text-muted small">آواتار فعلی</span>
                         </div>
                     }
+                    else
+                    {
+                        <div class="mb-2">
+                            <img id="avatarPreview" src="" alt=""
+                                 class="rounded-circle border d-none"
+                                 style="width:64px;height:64px;object-fit:cover;" />
+                        </div>
+                    }
+
+                    <input type="file" name="AvatarFile" id="avatarFile"
+                           class="form-control" accept="image/jpeg,image/png,image/webp,image/gif"
+                           onchange="previewAvatar(this)" />
+                    <div class="form-text">آپلود فایل جدید، آواتار قبلی را جایگزین می‌کند.</div>
                 </div>
             </div>
         </div>
@@ -72,4 +91,18 @@
     </div>
 </form>
 
-@section Scripts { <partial name="_ValidationScriptsPartial" /> }
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+    function previewAvatar(input) {
+        var preview = document.getElementById('avatarPreview');
+        if (!preview || !input.files || !input.files[0]) return;
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            preview.src = e.target.result;
+            preview.classList.remove('d-none');
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+    </script>
+}

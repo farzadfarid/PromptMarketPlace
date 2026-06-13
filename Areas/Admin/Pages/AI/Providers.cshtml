@@ -1,5 +1,6 @@
 @page
 @model ProvidersModel
+@using PromptMarketPlace.Models.Enums
 @{
     ViewData["Title"] = "سرویس‌دهنده‌های هوش مصنوعی";
 }
@@ -91,6 +92,17 @@
                         <td>
                             <div class="fw-semibold">@p.Name</div>
                             <code class="small text-muted">@p.BaseUrl</code>
+                            @{
+                                var (ptLabel, ptColor) = p.ProviderType switch {
+                                    ProviderType.AvalAi       => ("AvalAI",    "info"),
+                                    ProviderType.Anthropic    => ("Anthropic", "warning"),
+                                    ProviderType.ChatQt       => ("ChatQT",    "secondary"),
+                                    ProviderType.GoogleGemini => ("Google",     "danger"),
+                                    ProviderType.VertexAi     => ("Vertex AI",  "success"),
+                                    _                         => ("OpenAI سازگار", "primary")
+                                };
+                            }
+                            <span class="badge bg-@ptColor-subtle text-@ptColor border border-@ptColor-subtle ms-1" style="font-size:0.65rem">@ptLabel</span>
                             @if (!string.IsNullOrEmpty(p.Description))
                             {
                                 <div class="text-muted" style="font-size:0.75rem">@p.Description</div>
@@ -176,7 +188,7 @@
                                 <i class="fas fa-plug"></i>
                             </button>
                             <button class="btn btn-sm btn-outline-primary me-1"
-                                    onclick="openEdit(@p.Id, '@p.Name', '@p.BaseUrl', '@(p.Description ?? "")', @(p.ApiKeyEncrypted != null ? "true" : "false"))"
+                                    onclick="openEdit(@p.Id, '@p.Name', '@p.BaseUrl', '@(p.Description ?? "")', @(p.ApiKeyEncrypted != null ? "true" : "false"), @((int)p.ProviderType))"
                                     title="ویرایش">
                                 <i class="fas fa-edit"></i>
                             </button>
@@ -252,6 +264,18 @@
                     <input type="hidden" asp-for="Form.Id" id="formId" />
 
                     <div class="mb-3">
+                        <label class="form-label">نوع سرویس‌دهنده <span class="text-danger">*</span></label>
+                        <select asp-for="Form.ProviderType" class="form-select" id="formProviderType">
+                            <option value="0">OpenAI سازگار (OpenAI, OpenRouter...)</option>
+                            <option value="1">AvalAI</option>
+                            <option value="2">Anthropic (Claude)</option>
+                            <option value="3">ChatQT</option>
+                            <option value="4">Google (Gemini + Imagen + Veo)</option>
+                            <option value="5">Google Vertex AI (OAuth2 — Veo 3.1)</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
                         <label class="form-label">نام <span class="text-danger">*</span></label>
                         <input asp-for="Form.Name" class="form-control" placeholder="مثال: ChatQT" />
                         <span asp-validation-for="Form.Name" class="text-danger small"></span>
@@ -266,8 +290,14 @@
 
                     <div class="mb-3">
                         <label class="form-label">API Key</label>
-                        <input asp-for="Form.ApiKey" type="password" class="form-control" dir="ltr"
-                               placeholder="برای تغییر وارد کنید، در غیر اینصورت خالی بگذارید" />
+                        <div class="input-group">
+                            <input asp-for="Form.ApiKey" type="text" class="form-control" dir="ltr" id="formApiKeyInput"
+                                   placeholder="برای تغییر وارد کنید، در غیر اینصورت خالی بگذارید" />
+                            <button type="button" class="btn btn-outline-secondary d-none" id="showApiKeyBtn"
+                                    onclick="showApiKey()" title="نمایش API Key فعلی">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
                         <div id="apiKeyHint" class="form-text text-muted d-none">
                             <i class="fas fa-info-circle me-1"></i>API Key قبلاً تنظیم شده. برای تغییر، مقدار جدید وارد کنید.
                         </div>

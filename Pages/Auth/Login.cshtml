@@ -2,63 +2,180 @@
 @model LoginModel
 @{ ViewData["Title"] = "ورود"; }
 
-<div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-md-5">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body p-4">
+<div class="auth-page dp">
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-md-5 col-lg-4">
+
+                <div class="auth-card">
                     <div class="text-center mb-4">
-                        <i class="fas fa-robot fa-2x text-primary mb-2"></i>
-                        <h5 class="fw-bold mb-0">ورود به پرامپت مارکت</h5>
+                        <img src="~/images/logo.png" alt="Prompt Market Place" class="auth-logo mb-3" />
+                        <h5 class="auth-title">ورود به پرامپت مارکت</h5>
                     </div>
 
                     <form method="post">
                         <input type="hidden" name="returnUrl" value="@Model.ReturnUrl" />
-                        <div asp-validation-summary="All" class="alert alert-danger small py-2"></div>
+                        @if (!ViewData.ModelState.IsValid)
+                        {
+                            <div asp-validation-summary="All" class="auth-alert-danger small py-2 px-3 rounded-2 mb-3"></div>
+                        }
 
                         <div class="mb-3">
-                            <label class="form-label">ایمیل</label>
-                            <input asp-for="Form.Email" class="form-control" dir="ltr" autofocus />
+                            <label class="auth-label">ایمیل</label>
+                            <input asp-for="Form.Email" class="form-control auth-input" dir="ltr" autofocus placeholder="example@email.com" />
                         </div>
                         <div class="mb-3">
-                            <label class="form-label d-flex justify-content-between">
+                            <label class="auth-label d-flex justify-content-between align-items-center">
                                 رمز عبور
-                                <a asp-page="/Auth/ForgotPassword" class="small text-muted">فراموشی رمز؟</a>
+                                <a asp-page="/Auth/ForgotPassword" class="auth-link-muted small">فراموشی رمز؟</a>
                             </label>
-                            <input asp-for="Form.Password" class="form-control" dir="ltr" />
+                            <input asp-for="Form.Password" class="form-control auth-input" dir="ltr" placeholder="••••••••" />
                         </div>
                         <div class="form-check mb-3">
-                            <input asp-for="Form.RememberMe" class="form-check-input" type="checkbox" />
-                            <label class="form-check-label" asp-for="Form.RememberMe">مرا به خاطر بسپار</label>
+                            <input asp-for="Form.RememberMe" class="form-check-input auth-check" type="checkbox" />
+                            <label class="form-check-label auth-check-label" asp-for="Form.RememberMe">مرا به خاطر بسپار</label>
                         </div>
 
                         <div class="mb-4">
-                            <label class="form-label">کد امنیتی</label>
+                            <label class="auth-label">کد امنیتی</label>
                             <div class="d-flex align-items-center gap-2 mb-2">
                                 <img src="/Auth/CaptchaImage" id="captchaImg"
-                                     alt="کد امنیتی" style="height:50px; border-radius:6px; border:1px solid #dee2e6;" />
-                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="refreshCaptcha()" title="کد جدید">
+                                     alt="کد امنیتی" class="auth-captcha-img" />
+                                <button type="button" class="btn auth-btn-outline-sm" onclick="refreshCaptcha()" title="کد جدید">
                                     <i class="fas fa-redo-alt"></i>
                                 </button>
                             </div>
-                            <input asp-for="Form.CaptchaInput" class="form-control" dir="rtl"
+                            <input asp-for="Form.CaptchaInput" class="form-control auth-input" dir="rtl"
                                    placeholder="کد بالا را وارد کنید" autocomplete="off" maxlength="5" />
                             <span asp-validation-for="Form.CaptchaInput" class="text-danger small"></span>
                         </div>
 
-                        <button type="submit" class="btn btn-primary w-100">ورود</button>
+                        <button type="submit" class="btn btn-primary w-100 auth-submit">ورود</button>
                     </form>
 
-                    <hr class="my-4" />
-                    <div class="text-center small">
-                        حساب ندارید؟
-                        <a asp-page="/Auth/Register">ثبت‌نام کنید</a>
+                    <div class="auth-divider">
+                        <span>یا</span>
+                    </div>
+                    <div class="text-center">
+                        <span class="auth-footer-text">حساب ندارید؟</span>
+                        <a asp-page="/Auth/Register" class="auth-link">ثبت‌نام کنید</a>
                     </div>
                 </div>
+
             </div>
         </div>
     </div>
 </div>
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/dark-public.css" />
+    <style>
+    .auth-page { min-height: 80vh; }
+
+    .auth-card {
+        background: #131929;
+        border: 1px solid rgba(255,255,255,.08);
+        border-radius: 18px;
+        padding: 2rem;
+        box-shadow: 0 8px 40px rgba(0,0,0,.4);
+    }
+
+    .auth-logo {
+        height: 90px;
+        width: auto;
+        border-radius: 14px;
+        display: block;
+        margin: 0 auto;
+    }
+
+    .auth-title { color: #e2e8f0; font-weight: 700; margin-bottom: .25rem; }
+    .auth-subtitle { color: #6b7fa0; font-size: .85rem; margin-bottom: 0; }
+
+    .auth-label {
+        display: block;
+        color: #94a3b8;
+        font-size: .85rem;
+        font-weight: 500;
+        margin-bottom: .4rem;
+    }
+
+    .auth-input {
+        background: #0d1525 !important;
+        background-color: #0d1525 !important;
+        border: 1px solid rgba(255,255,255,.1) !important;
+        color: #e2e8f0 !important;
+        border-radius: 10px !important;
+    }
+    .auth-input:focus {
+        background: #0d1525 !important;
+        background-color: #0d1525 !important;
+        border-color: rgba(99,102,241,.6) !important;
+        box-shadow: 0 0 0 3px rgba(99,102,241,.12) !important;
+        color: #e2e8f0 !important;
+    }
+    .auth-input::placeholder { color: #3d5070 !important; }
+
+    .auth-check {
+        background-color: #0d1525 !important;
+        border-color: rgba(255,255,255,.2) !important;
+    }
+    .auth-check:checked {
+        background-color: #6366f1 !important;
+        border-color: #6366f1 !important;
+    }
+    .auth-check-label { color: #94a3b8; font-size: .85rem; }
+
+    .auth-captcha-img {
+        height: 50px;
+        border-radius: 8px;
+        border: 1px solid rgba(255,255,255,.12);
+    }
+
+    .auth-btn-outline-sm {
+        background: rgba(255,255,255,.05);
+        border: 1px solid rgba(255,255,255,.12);
+        color: #94a3b8;
+        border-radius: 8px;
+        padding: .35rem .7rem;
+        font-size: .85rem;
+        transition: all .15s;
+    }
+    .auth-btn-outline-sm:hover { background: rgba(255,255,255,.1); color: #e2e8f0; }
+
+    .auth-submit {
+        border-radius: 10px !important;
+        padding: .65rem !important;
+        font-weight: 600 !important;
+        font-size: .95rem !important;
+    }
+
+    .auth-divider {
+        display: flex; align-items: center; gap: .75rem;
+        margin: 1.5rem 0;
+        color: #3d5070; font-size: .8rem;
+    }
+    .auth-divider::before, .auth-divider::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: rgba(255,255,255,.08);
+    }
+
+    .auth-footer-text { color: #6b7fa0; font-size: .88rem; }
+    .auth-link { color: #818cf8; font-size: .88rem; text-decoration: none; margin-right: .3rem; }
+    .auth-link:hover { color: #a5b4fc; text-decoration: underline; }
+    .auth-link-muted { color: #4a6080 !important; text-decoration: none; font-size: .8rem; }
+    .auth-link-muted:hover { color: #6b7fa0 !important; }
+
+    .auth-alert-danger {
+        background: rgba(239,68,68,.12);
+        border: 1px solid rgba(239,68,68,.25);
+        color: #fca5a5;
+    }
+    .auth-alert-danger:empty { display: none; }
+    .validation-summary-valid { display: none !important; }
+    </style>
+}
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />

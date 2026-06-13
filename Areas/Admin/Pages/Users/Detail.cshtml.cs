@@ -109,7 +109,7 @@ public class DetailModel : PageModel
         CreditBalance = await _credits.GetBalanceAsync(userId);
 
         var execQuery = _db.Executions
-            .Include(e => e.App)
+            .Include(e => e.App).ThenInclude(a => a!.AiModel)
             .Where(e => e.UserId == userId)
             .AsQueryable();
 
