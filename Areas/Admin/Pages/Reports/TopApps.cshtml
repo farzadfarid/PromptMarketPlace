@@ -26,13 +26,21 @@
                         <td class="text-muted fw-bold">@(rank++)</td>
                         <td class="fw-semibold small">@a.Title</td>
                         <td class="small text-muted">@a.Category?.Name</td>
-                        <td class="small">@a.Creator?.User?.DisplayName</td>
+                        <td class="small">
+                            @{ var _av = a.Creator?.User?.AvatarUrl; var _dn = a.Creator?.User?.DisplayName ?? "—"; }
+                            <span class="user-chip">
+                                <span class="uc-avatar @(string.IsNullOrEmpty(_av) ? "uc-initials" : "")">
+                                    @if (!string.IsNullOrEmpty(_av)) { <img src="@_av" alt="@_dn" /> } else { @_dn.FirstOrDefault() }
+                                </span>
+                                @_dn
+                            </span>
+                        </td>
                         <td class="text-center fw-semibold">@a.ExecutionCount.N0Fa()</td>
                         <td class="text-center small">
                             <i class="fas fa-star text-warning" style="font-size:.75rem"></i>
                             @a.AverageRating.ToString("F1")
                         </td>
-                        <td class="text-center small">@a.CreditCost</td>
+                        <td class="text-center small">@a.CreditCost.ToFarsiDigits()</td>
                     </tr>
                 }
             </tbody>

@@ -17,13 +17,13 @@
     <div class="col-md-4">
         <div class="card border-0 shadow-sm p-3 text-center">
             <div class="small text-muted mb-1">تاریخ اجرا</div>
-            <div class="fw-semibold small">@Model.Execution.CreatedAt.ToString("yy/MM/dd HH:mm:ss")</div>
+            <div class="fw-semibold small">@Model.Execution.CreatedAt.ToShamsi("yy/MM/dd HH:mm")</div>
         </div>
     </div>
     <div class="col-md-4">
         <div class="card border-0 shadow-sm p-3 text-center">
             <div class="small text-muted mb-1">اعتبار مصرف‌شده</div>
-            <div class="fw-bold fs-5 text-primary">@Model.Execution.CreditUsed</div>
+            <div class="fw-bold fs-5 text-primary">@Model.Execution.CreditUsed.ToFarsiDigits()</div>
         </div>
     </div>
     <div class="col-md-4">
@@ -34,16 +34,45 @@
     </div>
 </div>
 
-@if (Model.Execution.InputValues.Any())
+@if (Model.Execution.InputValues.Any(i => !i.FieldName.StartsWith("__")))
 {
-    <div class="card border-0 shadow-sm p-4 mb-4">
+    <div class="card border-0 shadow-sm p-3 p-md-4 mb-4">
         <h6 class="fw-semibold mb-3"><i class="fas fa-keyboard me-2 text-muted"></i>ورودی‌های شما</h6>
         <dl class="row mb-0">
-            @foreach (var input in Model.Execution.InputValues)
+            @foreach (var input in Model.Execution.InputValues.Where(i => !i.FieldName.StartsWith("__")))
             {
                 var field = Model.Execution.App?.InputFields.FirstOrDefault(f => f.Name == input.FieldName);
-                <dt class="col-sm-4 small text-muted">@(field?.Label ?? input.FieldName)</dt>
-                <dd class="col-sm-8 small">@input.FieldValue</dd>
+                var val = input.FieldValue ?? "";
+                var isImage = (val.StartsWith("/uploads/") || val.StartsWith("uploads/")) &&
+                              System.Text.RegularExpressions.Regex.IsMatch(val, @"\.(jpg|jpeg|png|webp|gif)$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                var imgSrc = isImage ? (val.StartsWith("/") ? val : "/" + val) : null;
+
+                // برای ImageSelect: label فارسی رو از options پیدا کن
+                string displayVal = val;
+                if (field?.Type == PromptMarketPlace.Models.Enums.FieldType.ImageSelect && !string.IsNullOrEmpty(field.Options))
+                {
+                    try
+                    {
+                        var opts = System.Text.Json.JsonSerializer.Deserialize<List<System.Text.Json.Nodes.JsonNode>>(field.Options);
+                        var matched = opts?.FirstOrDefault(o => o?["value"]?.GetValue<string>() == val);
+                        if (matched != null)
+                            displayVal = matched["label"]?.GetValue<string>() ?? val;
+                    }
+                    catch { }
+                }
+
+                <dt class="col-5 col-sm-4 small text-muted">@(field?.Label ?? input.FieldName)</dt>
+                <dd class="col-7 col-sm-8 small" style="word-break:break-word;overflow-wrap:anywhere;">
+                    @if (imgSrc != null)
+                    {
+                        <img src="@imgSrc" alt="@(field?.Label ?? input.FieldName)"
+                             style="max-height:160px;max-width:100%;border-radius:8px;object-fit:contain;" />
+                    }
+                    else
+                    {
+                        @displayVal
+                    }
+                </dd>
             }
         </dl>
     </div>

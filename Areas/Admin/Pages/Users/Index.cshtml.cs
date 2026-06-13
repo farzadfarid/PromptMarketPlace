@@ -42,7 +42,7 @@ public class IndexModel : PageModel
             .OrderByDescending(u => u.CreatedAt)
             .Skip((PageNumber - 1) * PageSize)
             .Take(PageSize)
-            .Select(u => new { u.Id, u.DisplayName, u.Email, u.Role, u.IsActive, u.CreatedAt })
+            .Select(u => new { u.Id, u.DisplayName, u.Email, u.Role, u.IsActive, u.CreatedAt, u.AvatarUrl })
             .ToListAsync();
 
         var ids = raw.Select(u => u.Id).ToList();
@@ -54,10 +54,10 @@ public class IndexModel : PageModel
 
         Users = raw.Select(u => new UserRow(
             u.Id, u.DisplayName, u.Email ?? "", u.Role, u.IsActive, u.CreatedAt,
-            execCounts.TryGetValue(u.Id, out var c) ? c : 0
+            execCounts.TryGetValue(u.Id, out var c) ? c : 0, u.AvatarUrl
         )).ToList();
     }
 
     public record UserRow(string Id, string DisplayName, string Email, UserRole Role,
-        bool IsActive, DateTime CreatedAt, int ExecutionCount);
+        bool IsActive, DateTime CreatedAt, int ExecutionCount, string? AvatarUrl);
 }

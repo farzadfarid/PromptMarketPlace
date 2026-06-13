@@ -48,7 +48,14 @@
                 @foreach (var u in Model.Users)
                 {
                     <tr>
-                        <td class="fw-semibold">@u.DisplayName</td>
+                        <td>
+                            <span class="user-chip fw-semibold">
+                                <span class="uc-avatar @(string.IsNullOrEmpty(u.AvatarUrl) ? "uc-initials" : "")">
+                                    @if (!string.IsNullOrEmpty(u.AvatarUrl)) { <img src="@u.AvatarUrl" alt="@u.DisplayName" /> } else { @u.DisplayName.FirstOrDefault() }
+                                </span>
+                                @u.DisplayName
+                            </span>
+                        </td>
                         <td class="text-muted small">@u.Email</td>
                         <td class="text-center">
                             @{
@@ -60,7 +67,7 @@
                             }
                             <span class="badge bg-@roleColor">@roleLabel</span>
                         </td>
-                        <td class="text-center">@u.ExecutionCount</td>
+                        <td class="text-center">@u.ExecutionCount.N0Fa()</td>
                         <td class="small text-muted">@u.CreatedAt.ToShamsi("yy/MM/dd")</td>
                         <td class="text-center">
                             @if (u.IsActive)

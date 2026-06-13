@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using PromptMarketPlace.Data;
 using PromptMarketPlace.Helpers;
@@ -73,7 +74,7 @@ public class ExecutionService : IExecutionService
             CreditUsed = app.CreditCost
         };
 
-        foreach (var kv in inputs)
+        foreach (var kv in inputs.Where(k => !k.Key.StartsWith("__")))
             execution.InputValues.Add(new ExecutionInputValue { FieldName = kv.Key, FieldValue = kv.Value });
 
         _db.Executions.Add(execution);
@@ -86,20 +87,29 @@ public class ExecutionService : IExecutionService
         var finalPrompt = InputValidator.SubstituteVariables(decryptedPrompt, inputs);
 
         // ─── پیدا کردن provider و مدل فعال برای این نوع خروجی ────
+        // ابتدا provider فعال global را می‌گیریم؛ اگر ابزار مدل اختصاصی روی همان provider داشت
+        // فقط مدل را override می‌کنیم (نه provider را)
         var (activeProvider, activeModel, apiKey) =
             await _providers.GetActiveSetupForOutputTypeAsync(app.OutputType);
+
+        if (activeProvider != null && app.AiModel is { IsActive: true } appModel
+            && appModel.AiProviderId == activeProvider.Id)
+        {
+            var requiredCap = OutputTypeCapabilityMap.ToCapability(app.OutputType).ToString();
+            var caps = JsonSerializer.Deserialize<List<string>>(appModel.Capabilities ?? "[]") ?? new();
+            if (caps.Contains(requiredCap))
+                activeModel = appModel;
+        }
 
         if (activeProvider == null)
         {
             await FailExecutionAsync(execution, "سرویس‌دهنده‌ای برای این نوع ابزار فعال نشده.");
-            // اعتبار کسر نشده، بازگشت لازم نیست
             return ExecutionResult.Fail("سرویس‌دهنده هوش مصنوعی برای این نوع ابزار پیکربندی نشده. لطفاً با ادمین تماس بگیرید.");
         }
 
         if (activeModel == null)
         {
             await FailExecutionAsync(execution, "مدل پیش‌فرضی برای این نوع خروجی روی سرویس‌دهنده فعال یافت نشد.");
-            // اعتبار کسر نشده، بازگشت لازم نیست
             return ExecutionResult.Fail("مدل هوش مصنوعی برای این نوع ابزار پیکربندی نشده. لطفاً با ادمین تماس بگیرید.");
         }
 
@@ -219,33 +229,57 @@ public class ExecutionService : IExecutionService
 
         if (!string.IsNullOrEmpty(aiResponse.ImageUrl))
         {
-            try
+            if (aiResponse.ImageUrl.StartsWith("/uploads/", StringComparison.OrdinalIgnoreCase))
             {
-                // API Key را پاس می‌دهیم تا تصاویر authenticated از ChatQT هم دانلود شوند
-                var localPath = await _storage.SaveFromUrlAsync(aiResponse.ImageUrl, "images", apiKey);
-                execution.OutputImageUrl = localPath;
+                execution.OutputImageUrl = aiResponse.ImageUrl;
             }
-            catch (Exception ex)
+            else
             {
-                _logger.LogWarning(ex, "Could not download image from {Url}", aiResponse.ImageUrl);
-                // URL خارجی را ذخیره نمی‌کنیم — فقط لاگ می‌زنیم
-                execution.OutputImageUrl = null;
+                try
+                {
+                    var localPath = await _storage.SaveFromUrlAsync(aiResponse.ImageUrl, "images", apiKey);
+                    execution.OutputImageUrl = localPath;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Could not download image from {Url}", aiResponse.ImageUrl);
+                    execution.OutputImageUrl = null;
+                }
             }
         }
 
         if (!string.IsNullOrEmpty(aiResponse.VideoUrl))
-            execution.OutputVideoUrl = aiResponse.VideoUrl;
-
-        if (!string.IsNullOrEmpty(aiResponse.AudioUrl))
         {
             try
             {
-                var localPath = await _storage.SaveFromUrlAsync(aiResponse.AudioUrl, "audio");
-                execution.OutputAudioUrl = localPath;
+                var localPath = await _storage.SaveFromUrlAsync(aiResponse.VideoUrl, "video", apiKey);
+                execution.OutputVideoUrl = localPath;
             }
-            catch
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not save video from {Url}", aiResponse.VideoUrl);
+                execution.OutputVideoUrl = aiResponse.VideoUrl;
+            }
+        }
+
+        if (!string.IsNullOrEmpty(aiResponse.AudioUrl))
+        {
+            // AvalAI strategy saves audio directly to disk and returns a local path
+            if (aiResponse.AudioUrl.StartsWith("/uploads/"))
             {
                 execution.OutputAudioUrl = aiResponse.AudioUrl;
+            }
+            else
+            {
+                try
+                {
+                    var localPath = await _storage.SaveFromUrlAsync(aiResponse.AudioUrl, "audio");
+                    execution.OutputAudioUrl = localPath;
+                }
+                catch
+                {
+                    execution.OutputAudioUrl = aiResponse.AudioUrl;
+                }
             }
         }
 

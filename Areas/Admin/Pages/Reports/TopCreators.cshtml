@@ -25,7 +25,14 @@
                 {
                     <tr>
                         <td class="text-muted fw-bold">@(rank++)</td>
-                        <td class="fw-semibold small">@c.DisplayName</td>
+                        <td class="fw-semibold small">
+                            <span class="user-chip">
+                                <span class="uc-avatar @(string.IsNullOrEmpty(c.AvatarUrl) ? "uc-initials" : "")">
+                                    @if (!string.IsNullOrEmpty(c.AvatarUrl)) { <img src="@c.AvatarUrl" alt="@c.DisplayName" /> } else { @c.DisplayName.FirstOrDefault() }
+                                </span>
+                                @c.DisplayName
+                            </span>
+                        </td>
                         <td class="small text-muted">@c.Email</td>
                         <td class="text-center fw-semibold text-success">@c.TotalEarned.N0Fa()</td>
                         <td class="text-center small">@c.EarningBalance.N0Fa()</td>

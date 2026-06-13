@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using PromptMarketPlace.Data;
+using PromptMarketPlace.Infrastructure.Logging;
 using PromptMarketPlace.Models.Domain;
 using PromptMarketPlace.Models.Enums;
 using PromptMarketPlace.Services;
@@ -12,13 +13,10 @@ var configuration = new ConfigurationBuilder()
     .AddJsonFile("appsettings.json")
     .Build();
 
+// Bootstrap logger — فقط برای startup، قبل از اینکه DI آماده بشه
 Log.Logger = new LoggerConfiguration()
-    .MinimumLevel.Information()
-    .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+    .MinimumLevel.Warning()
     .WriteTo.Console()
-    .WriteTo.File(
-        configuration["Serilog:FilePath"] ?? "Logs/log-.txt",
-        rollingInterval: RollingInterval.Day)
     .CreateLogger();
 
 try
@@ -27,7 +25,26 @@ try
 
     var builder = WebApplication.CreateBuilder(args);
 
-    builder.Host.UseSerilog();
+    // Full logger با DB sink — بعد از ثبت سرویس‌ها
+    builder.Host.UseSerilog((context, services, config) =>
+    {
+        config
+            .MinimumLevel.Information()
+            .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+            .Enrich.FromLogContext()
+            .WriteTo.Console()
+            .WriteTo.File(
+                configuration["Serilog:FilePath"] ?? "Logs/log-.txt",
+                rollingInterval: RollingInterval.Day)
+            .WriteTo.Sink(new DatabaseSink(services));
+    });
+
+    // Allow UTF-8 characters (e.g., Persian) in incoming request headers
+    // Required for file uploads with Persian filenames and browser Referer headers from Persian URLs
+    builder.WebHost.ConfigureKestrel(options =>
+    {
+        options.RequestHeaderEncodingSelector = _ => System.Text.Encoding.UTF8;
+    });
 
     builder.Services.AddDbContext<ApplicationDbContext>(options =>
         options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -56,6 +73,12 @@ try
         options.AccessDeniedPath = "/Auth/AccessDenied";
         options.ExpireTimeSpan = TimeSpan.FromDays(14);
         options.SlidingExpiration = true;
+        options.Events.OnRedirectToReturnUrl = ctx =>
+        {
+            // Encode non-ASCII chars (e.g. Persian slugs) in the Location header
+            ctx.Response.Redirect(EncodeRedirectUri(ctx.RedirectUri));
+            return Task.CompletedTask;
+        };
     });
 
     builder.Services.AddAuthorization(options =>
@@ -70,8 +93,16 @@ try
     builder.Services.AddSingleton<IEncryptionService, EncryptionService>();
     builder.Services.AddScoped<IAiProviderService, AiProviderService>();
     builder.Services.AddScoped<ICreditService, CreditService>();
-    builder.Services.AddScoped<IAiService, AiService>();
     builder.Services.AddScoped<IStorageService, LocalStorageService>();
+    // AI provider strategies
+    builder.Services.AddScoped<PromptMarketPlace.Services.Strategies.OpenAiCompatibleStrategy>();
+    builder.Services.AddScoped<PromptMarketPlace.Services.Strategies.AvalAiStrategy>();
+    builder.Services.AddScoped<PromptMarketPlace.Services.Strategies.AnthropicStrategy>();
+    builder.Services.AddScoped<PromptMarketPlace.Services.Strategies.ChatQtStrategy>();
+    builder.Services.AddScoped<PromptMarketPlace.Services.Strategies.GoogleGeminiStrategy>();
+    builder.Services.AddScoped<PromptMarketPlace.Services.Strategies.VertexAiStrategy>();
+    builder.Services.AddScoped<PromptMarketPlace.Services.Strategies.ProviderStrategyFactory>();
+    builder.Services.AddScoped<IAiService, AiService>();
     builder.Services.AddScoped<IExecutionService, ExecutionService>();
     builder.Services.AddScoped<ISettingService, SettingService>();
     builder.Services.AddScoped<IPaymentService, PaymentService>();
@@ -82,6 +113,8 @@ try
     builder.Services.AddScoped<ICreatorHelper, CreatorHelper>();
     builder.Services.AddScoped<IMessageService, MessageService>();
     builder.Services.AddScoped<IEmailService, SmtpEmailService>();
+    builder.Services.AddHttpContextAccessor();
+    builder.Services.AddHostedService<ErrorLogWriterService>();
     builder.Services.AddMemoryCache();
     builder.Services.AddDistributedMemoryCache();
     builder.Services.AddSession(options =>
@@ -145,14 +178,33 @@ try
 
     app.UseHttpsRedirection();
     app.UseSerilogRequestLogging();
+
+    var mimeProvider = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider();
+    mimeProvider.Mappings[".mp4"]  = "video/mp4";
+    mimeProvider.Mappings[".webm"] = "video/webm";
+    mimeProvider.Mappings[".mp3"]  = "audio/mpeg";
+    mimeProvider.Mappings[".wav"]  = "audio/wav";
+    app.UseStaticFiles(new StaticFileOptions { ContentTypeProvider = mimeProvider });
+
     app.UseRouting();
     app.UseSession();
     app.UseAuthentication();
     app.UseAuthorization();
+
     app.MapStaticAssets();
     app.MapRazorPages().WithStaticAssets();
 
     app.Run();
+
+    // Encode non-ASCII characters (e.g. Persian slugs) for use in HTTP Location headers
+    static string EncodeRedirectUri(string uri)
+    {
+        if (string.IsNullOrEmpty(uri)) return uri;
+        var parts = uri.Split('?', 2);
+        var pathParts = parts[0].Split('/');
+        var encodedPath = string.Join('/', pathParts.Select(Uri.EscapeDataString));
+        return parts.Length > 1 ? encodedPath + "?" + parts[1] : encodedPath;
+    }
 }
 catch (Exception ex) when (ex is not HostAbortedException)
 {

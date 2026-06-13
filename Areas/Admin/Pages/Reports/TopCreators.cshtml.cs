@@ -21,6 +21,7 @@ public class TopCreatorsModel : PageModel
             .Select(c => new CreatorRow(
                 c.User.DisplayName,
                 c.User.Email ?? "",
+                c.User.AvatarUrl,
                 c.User.Wallet != null ? c.User.Wallet.TotalEarned : 0,
                 c.User.Wallet != null ? c.User.Wallet.EarningBalance : 0,
                 c.Apps.Count(a => a.Status == Models.Enums.AppStatus.Active),
@@ -30,6 +31,6 @@ public class TopCreatorsModel : PageModel
             .ToListAsync();
     }
 
-    public record CreatorRow(string DisplayName, string Email, decimal TotalEarned,
+    public record CreatorRow(string DisplayName, string Email, string? AvatarUrl, decimal TotalEarned,
         decimal EarningBalance, int ActiveApps, DateTime JoinedAt, decimal CommissionPercent);
 }

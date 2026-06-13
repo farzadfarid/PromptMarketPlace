@@ -1,0 +1,419 @@
+@page
+@model IndexModel
+@{ ViewData["Title"] = "لاگ خطاها"; }
+
+@if (Model.OpenId.HasValue)
+{
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var target = document.getElementById('log-detail-@Model.OpenId');
+            if (!target) return;
+            var bsCollapse = new bootstrap.Collapse(target, { show: true });
+            setTimeout(function () {
+                target.closest('.log-item')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 200);
+        });
+    </script>
+}
+
+@section Styles {
+<style>
+.stat-card { border-radius: 14px; padding: 1.1rem 1.25rem; display: flex; align-items: center; gap: .85rem; }
+.stat-icon { width: 44px; height: 44px; border-radius: 11px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0; }
+
+.log-item { border-right: 4px solid transparent; transition: box-shadow .15s; }
+.log-item:hover { box-shadow: 0 4px 16px rgba(0,0,0,.08) !important; }
+.log-item.level-Critical { border-right-color: #dc3545 !important; }
+.log-item.level-Error    { border-right-color: #fd7e14 !important; }
+.log-item.level-Warning  { border-right-color: #ffc107 !important; }
+
+.stack-trace {
+    font-size: .72rem; max-height: 280px; overflow-y: auto;
+    background: #1a1d27; color: #c9d1d9;
+    border-radius: 8px; padding: 1rem;
+    font-family: 'Consolas','Courier New',monospace;
+    white-space: pre-wrap; word-break: break-all;
+    line-height: 1.6;
+}
+.stack-trace::-webkit-scrollbar { width: 4px; }
+.stack-trace::-webkit-scrollbar-thumb { background: #444; border-radius: 2px; }
+
+.ai-box {
+    background: linear-gradient(135deg, #0d1b2a 0%, #1b2838 50%, #0d2137 100%);
+    border: 1px solid rgba(99,179,237,.25);
+    color: #e2e8f0; border-radius: 12px; padding: 1.25rem;
+    font-size: .875rem; line-height: 1.85;
+}
+.ai-box .ai-header { color: #63b3ed; font-weight: 600; font-size: .8rem; letter-spacing: .05em; text-transform: uppercase; }
+
+.btn-ai {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff !important; border: none; font-size: .72rem; padding: .2rem .55rem;
+    border-radius: 6px; transition: opacity .15s;
+}
+.btn-ai:hover { opacity: .88; }
+.btn-ai .spin { display: none; }
+.btn-ai.loading .lbl { display: none; }
+.btn-ai.loading .spin { display: inline-flex; align-items: center; gap: .3rem; }
+
+.filter-strip { background: #f8fafc; border: 1px solid #e8ecf0; border-radius: 12px; padding: .85rem 1rem; }
+.badge-level-Critical { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+.badge-level-Error    { background: #fff7ed; color: #ea580c; border: 1px solid #fed7aa; }
+.badge-level-Warning  { background: #fffbeb; color: #d97706; border: 1px solid #fde68a; }
+.badge-level-Information { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+</style>
+}
+
+<!-- ── Header ─────────────────────────────────────────── -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h5 class="fw-bold mb-0"><i class="fas fa-bug me-2 text-danger"></i>لاگ خطاها</h5>
+        <small class="text-muted">نظارت، تحلیل و پیگیری خطاهای سیستم</small>
+    </div>
+    <div class="d-flex gap-2">
+        <form method="post" asp-page-handler="ClearResolved">
+            <button class="btn btn-sm btn-outline-secondary"
+                    data-confirm="همه خطاهای حل‌شده پاک شوند؟" data-confirm-type="warning">
+                <i class="fas fa-broom me-1"></i>پاک‌کردن حل‌شده‌ها
+            </button>
+        </form>
+        <form method="post" asp-page-handler="ClearAll">
+            <button class="btn btn-sm btn-outline-danger"
+                    data-confirm="همه لاگ‌ها حذف شوند؟" data-confirm-type="danger">
+                <i class="fas fa-trash me-1"></i>حذف همه
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- ── Stats ─────────────────────────────────────────── -->
+<div class="row g-3 mb-4">
+    @{
+        var statsItems = new (string Icon, string Color, string BgClass, string Label, int Value)[]
+        {
+            ("fa-list",             "#6c757d", "bg-secondary",  "کل خطاها",  Model.Stats.Total),
+            ("fa-skull-crossbones", "#dc3545", "bg-danger",     "بحرانی",    Model.Stats.Critical),
+            ("fa-exclamation-circle","#fd7e14","",              "خطا",       Model.Stats.Error),
+            ("fa-exclamation-triangle","#d97706","bg-warning",  "هشدار",     Model.Stats.Warning),
+            ("fa-calendar-day",     "#2563eb", "bg-primary",    "امروز",     Model.Stats.Today),
+            ("fa-check-circle",     "#16a34a", "bg-success",    "حل‌شده",   Model.Stats.Resolved),
+        };
+    }
+    @foreach (var s in statsItems)
+    {
+        <div class="col-6 col-md-2">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="stat-card">
+                    <div class="stat-icon @(s.BgClass) bg-opacity-10" style="color:@s.Color">
+                        <i class="fas @s.Icon"></i>
+                    </div>
+                    <div>
+                        <div class="fw-bold fs-5" style="color:@s.Color">@s.Value.N0Fa()</div>
+                        <div class="text-muted" style="font-size:.72rem">@s.Label</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@if (!Model.AiConfigured)
+{
+    <div class="alert alert-warning py-2 small mb-3">
+        <i class="fas fa-exclamation-triangle me-1"></i>
+        مدل هوش مصنوعی برای متن پیکربندی نشده. برای استفاده از تحلیل AI لطفاً از
+        <a asp-area="Admin" asp-page="/AI/Providers" class="fw-semibold">سرویس‌دهنده‌ها</a>
+        یک مدل متنی فعال کنید.
+    </div>
+}
+
+<!-- ── Filters ─────────────────────────────────────────── -->
+<div class="filter-strip mb-3">
+    <form method="get" class="row g-2 align-items-end">
+        <div class="col-md-3">
+            <label class="form-label small fw-semibold mb-1 text-muted">جستجو</label>
+            <div class="input-group input-group-sm">
+                <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
+                <input type="text" name="Search" value="@Model.Search" class="form-control"
+                       placeholder="پیام، مسیر، namespace..." />
+            </div>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small fw-semibold mb-1 text-muted">سطح</label>
+            <select name="FilterLevel" class="form-select form-select-sm">
+                <option value="">همه سطوح</option>
+                <option value="Critical" selected="@(Model.FilterLevel == "Critical")">🔴 بحرانی</option>
+                <option value="Error"    selected="@(Model.FilterLevel == "Error")">🟠 خطا</option>
+                <option value="Warning"  selected="@(Model.FilterLevel == "Warning")">🟡 هشدار</option>
+            </select>
+        </div>
+        <div class="col-6 col-md-2">
+            <label class="form-label small fw-semibold mb-1 text-muted">از تاریخ</label>
+            <input type="date" name="DateFrom" value="@(Model.DateFrom?.ToString("yyyy-MM-dd"))"
+                   class="form-control form-control-sm" />
+        </div>
+        <div class="col-6 col-md-2">
+            <label class="form-label small fw-semibold mb-1 text-muted">تا تاریخ</label>
+            <input type="date" name="DateTo" value="@(Model.DateTo?.ToString("yyyy-MM-dd"))"
+                   class="form-control form-control-sm" />
+        </div>
+        <div class="col-md-1">
+            <label class="form-label small fw-semibold mb-1 text-muted">وضعیت</label>
+            <select name="FilterResolved" class="form-select form-select-sm">
+                <option value="">همه</option>
+                <option value="false" selected="@(Model.FilterResolved == "false")">باز</option>
+                <option value="true"  selected="@(Model.FilterResolved == "true")">حل‌شده</option>
+            </select>
+        </div>
+        <div class="col-md-1">
+            <label class="form-label small fw-semibold mb-1 text-muted">تحلیل AI</label>
+            <select name="FilterAi" class="form-select form-select-sm">
+                <option value="">همه</option>
+                <option value="true"  selected="@(Model.FilterAi == "true")">دارد</option>
+                <option value="false" selected="@(Model.FilterAi == "false")">ندارد</option>
+            </select>
+        </div>
+        <div class="col-md-1 d-flex gap-1">
+            <button type="submit" class="btn btn-primary btn-sm flex-grow-1">اعمال</button>
+            <a asp-page="/ErrorLogs/Index" class="btn btn-outline-secondary btn-sm" title="ریست">
+                <i class="fas fa-undo"></i>
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- ── Log List ─────────────────────────────────────────── -->
+<div class="card border-0 shadow-sm">
+    <div class="card-header d-flex justify-content-between align-items-center py-2 border-bottom">
+        <span class="fw-semibold small"><i class="fas fa-list-alt me-2 text-muted"></i>لاگ‌ها</span>
+        <span class="badge bg-light text-secondary border">@Model.TotalCount.N0Fa() مورد</span>
+    </div>
+
+    @if (!Model.Logs.Any())
+    {
+        <div class="text-center py-5 text-muted">
+            <i class="fas fa-shield-alt fa-2x text-success opacity-50 d-block mb-2"></i>
+            <div class="fw-semibold">خطایی یافت نشد</div>
+            <small>سیستم سالم است یا فیلتر را تغییر دهید.</small>
+        </div>
+    }
+    else
+    {
+        <div class="p-3 d-flex flex-column gap-2">
+            @foreach (var log in Model.Logs)
+            {
+                var lvlClass = log.Level switch {
+                    "Critical" => "badge-level-Critical",
+                    "Error"    => "badge-level-Error",
+                    "Warning"  => "badge-level-Warning",
+                    _          => "badge-level-Information"
+                };
+                var lvlIcon = log.Level switch {
+                    "Critical" => "fa-skull-crossbones",
+                    "Error"    => "fa-exclamation-circle",
+                    "Warning"  => "fa-exclamation-triangle",
+                    _          => "fa-info-circle"
+                };
+                var lvlLabel = log.Level switch {
+                    "Critical" => "بحرانی",
+                    "Error"    => "خطا",
+                    "Warning"  => "هشدار",
+                    _          => "اطلاعات"
+                };
+                var catShort = log.Category.Length > 45
+                    ? "…" + log.Category[^42..]
+                    : log.Category;
+
+                <div class="card border-0 shadow-sm log-item level-@log.Level @(log.IsResolved ? "opacity-60" : "")">
+                    <div class="card-body py-2 px-3">
+
+                        <!-- ─ Row ─ -->
+                        <div class="d-flex align-items-start gap-2 flex-wrap">
+
+                            <!-- level badge -->
+                            <span class="badge @lvlClass mt-1 flex-shrink-0" style="font-size:.68rem;min-width:58px;text-align:center;">
+                                <i class="fas @lvlIcon me-1"></i>@lvlLabel
+                            </span>
+
+                            <!-- message + meta -->
+                            <div class="flex-grow-1 min-w-0">
+                                <div class="small fw-semibold text-truncate" style="max-width:650px;" title="@log.Message">
+                                    @log.Message
+                                </div>
+                                <div class="d-flex flex-wrap gap-3 mt-1">
+                                    @if (!string.IsNullOrEmpty(log.RequestPath))
+                                    {
+                                        <span class="text-muted" style="font-size:.7rem;">
+                                            <code class="bg-transparent p-0">@log.RequestMethod</code>
+                                            <span class="ms-1">@log.RequestPath</span>
+                                        </span>
+                                    }
+                                    <span class="text-muted" style="font-size:.7rem;" title="@log.Category">
+                                        <i class="fas fa-folder-open me-1"></i>@catShort
+                                    </span>
+                                    <span class="text-muted" style="font-size:.7rem;">
+                                        <i class="fas fa-clock me-1"></i>@log.CreatedAt.ToShamsi("yy/MM/dd HH:mm:ss")
+                                    </span>
+                                    @if (!string.IsNullOrEmpty(log.ExceptionType))
+                                    {
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle" style="font-size:.62rem;">
+                                            @log.ExceptionType.Split('.').Last()
+                                        </span>
+                                    }
+                                    @if (log.IsResolved)
+                                    {
+                                        <span class="badge bg-success-subtle text-success" style="font-size:.62rem;">
+                                            <i class="fas fa-check me-1"></i>حل‌شده
+                                        </span>
+                                    }
+                                    @if (log.AiAnalysis != null)
+                                    {
+                                        <span class="badge bg-primary-subtle text-primary" style="font-size:.62rem;">
+                                            <i class="fas fa-robot me-1"></i>تحلیل AI
+                                        </span>
+                                    }
+                                </div>
+                            </div>
+
+                            <!-- actions -->
+                            <div class="d-flex gap-1 align-items-center flex-shrink-0">
+                                <!-- expand -->
+                                <button class="btn btn-sm btn-outline-secondary py-0 px-2"
+                                        data-bs-toggle="collapse" data-bs-target="#log-detail-@log.Id"
+                                        title="جزئیات">
+                                    <i class="fas fa-chevron-down" style="font-size:.65rem;"></i>
+                                </button>
+
+                                <!-- AI analyze -->
+                                <form method="post" asp-page-handler="Analyze" asp-route-id="@log.Id" class="d-inline"
+                                      onsubmit="this.querySelector('.btn-ai').classList.add('loading')">
+                                    <button type="submit" class="btn btn-ai" title="تحلیل با AI" @(!Model.AiConfigured ? "disabled" : "")>
+                                        <span class="lbl"><i class="fas fa-robot me-1"></i>AI</span>
+                                        <span class="spin">
+                                            <span class="spinner-border" style="width:10px;height:10px;border-width:1.5px;"></span>
+                                        </span>
+                                    </button>
+                                </form>
+
+                                <!-- resolve -->
+                                <form method="post" asp-page-handler="Resolve"
+                                      asp-route-id="@log.Id" asp-route-isResolved="@(!log.IsResolved)" class="d-inline">
+                                    <button type="submit"
+                                            class="btn btn-sm py-0 px-2 @(log.IsResolved ? "btn-success" : "btn-outline-success")"
+                                            title="@(log.IsResolved ? "باز کردن" : "علامت‌گذاری به‌عنوان حل‌شده")">
+                                        <i class="fas fa-check" style="font-size:.65rem;"></i>
+                                    </button>
+                                </form>
+
+                                <!-- delete -->
+                                <form method="post" asp-page-handler="Delete" asp-route-id="@log.Id" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2"
+                                            data-confirm="این خطا حذف شود؟" data-confirm-type="danger"
+                                            title="حذف">
+                                        <i class="fas fa-times" style="font-size:.65rem;"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- ─ Detail Collapse ─ -->
+                        <div class="collapse mt-2" id="log-detail-@log.Id">
+                            <hr class="my-2" />
+
+                            @if (!string.IsNullOrEmpty(log.StackTrace))
+                            {
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <small class="fw-semibold text-muted">
+                                            <i class="fas fa-layer-group me-1"></i>Stack Trace
+                                        </small>
+                                        <button type="button" class="btn btn-outline-secondary py-0 px-2"
+                                                style="font-size:.65rem;"
+                                                onclick="navigator.clipboard.writeText(this.closest('.collapse').querySelector('pre').innerText).then(()=>{this.innerHTML='<i class=\'fas fa-check\'></i> کپی شد';setTimeout(()=>this.innerHTML='<i class=\'fas fa-copy\'></i> کپی',2000)})">
+                                            <i class="fas fa-copy"></i> کپی
+                                        </button>
+                                    </div>
+                                    <pre class="stack-trace">@log.StackTrace</pre>
+                                </div>
+                            }
+
+                            @if (log.AiAnalysis != null)
+                            {
+                                <div class="ai-box mb-2">
+                                    <div class="d-flex align-items-center gap-2 mb-3">
+                                        <div class="rounded-circle d-inline-flex align-items-center justify-content-center"
+                                             style="width:28px;height:28px;background:rgba(99,179,237,.15);">
+                                            <i class="fas fa-robot" style="color:#63b3ed;font-size:.75rem;"></i>
+                                        </div>
+                                        <span class="ai-header">تحلیل هوش مصنوعی</span>
+                                        @if (log.AiAnalyzedAt.HasValue)
+                                        {
+                                            <small class="text-secondary ms-auto" style="font-size:.65rem;">
+                                                @log.AiAnalyzedAt.Value.ToShamsi("yy/MM/dd HH:mm")
+                                            </small>
+                                        }
+                                    </div>
+                                    <div style="white-space:pre-wrap;color:#cbd5e0;">@log.AiAnalysis</div>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="text-center py-2 text-muted small border rounded" style="background:#f8fafc;">
+                                    <i class="fas fa-robot me-1 opacity-50"></i>
+                                    برای دریافت تحلیل هوش مصنوعی دکمه <strong>AI</strong> را بزنید.
+                                </div>
+                            }
+
+                            @if (!string.IsNullOrEmpty(log.UserName) || !string.IsNullOrEmpty(log.UserId))
+                            {
+                                <div class="mt-2 small text-muted">
+                                    <i class="fas fa-user me-1"></i>
+                                    @(log.UserName ?? log.UserId)
+                                </div>
+                            }
+                        </div>
+
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- ─ Pagination ─ -->
+        @if (Model.TotalPages > 1)
+        {
+            <div class="card-footer border-0 d-flex justify-content-center py-2">
+                <nav>
+                    <ul class="pagination pagination-sm mb-0">
+                        @if (Model.Page > 1)
+                        {
+                            <li class="page-item">
+                                <a class="page-link" asp-page="/ErrorLogs/Index"
+                                   asp-all-route-data='@(new Dictionary<string,string>{{"Page",(Model.Page-1).ToString()},{"Search",Model.Search??""},{"FilterLevel",Model.FilterLevel??""},{"FilterResolved",Model.FilterResolved??""},{"FilterAi",Model.FilterAi??""}})'>
+                                    <i class="fas fa-chevron-right"></i>
+                                </a>
+                            </li>
+                        }
+                        @for (int i = Math.Max(1, Model.Page - 2); i <= Math.Min(Model.TotalPages, Model.Page + 2); i++)
+                        {
+                            <li class="page-item @(i == Model.Page ? "active" : "")">
+                                <a class="page-link" asp-page="/ErrorLogs/Index"
+                                   asp-all-route-data='@(new Dictionary<string,string>{{"Page",i.ToString()},{"Search",Model.Search??""},{"FilterLevel",Model.FilterLevel??""},{"FilterResolved",Model.FilterResolved??""},{"FilterAi",Model.FilterAi??""}})'>
+                                    @i.ToFarsiDigits()
+                                </a>
+                            </li>
+                        }
+                        @if (Model.Page < Model.TotalPages)
+                        {
+                            <li class="page-item">
+                                <a class="page-link" asp-page="/ErrorLogs/Index"
+                                   asp-all-route-data='@(new Dictionary<string,string>{{"Page",(Model.Page+1).ToString()},{"Search",Model.Search??""},{"FilterLevel",Model.FilterLevel??""},{"FilterResolved",Model.FilterResolved??""},{"FilterAi",Model.FilterAi??""}})'>
+                                    <i class="fas fa-chevron-left"></i>
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                </nav>
+            </div>
+        }
+    }
+</div>

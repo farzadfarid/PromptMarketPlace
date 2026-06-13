@@ -60,15 +60,23 @@
                     <tr>
                         <td class="text-muted small">@p.Id</td>
                         <td>
-                            <div>@p.User?.DisplayName</div>
-                            <small class="text-muted">@p.User?.Email</small>
+                            @{ var _av = p.User?.AvatarUrl; var _dn = p.User?.DisplayName ?? "—"; }
+                            <span class="user-chip">
+                                <span class="uc-avatar @(string.IsNullOrEmpty(_av) ? "uc-initials" : "")">
+                                    @if (!string.IsNullOrEmpty(_av)) { <img src="@_av" alt="@_dn" /> } else { @_dn.FirstOrDefault() }
+                                </span>
+                                <span>
+                                    <div>@_dn</div>
+                                    <small class="text-muted">@p.User?.Email</small>
+                                </span>
+                            </span>
                         </td>
                         <td>@p.Package?.Name</td>
-                        <td class="text-center fw-semibold">@p.CreditAmount</td>
+                        <td class="text-center fw-semibold">@p.CreditAmount.ToFarsiDigits()</td>
                         <td class="text-center">@p.Amount.N0Fa()</td>
                         <td><code class="small">@(p.ZarinpalRefId ?? p.ZarinpalAuthority ?? "-")</code></td>
                         <td class="text-center"><span class="badge bg-@color">@label</span></td>
-                        <td class="small text-muted">@p.CreatedAt.ToString("yy/MM/dd HH:mm")</td>
+                        <td class="small text-muted">@p.CreatedAt.ToShamsi("yy/MM/dd HH:mm")</td>
                         <td class="text-center">
                             @if (p.Status == PaymentStatus.Verified)
                             {

@@ -63,7 +63,13 @@ else
                         <!-- اطلاعات نظر -->
                         <div class="flex-grow-1">
                             <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
-                                <strong class="small">@r.User?.DisplayName</strong>
+                                @{ var _av = r.User?.AvatarUrl; var _dn = r.User?.DisplayName ?? "—"; }
+                                <strong class="user-chip small">
+                                    <span class="uc-avatar @(string.IsNullOrEmpty(_av) ? "uc-initials" : "")">
+                                        @if (!string.IsNullOrEmpty(_av)) { <img src="@_av" alt="@_dn" /> } else { @_dn.FirstOrDefault() }
+                                    </span>
+                                    @_dn
+                                </strong>
                                 <div>
                                     @for (int i = 1; i <= 5; i++)
                                     {

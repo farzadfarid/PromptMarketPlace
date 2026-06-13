@@ -213,6 +213,7 @@ a:hover { color: var(--pm-primary-dark); }
 .page-item.active .page-link {
     background: var(--pm-primary) !important;
     border-color: var(--pm-primary) !important;
+    color: #fff !important;
 }
 
 /* Dropdowns */
@@ -389,6 +390,14 @@ a:hover { color: var(--pm-primary-dark); }
     font-size: .95rem;
     flex-shrink: 0;
     box-shadow: 0 4px 12px rgba(249,115,22,.4);
+}
+
+.pm-navbar__logo-img {
+    height: 42px;
+    width: auto;
+    border-radius: 8px;
+    flex-shrink: 0;
+    display: block;
 }
 
 .pm-nav-link {
@@ -591,3 +600,9 @@ footer a:hover { color: rgba(255,255,255,.9) !important; }
 .help-popover dl dd { padding-right: .5rem; }
 .help-popover-btn { font-size: .85rem; opacity: .6; transition: opacity .15s; }
 .help-popover-btn:hover { opacity: 1; }
+
+/* User Avatar Chip */
+.user-chip { display: inline-flex; align-items: center; gap: .4rem; vertical-align: middle; }
+.uc-avatar { width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0; overflow: hidden; }
+.uc-avatar img { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; display: block; }
+.uc-initials { background: #6c757d; color: #fff; font-size: .65rem; font-weight: 600; display: inline-flex !important; align-items: center; justify-content: center; }

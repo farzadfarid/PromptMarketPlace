@@ -140,7 +140,13 @@
                         <div class="col-md-6">
                             <div class="border rounded p-3">
                                 <div class="d-flex align-items-center justify-content-between mb-1">
-                                    <strong class="small">@r.User?.DisplayName</strong>
+                                    @{ var _av = r.User?.AvatarUrl; var _dn = r.User?.DisplayName ?? "—"; }
+                                    <strong class="user-chip small">
+                                        <span class="uc-avatar @(string.IsNullOrEmpty(_av) ? "uc-initials" : "")">
+                                            @if (!string.IsNullOrEmpty(_av)) { <img src="@_av" alt="@_dn" /> } else { @_dn.FirstOrDefault() }
+                                        </span>
+                                        @_dn
+                                    </strong>
                                     <div>
                                         @for (int i = 1; i <= 5; i++)
                                         { <i class="@(i <= r.Rating ? "fas" : "far") fa-star text-warning" style="font-size:.65rem;"></i> }

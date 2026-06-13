@@ -1,12 +1,12 @@
-@page "/Admin/Executions/{id:long}"
-@model DetailModel
+@page "/Creator/Apps/Executions/{appId:int}/{id:long}"
+@model ExecutionDetailModel
 @using PromptMarketPlace.Models.Enums
 @{ ViewData["Title"] = "جزئیات اجرا"; }
 
 <div class="d-flex align-items-center gap-3 mb-4">
-    <a asp-area="Admin" asp-page="/Users/Detail" asp-route-id="@Model.ReturnUserId"
+    <a asp-area="Creator" asp-page="/Apps/Executions" asp-route-appId="@Model.Execution.AppId"
        class="btn btn-sm btn-outline-secondary">
-        <i class="fas fa-arrow-right me-1"></i>بازگشت به کاربر
+        <i class="fas fa-arrow-right me-1"></i>بازگشت به اجراها
     </a>
     <h5 class="fw-bold mb-0">@Model.Execution.App?.Title</h5>
     <span class="ms-auto">
@@ -25,6 +25,21 @@
 <div class="row g-3 mb-4">
     <div class="col-md-3">
         <div class="card border-0 shadow-sm p-3 text-center">
+            <div class="small text-muted mb-1">کاربر</div>
+            @{ var _avU = Model.Execution.User?.AvatarUrl; var _dnU = Model.Execution.User?.DisplayName ?? "—"; }
+            @if (!string.IsNullOrEmpty(_avU))
+            {
+                <img src="@_avU" class="rounded-circle mb-1 mx-auto d-block" style="width:32px;height:32px;object-fit:cover;" alt="@_dnU" />
+            }
+            else
+            {
+                <div class="rounded-circle bg-secondary text-white d-inline-flex align-items-center justify-content-center mb-1 mx-auto" style="width:32px;height:32px;font-size:.7rem;">@_dnU.FirstOrDefault()</div>
+            }
+            <div class="fw-semibold small">@_dnU</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm p-3 text-center">
             <div class="small text-muted mb-1">تاریخ اجرا</div>
             <div class="fw-semibold small">@Model.Execution.CreatedAt.ToShamsi("yyyy/MM/dd HH:mm:ss")</div>
         </div>
@@ -39,12 +54,6 @@
         <div class="card border-0 shadow-sm p-3 text-center">
             <div class="small text-muted mb-1">توکن‌ها</div>
             <div class="fw-semibold">@(Model.Execution.TokensUsed?.N0Fa() ?? "-")</div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card border-0 shadow-sm p-3 text-center">
-            <div class="small text-muted mb-1">شناسه اجرا</div>
-            <div class="fw-semibold small text-muted">#@Model.Execution.Id</div>
         </div>
     </div>
 </div>

@@ -14,19 +14,15 @@
     @await RenderSectionAsync("Styles", required: false)
 </head>
 <body class="admin-layout">
+<div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 <div class="admin-shell">
 
     <!-- Sidebar -->
-    <aside class="admin-sidebar">
+    <aside class="admin-sidebar" id="adminSidebar">
         <div class="admin-sidebar__header">
             <div class="admin-brand">
-                <div class="admin-brand__icon">
-                    <i class="fas fa-robot"></i>
-                </div>
-                <div>
-                    <div class="admin-brand__name">پرامپت مارکت</div>
-                    <div class="admin-brand__label">پنل مدیریت</div>
-                </div>
+                <img src="~/images/logo.png" alt="Prompt Market Place" class="admin-brand__logo" />
+                <div class="admin-brand__label-only">پنل مدیریت</div>
             </div>
         </div>
 
@@ -114,6 +110,12 @@
                 <i class="fas fa-trophy"></i><span>پردرآمدترین</span>
             </a>
 
+            <div class="admin-nav__section">پایش سیستم</div>
+            <a class="admin-nav__item @(ViewContext.RouteData.Values["page"]?.ToString()?.Contains("ErrorLog") == true ? "active" : "")"
+               asp-area="Admin" asp-page="/ErrorLogs/Index">
+                <i class="fas fa-bug"></i><span>لاگ خطاها</span>
+            </a>
+
             <div class="admin-nav__section">تنظیمات</div>
             <a class="admin-nav__item @(ViewContext.RouteData.Values["page"]?.ToString()?.Contains("Settings") == true ? "active" : "")"
                asp-area="Admin" asp-page="/Settings/Index">
@@ -136,7 +138,10 @@
     <!-- Main -->
     <div class="admin-main">
         <header class="admin-topbar">
-            <div class="admin-topbar__title">
+            <div class="admin-topbar__title d-flex align-items-center gap-2">
+                <button class="sidebar-toggle d-md-none" id="sidebarToggle" aria-label="منو">
+                    <i class="fas fa-bars"></i>
+                </button>
                 <h6 class="mb-0 fw-semibold">@ViewData["Title"]</h6>
             </div>
             <div class="admin-topbar__actions">
@@ -167,6 +172,16 @@ document.addEventListener('DOMContentLoaded', function () {
         var a = ul.closest('.alert'); if (a) a.style.display = 'none';
     });
 });
+(function(){
+    var toggle = document.getElementById('sidebarToggle');
+    var sidebar = document.getElementById('adminSidebar');
+    var backdrop = document.getElementById('sidebarBackdrop');
+    if (!toggle) return;
+    function open(){ sidebar.classList.add('open'); backdrop.classList.add('show'); }
+    function close(){ sidebar.classList.remove('open'); backdrop.classList.remove('show'); }
+    toggle.addEventListener('click', open);
+    backdrop.addEventListener('click', close);
+})();
 </script>
 @await RenderSectionAsync("Scripts", required: false)
 </body>

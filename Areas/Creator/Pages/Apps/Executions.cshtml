@@ -1,0 +1,145 @@
+@page "{appId:int}"
+@model ExecutionsModel
+@using PromptMarketPlace.Models.Enums
+@{ ViewData["Title"] = "اجراهای " + Model.App.Title; }
+
+<div class="d-flex align-items-center gap-3 mb-4">
+    <a asp-area="Creator" asp-page="/Apps/Index" class="btn btn-sm btn-outline-secondary">
+        <i class="fas fa-arrow-right me-1"></i>بازگشت
+    </a>
+    <div>
+        <h5 class="mb-0">اجراهای ابزار</h5>
+        <small class="text-muted">@Model.App.Title</small>
+    </div>
+</div>
+
+<!-- فیلترها -->
+<div class="card shadow-sm mb-3">
+    <div class="card-body py-2">
+        <form method="get" class="d-flex flex-wrap align-items-center gap-2">
+            <input type="hidden" name="appId" value="@Model.App.Id" />
+
+            <!-- فیلتر وضعیت -->
+            <div class="d-flex gap-1 flex-wrap">
+                @foreach (var s in new[] { (ExecutionStatus?)null, ExecutionStatus.Completed, ExecutionStatus.Failed, ExecutionStatus.Refunded })
+                {
+                    var lbl = s switch { ExecutionStatus.Completed => "موفق", ExecutionStatus.Failed => "ناموفق", ExecutionStatus.Refunded => "بازگشتی", _ => "همه" };
+                    <button type="submit" name="FilterStatus" value="@(s.HasValue ? ((int)s.Value).ToString() : "")"
+                            class="btn btn-sm @(Model.FilterStatus == s ? "btn-primary" : "btn-outline-secondary") py-0">
+                        @lbl
+                    </button>
+                }
+            </div>
+
+            <!-- جستجو -->
+            <div class="input-group input-group-sm ms-auto" style="max-width:220px;">
+                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                <input type="text" name="Search" value="@Model.Search" class="form-control"
+                       placeholder="نام کاربر..." />
+                <button type="submit" class="btn btn-outline-primary">جستجو</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- نتیجه -->
+<div class="card shadow-sm">
+    <div class="card-header d-flex justify-content-between align-items-center py-2">
+        <span class="fw-semibold small">اجراها</span>
+        <span class="text-muted small">@Model.TotalCount.ToFarsiDigits() مورد</span>
+    </div>
+    <div class="card-body p-0">
+        @if (!Model.Executions.Any())
+        {
+            <div class="text-center py-5 text-muted">
+                <i class="fas fa-inbox fa-2x opacity-25 mb-2 d-block"></i>
+                اجرایی ثبت نشده.
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>کاربر</th>
+                            <th class="text-center">وضعیت</th>
+                            <th class="text-center">اعتبار مصرفی</th>
+                            <th>تاریخ اجرا</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var e in Model.Executions)
+                        {
+                            var (lbl, col) = e.Status switch {
+                                ExecutionStatus.Completed => ("موفق",     "success"),
+                                ExecutionStatus.Failed    => ("ناموفق",   "danger"),
+                                ExecutionStatus.Refunded  => ("بازگشتی", "info"),
+                                _                         => ("در جریان", "warning")
+                            };
+                            var detailUrl = Url.Page("/Apps/ExecutionDetail", new { area = "Creator", appId = Model.App.Id, id = e.Id });
+                            <tr style="cursor:pointer;" onclick="location.href='@detailUrl'">
+                                <td class="small">
+                                    @{ var _av = e.User?.AvatarUrl; var _dn = e.User?.DisplayName ?? "—"; }
+                                    <span class="user-chip">
+                                        <span class="uc-avatar @(string.IsNullOrEmpty(_av) ? "uc-initials" : "")">
+                                            @if (!string.IsNullOrEmpty(_av)) { <img src="@_av" alt="@_dn" /> } else { @_dn.FirstOrDefault() }
+                                        </span>
+                                        @_dn
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-@col">@lbl</span>
+                                </td>
+                                <td class="text-center small">@e.CreditUsed.ToFarsiDigits() اعتبار</td>
+                                <td class="small text-muted">@e.CreatedAt.ToShamsi("yy/MM/dd HH:mm")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- صفحه‌بندی -->
+            @if (Model.TotalPages > 1)
+            {
+                <div class="card-footer border-0 d-flex justify-content-center py-2">
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0">
+                            @if (Model.PageNum > 1)
+                            {
+                                <li class="page-item">
+                                    <a class="page-link" asp-page="/Apps/Executions" asp-route-appId="@Model.App.Id"
+                                       asp-route-PageNum="@(Model.PageNum - 1)"
+                                       asp-route-FilterStatus="@Model.FilterStatus"
+                                       asp-route-Search="@Model.Search">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </a>
+                                </li>
+                            }
+                            @for (int i = Math.Max(1, Model.PageNum - 2); i <= Math.Min(Model.TotalPages, Model.PageNum + 2); i++)
+                            {
+                                <li class="page-item @(i == Model.PageNum ? "active" : "")">
+                                    <a class="page-link" asp-page="/Apps/Executions" asp-route-appId="@Model.App.Id"
+                                       asp-route-PageNum="@i"
+                                       asp-route-FilterStatus="@Model.FilterStatus"
+                                       asp-route-Search="@Model.Search">@i.ToFarsiDigits()</a>
+                                </li>
+                            }
+                            @if (Model.PageNum < Model.TotalPages)
+                            {
+                                <li class="page-item">
+                                    <a class="page-link" asp-page="/Apps/Executions" asp-route-appId="@Model.App.Id"
+                                       asp-route-PageNum="@(Model.PageNum + 1)"
+                                       asp-route-FilterStatus="@Model.FilterStatus"
+                                       asp-route-Search="@Model.Search">
+                                        <i class="fas fa-chevron-left"></i>
+                                    </a>
+                                </li>
+                            }
+                        </ul>
+                    </nav>
+                </div>
+            }
+        }
+    </div>
+</div>

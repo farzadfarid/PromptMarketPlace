@@ -43,8 +43,16 @@ else
                         var w = row.Request;
                         <tr>
                             <td>
-                                <div class="fw-semibold small">@w.Creator?.User?.DisplayName</div>
-                                <small class="text-muted">@w.Creator?.User?.Email</small>
+                                @{ var _av = w.Creator?.User?.AvatarUrl; var _dn = w.Creator?.User?.DisplayName ?? "—"; }
+                                <span class="user-chip">
+                                    <span class="uc-avatar @(string.IsNullOrEmpty(_av) ? "uc-initials" : "")">
+                                        @if (!string.IsNullOrEmpty(_av)) { <img src="@_av" alt="@_dn" /> } else { @_dn.FirstOrDefault() }
+                                    </span>
+                                    <span>
+                                        <div class="fw-semibold small">@_dn</div>
+                                        <small class="text-muted">@w.Creator?.User?.Email</small>
+                                    </span>
+                                </span>
                             </td>
                             <td class="text-center fw-semibold">@w.Amount.N0Fa()</td>
                             <td><code class="small">@row.Sheba</code></td>
@@ -157,8 +165,16 @@ else
                     var (sl, sc) = statusLabels[w.Status];
                     <tr>
                         <td class="small">
-                            <div class="fw-semibold">@w.Creator?.User?.DisplayName</div>
-                            <small class="text-muted">@w.Creator?.User?.Email</small>
+                            @{ var _av2 = w.Creator?.User?.AvatarUrl; var _dn2 = w.Creator?.User?.DisplayName ?? "—"; }
+                            <span class="user-chip">
+                                <span class="uc-avatar @(string.IsNullOrEmpty(_av2) ? "uc-initials" : "")">
+                                    @if (!string.IsNullOrEmpty(_av2)) { <img src="@_av2" alt="@_dn2" /> } else { @_dn2.FirstOrDefault() }
+                                </span>
+                                <span>
+                                    <div class="fw-semibold">@_dn2</div>
+                                    <small class="text-muted">@w.Creator?.User?.Email</small>
+                                </span>
+                            </span>
                         </td>
                         <td class="text-center small fw-semibold">@w.Amount.N0Fa()</td>
                         <td><code class="small">@row.Sheba</code></td>

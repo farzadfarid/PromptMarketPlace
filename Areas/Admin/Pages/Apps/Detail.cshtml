@@ -110,8 +110,14 @@
                 <dl class="row mb-0 small">
                     <dt class="col-5 text-muted">سازنده</dt>
                     <dd class="col-7">
+                        @{ var _av0 = a.Creator.User?.AvatarUrl; var _dn0 = a.Creator.User?.DisplayName ?? "—"; }
                         <a asp-area="Admin" asp-page="/Users/Detail" asp-route-id="@a.Creator.UserId"
-                           class="text-decoration-none">@a.Creator.User?.DisplayName</a>
+                           class="text-decoration-none user-chip">
+                            <span class="uc-avatar @(string.IsNullOrEmpty(_av0) ? "uc-initials" : "")">
+                                @if (!string.IsNullOrEmpty(_av0)) { <img src="@_av0" alt="@_dn0" /> } else { @_dn0.FirstOrDefault() }
+                            </span>
+                            @_dn0
+                        </a>
                     </dd>
                     <dt class="col-5 text-muted">دسته‌بندی</dt>
                     <dd class="col-7">
@@ -221,7 +227,7 @@
                 </h6>
                 <dl class="row mb-0 small">
                     <dt class="col-7 text-muted">هزینه اعتبار تنظیم شده</dt>
-                    <dd class="col-5 fw-semibold">@a.CreditCost اعتبار</dd>
+                    <dd class="col-5 fw-semibold">@a.CreditCost.ToFarsiDigits() اعتبار</dd>
                     <dt class="col-7 text-muted">ظرفیت هر اعتبار</dt>
                     <dd class="col-5 text-muted">~۱٬۰۰۰ توکن</dd>
                     @if (Model.AvgTokensAll.HasValue)
@@ -269,7 +275,9 @@
                      id="adminTokenCalc"
                      data-prompt="@Model.PromptCharCount"
                      data-sys="@Model.SystemContextCharCount"
-                     data-fields="@(System.Text.Json.JsonSerializer.Serialize(a.InputFields.Select(f => f.Type.ToString())))">
+                     data-fields="@(System.Text.Json.JsonSerializer.Serialize(a.InputFields.Select(f => f.Type.ToString())))"
+                     data-outputtype="@a.OutputType"
+                     data-creditcost="@a.CreditCost">
                     <table class="table table-sm small mb-2">
                         <tbody>
                             <tr>
@@ -368,9 +376,22 @@
                             var lbl = s switch { ExecutionStatus.Completed => "موفق", ExecutionStatus.Failed => "ناموفق", ExecutionStatus.Refunded => "بازگشتی", _ => "همه" };
                             <a asp-area="Admin" asp-page="/Apps/Detail" asp-route-id="@a.Id"
                                asp-route-FilterStatus="@s" asp-route-ExecPage="1"
+                               asp-route-ExecSearch="@Model.ExecSearch"
                                class="btn btn-sm @(Model.FilterStatus == s ? "btn-primary" : "btn-outline-secondary") py-0">@lbl</a>
                         }
                     </div>
+                    <form method="get" class="d-flex gap-1 align-items-center">
+                        <input type="hidden" name="id" value="@a.Id" />
+                        <input type="hidden" name="FilterStatus" value="@Model.FilterStatus" />
+                        <input type="hidden" name="ExecPage" value="1" />
+                        <div class="input-group input-group-sm" style="max-width:200px;">
+                            <input type="text" name="ExecSearch" value="@Model.ExecSearch"
+                                   class="form-control form-control-sm" placeholder="جستجو نام کاربر..." />
+                            <button type="submit" class="btn btn-sm btn-outline-secondary">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </form>
                     <small class="text-muted">@Model.ExecutionTotalCount.N0Fa() اجرا</small>
                 </div>
 
@@ -399,7 +420,15 @@
                                     };
                                     <tr style="cursor:pointer"
                                         onclick="window.location='/Admin/Executions/@e.Id?userId=@e.UserId'">
-                                        <td class="small">@e.User?.DisplayName</td>
+                                        <td class="small">
+                                            @{ var _av = e.User?.AvatarUrl; var _dn = e.User?.DisplayName ?? "—"; }
+                                            <span class="user-chip">
+                                                <span class="uc-avatar @(string.IsNullOrEmpty(_av) ? "uc-initials" : "")">
+                                                    @if (!string.IsNullOrEmpty(_av)) { <img src="@_av" alt="@_dn" /> } else { @_dn.FirstOrDefault() }
+                                                </span>
+                                                @_dn
+                                            </span>
+                                        </td>
                                         <td class="text-center"><span class="badge bg-@ec">@el</span></td>
                                         <td class="text-center small">@e.CreditUsed.N0Fa()</td>
                                         <td class="small text-muted">@e.CreatedAt.ToShamsi("yy/MM/dd HH:mm")</td>
@@ -418,7 +447,8 @@
                                     <li class="page-item @(i == Model.ExecPage ? "active" : "")">
                                         <a class="page-link" asp-area="Admin" asp-page="/Apps/Detail"
                                            asp-route-id="@a.Id" asp-route-ExecPage="@i"
-                                           asp-route-FilterStatus="@Model.FilterStatus">@i.ToFarsiDigits()</a>
+                                           asp-route-FilterStatus="@Model.FilterStatus"
+                                           asp-route-ExecSearch="@Model.ExecSearch">@i.ToFarsiDigits()</a>
                                     </li>
                                 }
                             </ul>
@@ -441,26 +471,40 @@
                             @a.ShowcaseItems.Count.N0Fa() نمونه
                         </span>
                     </div>
-                    <div class="row g-3">
+                    <div class="row g-2">
                         @{ int showcaseIdx = 0; }
                         @foreach (var item in a.ShowcaseItems)
                         {
                             showcaseIdx++;
-                            <div class="col-md-6">
+                            <div class="col-xl-4 col-md-6">
                                 <div class="showcase-card h-100 rounded-3 overflow-hidden" style="border:1px solid rgba(255,255,255,.07);">
-                                    <div class="px-3 py-2 d-flex align-items-center justify-content-between"
+                                    <div class="px-2 py-1 d-flex align-items-center justify-content-between"
                                          style="background:rgba(249,115,22,.08);border-bottom:1px solid rgba(249,115,22,.12);">
-                                        <span style="font-size:.72rem;color:#f97316;font-weight:600;">
+                                        <span style="font-size:.7rem;color:#f97316;font-weight:600;">
                                             نمونه @showcaseIdx.ToFarsiDigits()
                                         </span>
                                         @if (!string.IsNullOrEmpty(item.Caption))
                                         {
-                                            <span class="text-muted" style="font-size:.7rem;">@item.Caption</span>
+                                            <span class="text-muted text-truncate ms-2" style="font-size:.65rem;max-width:120px;">@item.Caption</span>
                                         }
                                     </div>
                                     @if (item.OutputType == OutputType.Image && !string.IsNullOrEmpty(item.OutputUrl))
                                     {
-                                        <img src="@item.OutputUrl" class="w-100" style="max-height:220px;object-fit:cover;display:block;" />
+                                        <img src="@item.OutputUrl" class="w-100" style="height:160px;object-fit:cover;display:block;" />
+                                    }
+                                    else if (item.OutputType == OutputType.Video && !string.IsNullOrEmpty(item.OutputUrl))
+                                    {
+                                        <video controls class="w-100" style="height:160px;display:block;background:#000;">
+                                            <source src="@item.OutputUrl" />
+                                        </video>
+                                    }
+                                    else if (item.OutputType == OutputType.Audio && !string.IsNullOrEmpty(item.OutputUrl))
+                                    {
+                                        <div class="p-3 d-flex align-items-center" style="min-height:80px;">
+                                            <audio controls class="w-100">
+                                                <source src="@item.OutputUrl" />
+                                            </audio>
+                                        </div>
                                     }
                                     else if (!string.IsNullOrEmpty(item.OutputText))
                                     {
@@ -520,7 +564,13 @@
                             <div class="d-flex justify-content-between align-items-start gap-2">
                                 <div class="flex-grow-1">
                                     <div class="d-flex align-items-center gap-2 flex-wrap">
-                                        <span class="small fw-semibold">@r.User?.DisplayName</span>
+                                        @{ var _avR = r.User?.AvatarUrl; var _dnR = r.User?.DisplayName ?? "—"; }
+                                        <span class="user-chip small fw-semibold">
+                                            <span class="uc-avatar @(string.IsNullOrEmpty(_avR) ? "uc-initials" : "")">
+                                                @if (!string.IsNullOrEmpty(_avR)) { <img src="@_avR" alt="@_dnR" /> } else { @_dnR.FirstOrDefault() }
+                                            </span>
+                                            @_dnR
+                                        </span>
                                         <span class="text-warning small">
                                             @for (int s = 1; s <= 5; s++)
                                             { <i class="fas fa-star@(s <= r.Rating ? "" : " text-muted opacity-25")" style="font-size:.7rem"></i> }
@@ -630,16 +680,32 @@
     var FIELD_TOKENS = { Textarea: 300, Text: 50, Select: 5, Number: 5, Checkbox: 3 };
     var el = document.getElementById('adminTokenCalc');
     if (el) {
-        var promptTokens = Math.round((parseInt(el.dataset.prompt) || 0) / 3.5);
-        var sysTokens    = Math.round((parseInt(el.dataset.sys)    || 0) / 3.5);
-        var fields       = JSON.parse(el.dataset.fields || '[]');
-        var fieldTokens  = fields.reduce(function (s, t) { return s + (FIELD_TOKENS[t] || 30); }, 0);
+        var promptTokens  = Math.round((parseInt(el.dataset.prompt) || 0) / 3.5);
+        var sysTokens     = Math.round((parseInt(el.dataset.sys)    || 0) / 3.5);
+        var fields        = JSON.parse(el.dataset.fields || '[]');
+        var fieldTokens   = fields.reduce(function (s, t) { return s + (FIELD_TOKENS[t] || 30); }, 0);
+        var outputType    = (el.dataset.outputtype || '').toLowerCase();
+        var creditCost    = parseInt(el.dataset.creditcost) || 0;
+        var isMediaOutput = outputType === 'video' || outputType === 'audio' || outputType === 'image';
 
         document.getElementById('atc-sys').textContent    = sysTokens.toLocaleString('fa-IR');
         document.getElementById('atc-prompt').textContent = promptTokens.toLocaleString('fa-IR');
         document.getElementById('atc-fields').textContent = fieldTokens.toLocaleString('fa-IR');
 
+        if (isMediaOutput) {
+            var sliderRow = document.getElementById('atc-slider');
+            if (sliderRow) sliderRow.closest('tr').style.opacity = '0.35';
+            document.getElementById('atc-out').textContent   = '—';
+            document.getElementById('atc-total').textContent = '—';
+            document.getElementById('atc-credits').textContent = creditCost.toLocaleString('fa-IR') + ' اعتبار';
+            var noteEl = document.querySelector('#tokenCalcBox .text-muted.small');
+            if (noteEl) noteEl.textContent = 'هزینه ' + (outputType === 'video' ? 'ویدیو' : outputType === 'audio' ? 'صدا' : 'تصویر') + ' — هزینه ثابت API';
+            var subEl = document.querySelector('#atc-credits + div');
+            if (subEl) subEl.textContent = 'اعتبار | هزینه ثابت (نه توکن‌محور)';
+        }
+
         window.updateAdminCalc = function () {
+            if (isMediaOutput) return;
             var outVal = parseInt(document.getElementById('atc-slider').value) || 500;
             document.getElementById('atc-out-lbl').textContent = outVal.toLocaleString('fa-IR');
             document.getElementById('atc-out').textContent     = outVal.toLocaleString('fa-IR');

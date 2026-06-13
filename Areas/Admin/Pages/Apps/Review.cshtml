@@ -32,8 +32,15 @@
                 <span class="badge bg-info ms-1">@a.AiModel?.Name</span>
             </div>
             <div class="text-muted small">
-                سازنده: <strong>@a.Creator?.User?.DisplayName</strong> —
-                ثبت: @a.UpdatedAt.ToString("yy/MM/dd HH:mm")
+                سازنده:
+                @{ var _av = a.Creator?.User?.AvatarUrl; var _dn = a.Creator?.User?.DisplayName ?? "—"; }
+                <strong class="user-chip">
+                    <span class="uc-avatar @(string.IsNullOrEmpty(_av) ? "uc-initials" : "")">
+                        @if (!string.IsNullOrEmpty(_av)) { <img src="@_av" alt="@_dn" /> } else { @_dn.FirstOrDefault() }
+                    </span>
+                    @_dn
+                </strong> —
+                ثبت: @a.UpdatedAt.ToShamsi("yy/MM/dd HH:mm")
             </div>
         </div>
         <div class="card-body">
@@ -50,7 +57,7 @@
                     </div>
                     <div class="mb-2">
                         <div class="text-muted small fw-semibold mb-1">هزینه اجرا</div>
-                        <div class="small">@a.CreditCost اعتبار</div>
+                        <div class="small">@a.CreditCost.ToFarsiDigits() اعتبار</div>
                     </div>
                 </div>
 
