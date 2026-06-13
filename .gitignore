@@ -1,9 +1,6 @@
 ## Credentials (never commit)
 vertex-ai-credentials.json
 
-## User-uploaded content (binary files, not part of source)
-wwwroot/uploads/
-
 ## .NET / ASP.NET Core
 bin/
 obj/
