@@ -22,6 +22,7 @@ public class SubmitModel : PageModel
     public bool HasFields { get; set; }
     public bool HasShowcase { get; set; }
     public bool CanSubmit { get; set; }
+    public AppStatus AppStatus { get; set; }
 
     public async Task<IActionResult> OnGetAsync(int appId)
     {
@@ -36,6 +37,7 @@ public class SubmitModel : PageModel
         if (app == null) return NotFound();
 
         App = app;
+        AppStatus = app.Status;
         HasFields = app.InputFields.Any();
         HasShowcase = app.ShowcaseItems.Count >= 3;
         CanSubmit = HasFields && HasShowcase && app.Status == AppStatus.Draft;

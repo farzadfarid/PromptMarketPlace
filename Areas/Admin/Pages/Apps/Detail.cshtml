@@ -538,7 +538,15 @@
                                     </div>
                                     @if (item.OutputType == OutputType.Image && !string.IsNullOrEmpty(item.OutputUrl))
                                     {
-                                        <img src="@item.OutputUrl" class="w-100" style="height:160px;object-fit:cover;display:block;" />
+                                        <div class="showcase-img-wrap" style="position:relative;cursor:zoom-in;"
+                                             data-url="@item.OutputUrl"
+                                             data-caption="@(item.Caption ?? $"نمونه {showcaseIdx}")"
+                                             onclick="openShowcaseModal('@item.OutputUrl','@(item.Caption ?? $"نمونه {showcaseIdx}")')">
+                                            <img src="@item.OutputUrl" class="w-100" style="height:160px;object-fit:cover;display:block;" />
+                                            <div class="showcase-img-overlay">
+                                                <i class="fas fa-expand-alt"></i>
+                                            </div>
+                                        </div>
                                     }
                                     else if (item.OutputType == OutputType.Video && !string.IsNullOrEmpty(item.OutputUrl))
                                     {
@@ -684,6 +692,31 @@
     </div>
 </div>
 
+<!-- Modal Lightbox نمونه خروجی -->
+<div class="modal fade" id="showcaseModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:min(92vw,860px)">
+        <div class="modal-content" style="background:rgba(15,15,20,.97);border:1px solid rgba(255,255,255,.1);border-radius:16px;overflow:hidden;">
+            <div class="modal-header border-0 px-4 py-2" style="background:rgba(249,115,22,.06);">
+                <span id="showcaseModalCaption" class="fw-semibold small" style="color:#fed7aa;"></span>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" style="font-size:.75rem;"></button>
+            </div>
+            <div class="modal-body p-0 d-flex align-items-center justify-content-center" style="min-height:200px;background:#0a0a0f;">
+                <img id="showcaseModalImg" src="" alt=""
+                     style="max-width:100%;max-height:80vh;object-fit:contain;display:block;border-radius:0 0 16px 16px;" />
+            </div>
+            <div class="modal-footer border-0 py-2 px-4 justify-content-between" style="background:rgba(0,0,0,.4);">
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="showcasePrev">
+                    <i class="fas fa-chevron-right me-1"></i>قبلی
+                </button>
+                <span id="showcaseCounter" class="text-muted small"></span>
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="showcaseNext">
+                    بعدی<i class="fas fa-chevron-left ms-1"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Modal ارسال پیام -->
 <div class="modal fade" id="msgModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
@@ -720,6 +753,26 @@
         </div>
     </div>
 </div>
+
+@section Styles {
+<style>
+.showcase-img-wrap .showcase-img-overlay {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0);
+    display: flex; align-items: center; justify-content: center;
+    transition: background .2s;
+    color: #fff; font-size: 1.4rem; opacity: 0;
+    transition: opacity .2s, background .2s;
+}
+.showcase-img-wrap:hover .showcase-img-overlay {
+    background: rgba(0,0,0,.45);
+    opacity: 1;
+}
+.showcase-img-overlay i {
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,.6));
+}
+</style>
+}
 
 @section Scripts {
 <script>
@@ -832,6 +885,49 @@
             });
         }
     });
+
+    // ─── Showcase Lightbox ────────────────────────────────
+    var showcaseImages = [];
+    document.querySelectorAll('.showcase-img-wrap').forEach(function (el) {
+        showcaseImages.push({ url: el.dataset.url, caption: el.dataset.caption });
+    });
+
+    var currentIdx = 0;
+    var modalEl = document.getElementById('showcaseModal');
+    var modalImg = document.getElementById('showcaseModalImg');
+    var modalCaption = document.getElementById('showcaseModalCaption');
+    var modalCounter = document.getElementById('showcaseCounter');
+
+    function showSlide(idx) {
+        if (!showcaseImages.length) return;
+        currentIdx = (idx + showcaseImages.length) % showcaseImages.length;
+        var item = showcaseImages[currentIdx];
+        modalImg.style.opacity = '0';
+        setTimeout(function () {
+            modalImg.src = item.url;
+            modalImg.onload = function () { modalImg.style.opacity = '1'; };
+            modalCaption.textContent = item.caption;
+            modalCounter.textContent = (currentIdx + 1) + ' / ' + showcaseImages.length;
+        }, 120);
+    }
+
+    window.openShowcaseModal = function (url, caption) {
+        var idx = showcaseImages.findIndex(function (x) { return x.url === url; });
+        showSlide(idx >= 0 ? idx : 0);
+        bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    };
+
+    document.getElementById('showcasePrev').addEventListener('click', function () { showSlide(currentIdx - 1); });
+    document.getElementById('showcaseNext').addEventListener('click', function () { showSlide(currentIdx + 1); });
+
+    document.addEventListener('keydown', function (e) {
+        if (!modalEl.classList.contains('show')) return;
+        if (e.key === 'ArrowRight') showSlide(currentIdx - 1);
+        if (e.key === 'ArrowLeft')  showSlide(currentIdx + 1);
+        if (e.key === 'Escape') bootstrap.Modal.getInstance(modalEl)?.hide();
+    });
+
+    modalImg.style.transition = 'opacity .15s ease';
 })();
 </script>
 }
