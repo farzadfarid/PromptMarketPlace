@@ -38,7 +38,7 @@ async function showApiKey() {
         var resp = await fetch('?handler=DecryptedKey&id=' + id);
         var data = await resp.json();
         if (data.success) { input.value = data.key; btn.innerHTML = '<i class="fas fa-eye-slash"></i>'; }
-        else { btn.innerHTML = '<i class="fas fa-eye"></i>'; alert('دریافت API Key ناموفق بود.'); }
+        else { btn.innerHTML = '<i class="fas fa-eye"></i>'; showAlert('دریافت API Key ناموفق بود.', 'error'); }
     } catch { btn.innerHTML = '<i class="fas fa-eye"></i>'; }
 }
 
@@ -71,7 +71,7 @@ async function toggleCapability(btn) {
         if (!data.success) {
             btn.innerHTML = originalHtml;
             btn.disabled = false;
-            alert(data.message || 'خطا در تغییر وضعیت');
+            showAlert(data.message || 'خطا در تغییر وضعیت', 'error');
             return;
         }
 
@@ -92,7 +92,7 @@ async function toggleCapability(btn) {
     } catch {
         btn.innerHTML = originalHtml;
         btn.disabled = false;
-        alert('خطا در ارتباط با سرور');
+        showAlert('خطا در ارتباط با سرور', 'error');
     }
 }
 

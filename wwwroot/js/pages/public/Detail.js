@@ -6,8 +6,9 @@ function handleAudioUpload(input, fieldName) {
     var area        = document.getElementById('uploadArea_'        + fieldName);
     if (!input.files || !input.files[0]) return;
     var file = input.files[0];
-    if (file.size > 50 * 1024 * 1024) {
-        alert('حجم فایل نباید بیشتر از ۵۰ مگابایت باشد.');
+    if (file.size > 150 * 1024 * 1024) {
+        if (window.showAlert) showAlert('حجم فایل نباید بیشتر از ۱۵۰ مگابایت باشد.', 'warning');
+        else alert('حجم فایل نباید بیشتر از ۱۵۰ مگابایت باشد.');
         input.value = '';
         return;
     }
@@ -27,7 +28,8 @@ function handleFileUpload(input, fieldName) {
     if (!input.files || !input.files[0]) return;
     var file = input.files[0];
     if (file.size > 10 * 1024 * 1024) {
-        alert('حجم فایل نباید بیشتر از ۱۰ مگابایت باشد.');
+        if (window.showAlert) showAlert('حجم فایل نباید بیشتر از ۱۰ مگابایت باشد.', 'warning');
+        else alert('حجم فایل نباید بیشتر از ۱۰ مگابایت باشد.');
         input.value = '';
         return;
     }

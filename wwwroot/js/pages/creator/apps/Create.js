@@ -294,7 +294,7 @@ function uploadImgOpt(input) {
                 thumb.innerHTML = '<img src="' + data.url + '" style="width:100%;height:100%;object-fit:cover;" />';
             } else {
                 thumb.innerHTML = '<i class="fas fa-exclamation-triangle" style="color:#f87171;font-size:1rem;"></i>';
-                alert(data.error || 'خطا در آپلود');
+                showAlert(data.error || 'خطا در آپلود', 'error');
             }
         })
         .catch(function() {

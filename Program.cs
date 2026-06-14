@@ -44,6 +44,13 @@ try
     builder.WebHost.ConfigureKestrel(options =>
     {
         options.RequestHeaderEncodingSelector = _ => System.Text.Encoding.UTF8;
+        options.Limits.MaxRequestBodySize = 157_286_400; // 150 MB
+    });
+
+    builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(o =>
+    {
+        o.MultipartBodyLengthLimit = 157_286_400; // 150 MB
+        o.ValueLengthLimit         = 157_286_400;
     });
 
     builder.Services.AddDbContext<ApplicationDbContext>(options =>

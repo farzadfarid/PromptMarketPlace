@@ -1,6 +1,66 @@
 (function () {
     'use strict';
 
+    /* ─── Alert Toast ──────────────────────────────────────────────── */
+    const ALERT_TYPES = {
+        success: { icon: 'fa-check-circle',        accent: '#22c55e', bg: '#f0fdf4', text: '#166534' },
+        warning: { icon: 'fa-exclamation-triangle', accent: '#f59e0b', bg: '#fffbeb', text: '#92400e' },
+        error:   { icon: 'fa-times-circle',         accent: '#ef4444', bg: '#fef2f2', text: '#991b1b' },
+        info:    { icon: 'fa-info-circle',           accent: '#3b82f6', bg: '#eff6ff', text: '#1e40af' },
+    };
+
+    let toastContainer = null;
+
+    function getToastContainer() {
+        if (!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.id = 'appAlertContainer';
+            toastContainer.style.cssText =
+                'position:fixed;bottom:1.5rem;left:1.5rem;z-index:9999;display:flex;flex-direction:column-reverse;gap:.65rem;pointer-events:none;';
+            document.body.appendChild(toastContainer);
+        }
+        return toastContainer;
+    }
+
+    function showAlert(message, type) {
+        type = type || 'info';
+        const cfg = ALERT_TYPES[type] || ALERT_TYPES.info;
+        const container = getToastContainer();
+
+        const el = document.createElement('div');
+        el.style.cssText =
+            'background:' + cfg.bg + ';border:1px solid ' + cfg.accent + '30;border-left:4px solid ' + cfg.accent + ';' +
+            'border-radius:12px;padding:.85rem 1.1rem;display:flex;align-items:flex-start;gap:.75rem;' +
+            'box-shadow:0 8px 24px rgba(0,0,0,.12);pointer-events:all;max-width:340px;' +
+            'opacity:0;transform:translateY(16px) scale(.97);transition:opacity .22s ease,transform .22s cubic-bezier(.34,1.56,.64,1);';
+
+        el.innerHTML =
+            '<i class="fas ' + cfg.icon + '" style="color:' + cfg.accent + ';font-size:1.1rem;margin-top:.05rem;flex-shrink:0;"></i>' +
+            '<span style="color:' + cfg.text + ';font-size:.875rem;line-height:1.5;flex:1;">' + message + '</span>' +
+            '<button style="background:none;border:none;cursor:pointer;color:' + cfg.text + ';opacity:.5;padding:0;margin-top:.05rem;font-size:.8rem;line-height:1;" aria-label="بستن">' +
+            '<i class="fas fa-times"></i></button>';
+
+        container.appendChild(el);
+        requestAnimationFrame(function () {
+            el.style.opacity = '1';
+            el.style.transform = 'translateY(0) scale(1)';
+        });
+
+        var closeBtn = el.querySelector('button');
+        function dismiss() {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(8px) scale(.97)';
+            setTimeout(function () { el.remove(); }, 230);
+        }
+        closeBtn.addEventListener('click', dismiss);
+        var timer = setTimeout(dismiss, 4500);
+        el.addEventListener('mouseenter', function () { clearTimeout(timer); });
+        el.addEventListener('mouseleave', function () { timer = setTimeout(dismiss, 2000); });
+    }
+
+    window.showAlert = showAlert;
+
+    /* ─── Confirm Modal ────────────────────────────────────────────── */
     let modalEl = null;
     let bsModal  = null;
     let pendingCb = null;
