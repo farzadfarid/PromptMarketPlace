@@ -37,13 +37,32 @@ public class VertexAiStrategy : BaseProviderStrategy
             var token = await GetAccessTokenAsync(apiKey);
             var client = BuildClient(baseUrl);
 
+            // Small serializable parts (text, inline images)
             var userParts = new List<object> { new { text = prompt } };
+            // Large binary audio parts — written via Utf8JsonWriter to avoid OOM
+            var audioBinaryParts = new List<(byte[] Bytes, string Mime)>();
+
             if (inputImageUrls != null)
             {
                 foreach (var url in inputImageUrls)
                 {
-                    var isAudio = IsAudioUrl(url);
-                    if (isAudio)
+                    if (url.StartsWith("localfile:", StringComparison.OrdinalIgnoreCase))
+                    {
+                        // Audio saved to local disk — read bytes directly to avoid intermediate base64 string
+                        var sep = url.IndexOf('|');
+                        var filePath = sep > 0 ? url[10..sep] : url[10..];
+                        var mime    = sep > 0 ? url[(sep + 1)..] : "audio/mpeg";
+                        try
+                        {
+                            var bytes = await File.ReadAllBytesAsync(filePath);
+                            audioBinaryParts.Add((bytes, mime));
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.LogWarning(ex, "Vertex AI: could not read local audio file {Path}", filePath);
+                        }
+                    }
+                    else if (IsAudioUrl(url))
                     {
                         try
                         {
@@ -69,7 +88,7 @@ public class VertexAiStrategy : BaseProviderStrategy
                                           : ext == ".ogg" ? "audio/ogg"
                                           : ext == ".flac" ? "audio/flac" : "audio/mpeg";
                             }
-                            userParts.Add(new { inlineData = new { mimeType = audioMime, data = Convert.ToBase64String(audioBytes) } });
+                            audioBinaryParts.Add((audioBytes, audioMime));
                         }
                         catch (Exception ex)
                         {
@@ -88,18 +107,15 @@ public class VertexAiStrategy : BaseProviderStrategy
                 }
             }
 
-            var requestBody = new Dictionary<string, object>
-            {
-                ["contents"] = new[] { new { role = "user", parts = userParts } },
-                ["generationConfig"] = new { maxOutputTokens = model.MaxTokens ?? 8192 }
-            };
-            if (!string.IsNullOrWhiteSpace(systemContext))
-                requestBody["systemInstruction"] = new { parts = new[] { new { text = systemContext } } };
+            // Build request JSON — use Utf8JsonWriter so binary audio parts are encoded
+            // directly from bytes (WriteBase64StringValue) without creating a ~150 MB string.
+            var bodyStream = BuildChatRequestStream(prompt, systemContext, userParts, audioBinaryParts, model.MaxTokens ?? 8192);
+            var content = new StreamContent(bodyStream);
+            content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
 
-            var body = JsonSerializer.Serialize(requestBody);
             var request = BuildBearerRequest(HttpMethod.Post,
                 $"publishers/google/models/{model.ModelId}:generateContent",
-                new StringContent(body, Encoding.UTF8, "application/json"), token);
+                content, token);
 
             var response = await client.SendAsync(request);
             var json = await response.Content.ReadAsStringAsync();
@@ -124,6 +140,63 @@ public class VertexAiStrategy : BaseProviderStrategy
             Logger.LogError(ex, "Vertex AI chat failed for model {ModelId}", model.ModelId);
             return AiResponse.Fail("خطا در ارتباط با Vertex AI.");
         }
+    }
+
+    private static MemoryStream BuildChatRequestStream(
+        string prompt, string? systemContext,
+        List<object> textAndImageParts,
+        List<(byte[] Bytes, string Mime)> audioBinaryParts,
+        int maxTokens)
+    {
+        var buffer = new MemoryStream();
+        using (var writer = new System.Text.Json.Utf8JsonWriter(buffer, new System.Text.Json.JsonWriterOptions { SkipValidation = true }))
+        {
+            writer.WriteStartObject();
+
+            writer.WritePropertyName("contents");
+            writer.WriteStartArray();
+            writer.WriteStartObject();
+            writer.WriteString("role", "user");
+            writer.WritePropertyName("parts");
+            writer.WriteStartArray();
+
+            // Serialize small parts (text, images) using standard serializer
+            foreach (var part in textAndImageParts)
+                writer.WriteRawValue(JsonSerializer.SerializeToUtf8Bytes(part));
+
+            // Write binary audio parts directly — no intermediate base64 string
+            foreach (var (bytes, mime) in audioBinaryParts)
+            {
+                writer.WriteStartObject();
+                writer.WritePropertyName("inlineData");
+                writer.WriteStartObject();
+                writer.WriteString("mimeType", mime);
+                writer.WritePropertyName("data");
+                writer.WriteBase64StringValue(bytes);
+                writer.WriteEndObject();
+                writer.WriteEndObject();
+            }
+
+            writer.WriteEndArray(); // parts
+            writer.WriteEndObject(); // content item
+            writer.WriteEndArray(); // contents
+
+            writer.WritePropertyName("generationConfig");
+            writer.WriteStartObject();
+            writer.WriteNumber("maxOutputTokens", maxTokens);
+            writer.WriteEndObject();
+
+            if (!string.IsNullOrWhiteSpace(systemContext))
+            {
+                writer.WritePropertyName("systemInstruction");
+                writer.WriteRawValue(JsonSerializer.SerializeToUtf8Bytes(
+                    new { parts = new[] { new { text = systemContext } } }));
+            }
+
+            writer.WriteEndObject();
+        }
+        buffer.Position = 0;
+        return buffer;
     }
 
     public override async Task<AiResponse> RunImageAsync(AiModel model, string? apiKey,

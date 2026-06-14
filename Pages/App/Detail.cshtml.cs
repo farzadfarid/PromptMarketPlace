@@ -14,17 +14,19 @@ public class DetailModel : PageModel
     private readonly ICreditService _credits;
     private readonly IReviewService _reviews;
     private readonly IStorageService _storage;
+    private readonly IWebHostEnvironment _env;
     private readonly ILogger<DetailModel> _logger;
 
     public DetailModel(IAppService apps, IExecutionService execution,
         ICreditService credits, IReviewService reviews,
-        IStorageService storage, ILogger<DetailModel> logger)
+        IStorageService storage, IWebHostEnvironment env, ILogger<DetailModel> logger)
     {
         _apps = apps;
         _execution = execution;
         _credits = credits;
         _reviews = reviews;
         _storage = storage;
+        _env = env;
         _logger = logger;
     }
 
@@ -89,11 +91,25 @@ public class DetailModel : PageModel
             {
                 var relativePath = await _storage.SaveUploadAsync(formFile, "inputs");
                 Inputs[fieldName] = relativePath;
-                // Use base64 data URL so AI strategies don't need an outbound HTTP request to this server
-                using var ms = new MemoryStream();
-                formFile.OpenReadStream().CopyTo(ms);
-                var mimeType = formFile.ContentType ?? "application/octet-stream";
-                imageUrls.Add($"data:{mimeType};base64,{Convert.ToBase64String(ms.ToArray())}");
+
+                var mime = formFile.ContentType ?? "application/octet-stream";
+                var isAudio = mime.StartsWith("audio/", StringComparison.OrdinalIgnoreCase);
+
+                if (isAudio)
+                {
+                    // For audio: pass absolute local path to avoid loading 150 MB string into memory.
+                    // Strategy reads bytes from disk and writes base64 directly via Utf8JsonWriter.
+                    var absPath = Path.GetFullPath(
+                        Path.Combine(_env.WebRootPath, relativePath.TrimStart('/', '\\')));
+                    imageUrls.Add($"localfile:{absPath}|{mime}");
+                }
+                else
+                {
+                    // For images/other small files: base64 data URL is fine
+                    using var ms = new MemoryStream();
+                    await formFile.OpenReadStream().CopyToAsync(ms);
+                    imageUrls.Add($"data:{mime};base64,{Convert.ToBase64String(ms.ToArray())}");
+                }
             }
             catch (Exception ex)
             {

@@ -23,10 +23,13 @@
 
     @if (Model.OutputType == OutputType.Text || Model.OutputType == OutputType.Form)
     {
-        <div class="output-text-area">@Model.OutputText</div>
+        <div class="output-text-area" id="outputTextContent">@Model.OutputText</div>
         <div class="output-actions">
             <button class="btn btn-outline-secondary btn-sm" onclick="copyOutput()">
                 <i class="fas fa-copy me-1"></i>کپی
+            </button>
+            <button class="btn btn-outline-danger btn-sm" id="pdfBtn" onclick="downloadPdf()">
+                <i class="fas fa-file-pdf me-1"></i>دانلود PDF
             </button>
         </div>
     }
@@ -107,14 +110,4 @@
     }
 </div>
 
-<script>
-    function copyOutput() {
-        var text = document.querySelector('.output-text-area, #outputCode')?.innerText ?? '';
-        navigator.clipboard.writeText(text).then(() => {
-            var btn = document.querySelector('[onclick="copyOutput()"]');
-            var orig = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-check me-1"></i>کپی شد';
-            setTimeout(() => btn.innerHTML = orig, 2000);
-        });
-    }
-</script>
+<script src="~/js/shared/output-renderer.js"></script>
