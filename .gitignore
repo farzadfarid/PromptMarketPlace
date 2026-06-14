@@ -1,3 +1,6 @@
+## User uploads (large files - never commit)
+wwwroot/uploads/
+
 ## Credentials (never commit)
 vertex-ai-credentials.json
 
