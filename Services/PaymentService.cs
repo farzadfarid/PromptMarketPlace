@@ -18,10 +18,11 @@ public class PaymentService : IPaymentService
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IHttpClientFactory _httpFactory;
     private readonly ILogger<PaymentService> _logger;
+    private readonly INotificationService _notify;
 
     public PaymentService(ApplicationDbContext db, ISettingService settings, ICreditService credits,
         UserManager<ApplicationUser> userManager, IHttpClientFactory httpFactory,
-        ILogger<PaymentService> logger)
+        ILogger<PaymentService> logger, INotificationService notify)
     {
         _db = db;
         _settings = settings;
@@ -29,6 +30,7 @@ public class PaymentService : IPaymentService
         _userManager = userManager;
         _httpFactory = httpFactory;
         _logger = logger;
+        _notify = notify;
     }
 
     public async Task<List<Payment>> GetPaymentHistoryAsync(string userId, int page = 1, int pageSize = 20)
@@ -195,6 +197,11 @@ public class PaymentService : IPaymentService
                 $"خرید {payment.CreditAmount} اعتبار — کد پیگیری: {refId}",
                 payment.Id.ToString(),
                 TransactionType.Purchase);
+
+            await _notify.CreateAsync(payment.UserId,
+                $"خرید اعتبار موفق: {payment.CreditAmount} اعتبار",
+                $"پرداخت شما با موفقیت تایید شد. {payment.CreditAmount} اعتبار به کیف‌پول شما اضافه شد. کد پیگیری: {refId}",
+                null, "general");
 
             return PaymentVerifyResult.Success(refId ?? "", payment.CreditAmount);
         }

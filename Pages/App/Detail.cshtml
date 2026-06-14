@@ -30,6 +30,12 @@
                         <span class="badge bg-secondary-subtle border border-secondary-subtle">
                             @Model.App.OutputType
                         </span>
+                        @if (Model.App.IsPromptPublic)
+                        {
+                            <span class="badge" style="background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.35);color:#818cf8;">
+                                <i class="fas fa-lock-open me-1"></i>پرامپت باز
+                            </span>
+                        }
                     </div>
                     <p class="app-desc mb-2">@Model.App.ShortDescription</p>
                     <div class="d-flex gap-2 flex-wrap">
@@ -534,6 +540,26 @@
                             #@tag.TagName
                         </a>
                     }
+                </div>
+            }
+
+            <!-- پرامپت باز -->
+            @if (Model.App.IsPromptPublic && !string.IsNullOrEmpty(Model.PublicPrompt))
+            {
+                <div class="card border-0 p-3 mt-2" style="background:rgba(99,102,241,.07);border:1px solid rgba(99,102,241,.2)!important;">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <i class="fas fa-lock-open" style="color:#818cf8;"></i>
+                        <span class="fw-semibold" style="color:#a5b4fc;">پرامپت باز</span>
+                        <button id="copyPromptBtn" class="btn btn-sm ms-auto"
+                                style="background:rgba(99,102,241,.2);color:#a5b4fc;border:1px solid rgba(99,102,241,.3);">
+                            <i class="fas fa-copy me-1"></i>کپی
+                        </button>
+                    </div>
+                    <pre id="publicPromptText"
+                         style="white-space:pre-wrap;font-family:inherit;font-size:.85rem;color:#cbd5e1;background:rgba(0,0,0,.2);border-radius:8px;padding:12px;max-height:260px;overflow-y:auto;margin:0;">@Model.PublicPrompt</pre>
+                    <div class="mt-2 small" style="color:#94a3b8;">
+                        <i class="fas fa-info-circle me-1"></i>اجرای این ابزار <strong style="color:#fbbf24;">@Model.App.CreditCost.ToFarsiDigits() اعتبار</strong> نیاز دارد.
+                    </div>
                 </div>
             }
 

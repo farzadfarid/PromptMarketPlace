@@ -8,7 +8,13 @@ namespace PromptMarketPlace.Areas.Admin.Pages.Messages;
 public class AdminThreadModel : PageModel
 {
     private readonly IMessageService _msg;
-    public AdminThreadModel(IMessageService msg) => _msg = msg;
+    private readonly INotificationService _notify;
+
+    public AdminThreadModel(IMessageService msg, INotificationService notify)
+    {
+        _msg = msg;
+        _notify = notify;
+    }
 
     public MessageThread Thread { get; set; } = null!;
 
@@ -27,6 +33,15 @@ public class AdminThreadModel : PageModel
         var thread = await _msg.GetThreadAsync(id);
         if (thread == null) return NotFound();
         await _msg.SendAsync(id, isFromAdmin: true, content: content.Trim());
+
+        // GetThreadAsync already includes Creator (with UserId)
+        var creatorUserId = thread.Creator?.UserId;
+        if (creatorUserId != null)
+            await _notify.CreateAsync(creatorUserId,
+                $"پاسخ جدید از ادمین: {thread.Subject}",
+                content.Trim().Length > 80 ? content.Trim()[..80] + "…" : content.Trim(),
+                $"/Creator/Messages/Thread?id={id}", "general");
+
         return RedirectToPage(new { id });
     }
 }

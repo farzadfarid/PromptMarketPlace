@@ -9,7 +9,14 @@ public class CreatorThreadModel : PageModel
 {
     private readonly IMessageService _msg;
     private readonly ICreatorHelper _ch;
-    public CreatorThreadModel(IMessageService msg, ICreatorHelper ch) { _msg = msg; _ch = ch; }
+    private readonly INotificationService _notify;
+
+    public CreatorThreadModel(IMessageService msg, ICreatorHelper ch, INotificationService notify)
+    {
+        _msg = msg;
+        _ch = ch;
+        _notify = notify;
+    }
 
     public MessageThread Thread { get; set; } = null!;
 
@@ -34,6 +41,12 @@ public class CreatorThreadModel : PageModel
         if (thread == null) return NotFound();
         if (thread.CreatorProfileId != cid.Value) return Forbid();
         await _msg.SendAsync(id, isFromAdmin: false, content: content.Trim());
+
+        await _notify.CreateForAdminsAsync(
+            $"پاسخ جدید از سازنده: {thread.Subject}",
+            content.Trim().Length > 80 ? content.Trim()[..80] + "…" : content.Trim(),
+            $"/Admin/Messages/Thread?id={id}", "general");
+
         return RedirectToPage(new { id });
     }
 }

@@ -13,11 +13,13 @@ public class ReviewModel : PageModel
 {
     private readonly ApplicationDbContext _db;
     private readonly IEncryptionService _encryption;
+    private readonly INotificationService _notify;
 
-    public ReviewModel(ApplicationDbContext db, IEncryptionService encryption)
+    public ReviewModel(ApplicationDbContext db, IEncryptionService encryption, INotificationService notify)
     {
         _db = db;
         _encryption = encryption;
+        _notify = notify;
     }
 
     public List<AppReviewItem> Apps { get; set; } = new();
@@ -41,7 +43,9 @@ public class ReviewModel : PageModel
 
     public async Task<IActionResult> OnPostApproveAsync(int id, int creditCost)
     {
-        var app = await _db.Apps.FindAsync(id);
+        var app = await _db.Apps
+            .Include(a => a.Creator)
+            .FirstOrDefaultAsync(a => a.Id == id);
         if (app == null) return NotFound();
 
         app.Status = AppStatus.Active;
@@ -51,13 +55,21 @@ public class ReviewModel : PageModel
         await AddAuditAsync("ApproveApp", "App", id.ToString(),
             $"ابزار '{app.Title}' تایید شد — هزینه: {app.CreditCost} اعتبار");
 
+        if (app.Creator?.UserId != null)
+            await _notify.CreateAsync(app.Creator.UserId,
+                $"ابزار شما تایید و منتشر شد: {app.Title}",
+                $"تبریک! ابزار شما توسط ادمین بررسی و با هزینه {app.CreditCost} اعتبار منتشر شد.",
+                $"/Creator/Apps/Edit?appId={id}", "app_review");
+
         TempData["Success"] = $"ابزار «{app.Title}» تایید شد — هزینه اجرا: {app.CreditCost} اعتبار.";
         return RedirectToPage();
     }
 
     public async Task<IActionResult> OnPostRejectAsync(int id)
     {
-        var app = await _db.Apps.FindAsync(id);
+        var app = await _db.Apps
+            .Include(a => a.Creator)
+            .FirstOrDefaultAsync(a => a.Id == id);
         if (app == null) return NotFound();
 
         app.Status = AppStatus.Draft;
@@ -66,6 +78,12 @@ public class ReviewModel : PageModel
 
         var reason = RejectReason?.Trim() ?? "بدون دلیل";
         await AddAuditAsync("RejectApp", "App", id.ToString(), $"ابزار '{app.Title}' رد شد — {reason}");
+
+        if (app.Creator?.UserId != null)
+            await _notify.CreateAsync(app.Creator.UserId,
+                $"ابزار شما رد شد: {app.Title}",
+                $"دلیل: {reason}",
+                $"/Creator/Apps/Edit?appId={id}", "app_review");
 
         TempData["Warning"] = $"ابزار «{app.Title}» رد شد.";
         return RedirectToPage();

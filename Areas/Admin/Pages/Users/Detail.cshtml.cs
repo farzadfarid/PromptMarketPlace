@@ -15,12 +15,15 @@ public class DetailModel : PageModel
     private readonly ApplicationDbContext _db;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ICreditService _credits;
+    private readonly INotificationService _notify;
 
-    public DetailModel(ApplicationDbContext db, UserManager<ApplicationUser> userManager, ICreditService credits)
+    public DetailModel(ApplicationDbContext db, UserManager<ApplicationUser> userManager,
+        ICreditService credits, INotificationService notify)
     {
         _db = db;
         _userManager = userManager;
         _credits = credits;
+        _notify = notify;
     }
 
     public ApplicationUser? TargetUser { get; set; }
@@ -59,6 +62,13 @@ public class DetailModel : PageModel
         await AddAuditAsync(user.IsActive ? "UnblockUser" : "BlockUser", "User", id,
             $"کاربر {user.Email} {(user.IsActive ? "فعال" : "مسدود")} شد");
 
+        if (user.IsActive)
+            await _notify.CreateAsync(id, "حساب شما فعال شد",
+                "حساب کاربری شما توسط ادمین مجدداً فعال شد.", null, "general");
+        else
+            await _notify.CreateAsync(id, "حساب شما مسدود شد",
+                "حساب کاربری شما توسط ادمین مسدود شده است. برای اطلاعات بیشتر با پشتیبانی تماس بگیرید.", null, "general");
+
         TempData["Success"] = user.IsActive ? "کاربر فعال شد." : "کاربر مسدود شد.";
         return RedirectToPage(new { id });
     }
@@ -77,6 +87,17 @@ public class DetailModel : PageModel
         await _userManager.UpdateAsync(user);
 
         await AddAuditAsync("ChangeRole", "User", id, $"نقش {user.Email} به {newRole} تغییر یافت");
+
+        var roleLabel = newRole switch {
+            "Creator" => "سازنده",
+            "Admin"   => "ادمین",
+            _         => "کاربر"
+        };
+        await _notify.CreateAsync(id, $"نقش حساب شما به «{roleLabel}» تغییر کرد",
+            newRole == "Creator"
+                ? "اکنون می‌توانید به پنل سازنده دسترسی داشته باشید و ابزار بسازید."
+                : $"نقش حساب کاربری شما توسط ادمین به {roleLabel} تغییر یافت.",
+            newRole == "Creator" ? "/Creator/Dashboard/Index" : null, "general");
 
         TempData["Success"] = $"نقش کاربر به {newRole} تغییر یافت.";
         return RedirectToPage(new { id });
@@ -99,6 +120,13 @@ public class DetailModel : PageModel
 
         await AddAuditAsync("AdjustCredit", "User", id,
             $"تعدیل اعتبار {CreditAdjustment:+#;-#;0} — {CreditReason}");
+
+        var sign = CreditAdjustment > 0 ? "+" : "";
+        await _notify.CreateAsync(id,
+            CreditAdjustment > 0 ? $"اعتبار به حساب شما اضافه شد: {sign}{CreditAdjustment}"
+                                 : $"اعتبار از حساب شما کسر شد: {CreditAdjustment}",
+            $"دلیل: {CreditReason}",
+            null, "general");
 
         TempData["Success"] = "اعتبار تنظیم شد.";
         return RedirectToPage(new { id });

@@ -15,9 +15,10 @@ public class IndexModel : PageModel
     private readonly ApplicationDbContext _db;
     private readonly IWithdrawalService _withdrawal;
     private readonly ICreatorHelper _ch;
+    private readonly INotificationService _notify;
 
-    public IndexModel(ApplicationDbContext db, IWithdrawalService withdrawal, ICreatorHelper ch)
-    { _db = db; _withdrawal = withdrawal; _ch = ch; }
+    public IndexModel(ApplicationDbContext db, IWithdrawalService withdrawal, ICreatorHelper ch, INotificationService notify)
+    { _db = db; _withdrawal = withdrawal; _ch = ch; _notify = notify; }
 
     public UserWallet? Wallet { get; set; }
     public List<WalletTransaction> EarnTransactions { get; set; } = new();
@@ -52,6 +53,14 @@ public class IndexModel : PageModel
         if (cid == null) return Forbid();
 
         var result = await _withdrawal.RequestWithdrawalAsync(cid.Value, Form.Amount, Form.Sheba, Form.AccountOwner);
+        if (result.IsSuccess)
+        {
+            await _notify.CreateForAdminsAsync(
+                $"درخواست برداشت جدید: {Form.Amount:N0} تومان",
+                $"شماره شبا: {Form.Sheba} — به نام: {Form.AccountOwner}",
+                "/Admin/Withdrawals/Index",
+                "withdrawal");
+        }
         TempData[result.IsSuccess ? "Success" : "Error"] =
             result.IsSuccess ? "درخواست برداشت ثبت شد." : result.ErrorMessage;
 

@@ -361,6 +361,54 @@
                 }
             </div>
         </div>
+        <!-- پرامپت باز -->
+        <div class="card shadow-sm mt-3">
+            <div class="card-header d-flex align-items-center gap-2 py-2">
+                <i class="fas fa-lock-open text-primary"></i>
+                <span class="fw-semibold small flex-grow-1">پرامپت باز</span>
+                @if (a.IsPromptPublic)
+                {
+                    <span class="badge bg-success">تایید شده</span>
+                }
+                else if (a.IsPromptPublicRequested)
+                {
+                    <span class="badge bg-warning text-dark">در انتظار تایید</span>
+                }
+                else
+                {
+                    <span class="badge bg-secondary">غیرفعال</span>
+                }
+            </div>
+            <div class="card-body py-2">
+                @if (a.IsPromptPublicRequested && !a.IsPromptPublic)
+                {
+                    <div class="alert alert-warning py-2 px-3 small mb-2">
+                        <i class="fas fa-info-circle me-1"></i>سازنده درخواست نمایش عمومی پرامپت داده است.
+                    </div>
+                }
+                <div class="d-flex gap-2 flex-wrap">
+                    @if (!a.IsPromptPublic)
+                    {
+                        <form method="post" asp-page-handler="ToggleOpenPrompt" asp-route-id="@a.Id" class="d-inline">
+                            <input type="hidden" name="approve" value="true" />
+                            <button type="submit" class="btn btn-sm btn-success">
+                                <i class="fas fa-check me-1"></i>تایید پرامپت باز
+                            </button>
+                        </form>
+                    }
+                    @if (a.IsPromptPublic || a.IsPromptPublicRequested)
+                    {
+                        <form method="post" asp-page-handler="ToggleOpenPrompt" asp-route-id="@a.Id" class="d-inline">
+                            <input type="hidden" name="approve" value="false" />
+                            <button type="submit" class="btn btn-sm btn-outline-danger"
+                                    data-confirm="پرامپت باز لغو شود؟" data-confirm-type="warning">
+                                <i class="fas fa-lock me-1"></i>لغو پرامپت باز
+                            </button>
+                        </form>
+                    }
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- ستون راست: اجراها و نظرات -->

@@ -11,11 +11,13 @@ public class IndexModel : PageModel
 {
     private readonly ApplicationDbContext _db;
     private readonly IReviewService _reviews;
+    private readonly INotificationService _notify;
 
-    public IndexModel(ApplicationDbContext db, IReviewService reviews)
+    public IndexModel(ApplicationDbContext db, IReviewService reviews, INotificationService notify)
     {
         _db = db;
         _reviews = reviews;
+        _notify = notify;
     }
 
     public List<AppReview> Reviews { get; set; } = new();
@@ -59,15 +61,27 @@ public class IndexModel : PageModel
 
     public async Task<IActionResult> OnPostApproveAsync(int id)
     {
+        var review = await _db.Reviews.Include(r => r.App).FirstOrDefaultAsync(r => r.Id == id);
         var result = await _reviews.ApproveAsync(id);
         TempData[result.IsSuccess ? "Success" : "Error"] = result.IsSuccess ? "نظر تایید شد." : result.ErrorMessage;
+        if (result.IsSuccess && review != null)
+            await _notify.CreateAsync(review.UserId,
+                $"نظر شما تایید شد: {review.App.Title}",
+                "نظر شما توسط ادمین تایید و منتشر شد.",
+                $"/app/{review.App.Slug}", "review");
         return RedirectToPage(new { FilterRating, FilterStatus, Search, PageNumber });
     }
 
     public async Task<IActionResult> OnPostDeleteAsync(int id)
     {
+        var review = await _db.Reviews.Include(r => r.App).FirstOrDefaultAsync(r => r.Id == id);
         var result = await _reviews.RejectAsync(id);
         TempData[result.IsSuccess ? "Success" : "Error"] = result.IsSuccess ? "نظر حذف شد." : result.ErrorMessage;
+        if (result.IsSuccess && review != null)
+            await _notify.CreateAsync(review.UserId,
+                $"نظر شما حذف شد: {review.App.Title}",
+                "نظر شما توسط ادمین حذف شد.",
+                $"/app/{review.App.Slug}", "review");
         return RedirectToPage(new { FilterRating, FilterStatus, Search, PageNumber });
     }
 }

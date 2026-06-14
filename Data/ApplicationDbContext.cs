@@ -34,6 +34,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<MessageThread> MessageThreads => Set<MessageThread>();
     public DbSet<ThreadMessage> ThreadMessages => Set<ThreadMessage>();
     public DbSet<ErrorLog> ErrorLogs => Set<ErrorLog>();
+    public DbSet<Notification> Notifications => Set<Notification>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

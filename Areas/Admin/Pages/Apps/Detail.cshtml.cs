@@ -19,18 +19,20 @@ public class DetailModel : PageModel
     private readonly IAiProviderService _providers;
     private readonly IMessageService _msg;
     private readonly IReviewService _reviews;
+    private readonly INotificationService _notify;
 
     public SelectList? ModelSelectList { get; set; }
     public SelectList? CategorySelectList { get; set; }
 
     public DetailModel(ApplicationDbContext db, IEncryptionService encryption, IAiProviderService providers,
-        IMessageService msg, IReviewService reviews)
+        IMessageService msg, IReviewService reviews, INotificationService notify)
     {
         _providers = providers;
         _db = db;
         _encryption = encryption;
         _msg = msg;
         _reviews = reviews;
+        _notify = notify;
     }
 
     public AiApp App { get; set; } = null!;
@@ -138,7 +140,9 @@ public class DetailModel : PageModel
 
     public async Task<IActionResult> OnPostToggleStatusAsync(int id, string targetStatus)
     {
-        var app = await _db.Apps.FindAsync(id);
+        var app = await _db.Apps
+            .Include(a => a.Creator).ThenInclude(c => c.User)
+            .FirstOrDefaultAsync(a => a.Id == id);
         if (app == null) return NotFound();
 
         if (!Enum.TryParse<AppStatus>(targetStatus, out var status)) return BadRequest();
@@ -157,6 +161,18 @@ public class DetailModel : PageModel
             IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString()
         });
         await _db.SaveChangesAsync();
+
+        var creatorUserId = app.Creator?.UserId;
+        if (creatorUserId != null)
+        {
+            var (notifTitle, notifMsg) = status switch {
+                AppStatus.Active    => ($"ابزار شما منتشر شد: {app.Title}", "ابزار شما توسط ادمین تایید و فعال شد."),
+                AppStatus.Suspended => ($"ابزار شما تعلیق شد: {app.Title}", "ابزار شما توسط ادمین تعلیق شده است."),
+                _                   => ($"وضعیت ابزار تغییر کرد: {app.Title}", $"وضعیت جدید: {status}")
+            };
+            await _notify.CreateAsync(creatorUserId, notifTitle, notifMsg,
+                $"/Creator/Apps/Edit?appId={id}", "app_status");
+        }
 
         TempData["Success"] = $"وضعیت ابزار به {status} تغییر یافت.";
         return RedirectToPage(new { id });
@@ -222,15 +238,75 @@ public class DetailModel : PageModel
 
     public async Task<IActionResult> OnPostApproveReviewAsync(int id, int reviewId)
     {
+        var review = await _db.Reviews.Include(r => r.App).FirstOrDefaultAsync(r => r.Id == reviewId);
         await _reviews.ApproveAsync(reviewId);
+        if (review != null)
+            await _notify.CreateAsync(review.UserId,
+                $"نظر شما تایید شد: {review.App.Title}",
+                "نظر شما توسط ادمین تایید و منتشر شد.",
+                $"/app/{review.App.Slug}", "review");
         TempData["Success"] = "نظر تایید شد.";
         return RedirectToPage(new { id });
     }
 
     public async Task<IActionResult> OnPostDeleteReviewAsync(int id, int reviewId)
     {
+        var review = await _db.Reviews.Include(r => r.App).FirstOrDefaultAsync(r => r.Id == reviewId);
         await _reviews.RejectAsync(reviewId);
+        if (review != null)
+            await _notify.CreateAsync(review.UserId,
+                $"نظر شما حذف شد: {review.App.Title}",
+                "نظر شما توسط ادمین حذف شد.",
+                $"/app/{review.App.Slug}", "review");
         TempData["Success"] = "نظر حذف شد.";
+        return RedirectToPage(new { id });
+    }
+
+    public async Task<IActionResult> OnPostToggleOpenPromptAsync(int id, bool approve)
+    {
+        var app = await _db.Apps
+            .Include(a => a.Creator)
+            .FirstOrDefaultAsync(a => a.Id == id);
+        if (app == null) return NotFound();
+
+        if (approve)
+        {
+            app.IsPromptPublicRequested = true;
+            app.IsPromptPublic = true;
+            TempData["Success"] = "پرامپت باز تایید شد.";
+        }
+        else
+        {
+            app.IsPromptPublicRequested = false;
+            app.IsPromptPublic = false;
+            TempData["Success"] = "پرامپت باز لغو شد.";
+        }
+
+        app.UpdatedAt = DateTime.UtcNow;
+
+        var adminId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
+        _db.AuditLogs.Add(new AdminAuditLog
+        {
+            AdminUserId = adminId,
+            Action = approve ? "ApproveOpenPrompt" : "RevokeOpenPrompt",
+            TargetType = "App",
+            TargetId = id.ToString(),
+            Details = $"پرامپت باز ابزار '{app.Title}' {(approve ? "تایید" : "لغو")} شد",
+            IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString()
+        });
+
+        await _db.SaveChangesAsync();
+
+        var creatorUserId = app.Creator?.UserId;
+        if (creatorUserId != null)
+        {
+            var (notifTitle, notifMsg) = approve
+                ? ($"پرامپت باز تایید شد: {app.Title}", "ادمین درخواست پرامپت باز ابزار شما را تایید کرد. پرامپت اکنون برای کاربران قابل مشاهده است.")
+                : ($"پرامپت باز لغو شد: {app.Title}", "ادمین پرامپت باز ابزار شما را لغو کرد.");
+            await _notify.CreateAsync(creatorUserId, notifTitle, notifMsg,
+                $"/Creator/Apps/Edit?appId={id}", "open_prompt");
+        }
+
         return RedirectToPage(new { id });
     }
 
@@ -245,6 +321,13 @@ public class DetailModel : PageModel
         }
         var thread = await _msg.StartThreadAsync(app.CreatorProfileId, subject.Trim(), appId: id);
         await _msg.SendAsync(thread.Id, isFromAdmin: true, content: message.Trim());
+
+        if (app.Creator?.UserId != null)
+            await _notify.CreateAsync(app.Creator.UserId,
+                $"پیام جدید از ادمین: {subject.Trim()}",
+                message.Trim().Length > 80 ? message.Trim()[..80] + "…" : message.Trim(),
+                $"/Creator/Messages/Thread?id={thread.Id}", "general");
+
         TempData["Success"] = "پیام برای سازنده ارسال شد.";
         return RedirectToPage("/Messages/Thread", new { area = "Admin", id = thread.Id });
     }

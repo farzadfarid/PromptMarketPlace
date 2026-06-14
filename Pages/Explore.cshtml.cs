@@ -21,6 +21,7 @@ public class ExploreModel : PageModel
     [BindProperty(SupportsGet = true)] public double? MinRating { get; set; }
     [BindProperty(SupportsGet = true)] public string? Search { get; set; }
     [BindProperty(SupportsGet = true)] public AppSortBy SortBy { get; set; } = AppSortBy.MostUsed;
+    [BindProperty(SupportsGet = true)] public bool OnlyOpenPrompt { get; set; }
     [BindProperty(SupportsGet = true)] public int PageNumber { get; set; } = 1;
 
     public async Task OnGetAsync()
@@ -34,6 +35,7 @@ public class ExploreModel : PageModel
             MinRating = MinRating,
             Search = Search,
             SortBy = SortBy,
+            OnlyOpenPrompt = OnlyOpenPrompt,
             Page = PageNumber,
             PageSize = 20
         });

@@ -1,6 +1,8 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
+using PromptMarketPlace.Data;
 using PromptMarketPlace.Models.Domain;
 using PromptMarketPlace.Models.Enums;
 using PromptMarketPlace.Services.Interfaces;
@@ -16,10 +18,15 @@ public class DetailModel : PageModel
     private readonly IStorageService _storage;
     private readonly IWebHostEnvironment _env;
     private readonly ILogger<DetailModel> _logger;
+    private readonly IEncryptionService _encryption;
+    private readonly ApplicationDbContext _db;
+    private readonly INotificationService _notify;
 
     public DetailModel(IAppService apps, IExecutionService execution,
         ICreditService credits, IReviewService reviews,
-        IStorageService storage, IWebHostEnvironment env, ILogger<DetailModel> logger)
+        IStorageService storage, IWebHostEnvironment env,
+        ILogger<DetailModel> logger, IEncryptionService encryption,
+        ApplicationDbContext db, INotificationService notify)
     {
         _apps = apps;
         _execution = execution;
@@ -28,6 +35,9 @@ public class DetailModel : PageModel
         _storage = storage;
         _env = env;
         _logger = logger;
+        _encryption = encryption;
+        _db = db;
+        _notify = notify;
     }
 
     public AiApp App { get; set; } = null!;
@@ -37,6 +47,7 @@ public class DetailModel : PageModel
     public int UserBalance { get; set; }
     public bool HasReviewed { get; set; }
     public string? RunError { get; set; }
+    public string? PublicPrompt { get; set; }
 
     [BindProperty]
     public Dictionary<string, string> Inputs { get; set; } = new();
@@ -49,6 +60,11 @@ public class DetailModel : PageModel
 
         Reviews = await _reviews.GetAppReviewsAsync(app.Id, pageSize: 5);
         SimilarApps = await _apps.GetSimilarAppsAsync(app.Id, app.CategoryId);
+
+        if (app.IsPromptPublic)
+        {
+            try { PublicPrompt = _encryption.Decrypt(app.EncryptedPrompt); } catch { }
+        }
 
         if (User.Identity?.IsAuthenticated == true)
         {
@@ -142,7 +158,18 @@ public class DetailModel : PageModel
         var result = await _reviews.AddReviewAsync(userId, app.Id, rating, comment);
 
         if (result.IsSuccess)
+        {
             TempData["ReviewPending"] = "true";
+            var creatorUserId = await _db.CreatorProfiles
+                .Where(c => c.Id == app.CreatorProfileId)
+                .Select(c => c.UserId)
+                .FirstOrDefaultAsync();
+            if (creatorUserId != null)
+                await _notify.CreateAsync(creatorUserId,
+                    $"نظر جدید برای ابزار: {app.Title}",
+                    $"کاربری {rating} ستاره داد." + (string.IsNullOrWhiteSpace(comment) ? "" : $" «{comment[..Math.Min(comment.Length, 60)]}»"),
+                    $"/app/{slug}", "review");
+        }
         else
             TempData["ReviewError"] = result.ErrorMessage;
 

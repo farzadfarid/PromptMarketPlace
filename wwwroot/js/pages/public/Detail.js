@@ -279,6 +279,20 @@ document.addEventListener('click', function(e) {
     card.classList.add('selected');
 });
 
+/* ─── Copy open prompt ────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', function () {
+    var btn = document.getElementById('copyPromptBtn');
+    if (!btn) return;
+    btn.addEventListener('click', function () {
+        var text = document.getElementById('publicPromptText').textContent;
+        navigator.clipboard.writeText(text).then(function () {
+            var orig = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-check me-1"></i>کپی شد';
+            setTimeout(function () { btn.innerHTML = orig; }, 2000);
+        });
+    });
+});
+
 /* ─── Shooting stars canvas animation ────────────────────── */
 (function(){
     var c = document.getElementById('stars-canvas');

@@ -20,16 +20,19 @@ public class EditModel : PageModel
     private readonly IWebHostEnvironment _env;
     private readonly IEncryptionService _encryption;
     private readonly ApplicationDbContext _db;
+    private readonly INotificationService _notify;
 
     public EditModel(IAppService apps, IAiProviderService providers, ICreatorHelper ch,
-        IWebHostEnvironment env, IEncryptionService encryption, ApplicationDbContext db)
+        IWebHostEnvironment env, IEncryptionService encryption, ApplicationDbContext db,
+        INotificationService notify)
     {
         _apps = apps; _providers = providers; _ch = ch; _env = env;
-        _encryption = encryption; _db = db;
+        _encryption = encryption; _db = db; _notify = notify;
     }
 
     public AiApp App { get; set; } = null!;
     public bool CanEditPrompt { get; set; }
+    public string OpenPromptStatus { get; set; } = "none"; // none | pending | approved
     public SelectList CategoryList { get; set; } = new(Enumerable.Empty<object>());
     public string ModelsJson { get; set; } = "[]";
     public List<AppInputField> ExistingFields { get; set; } = new();
@@ -81,6 +84,10 @@ public class EditModel : PageModel
         try { decryptedPrompt = _encryption.Decrypt(app.EncryptedPrompt); } catch { }
         PromptCharCount = decryptedPrompt.Length;
         SystemContextCharCount = app.SystemContext?.Length ?? 0;
+
+        OpenPromptStatus = app.IsPromptPublic ? "approved"
+            : app.IsPromptPublicRequested ? "pending"
+            : "none";
 
         Form = new EditForm
         {
@@ -200,6 +207,43 @@ public class EditModel : PageModel
 
         TempData["Success"] = "ابزار بروزرسانی شد.";
         return RedirectToPage("/Apps/Index", new { area = "Creator" });
+    }
+
+    public async Task<IActionResult> OnPostTogglePromptRequestAsync(int appId)
+    {
+        var creatorId = await _ch.GetCreatorProfileIdAsync(User);
+        if (creatorId == null) return Forbid();
+
+        var app = await _db.Apps.FirstOrDefaultAsync(a => a.Id == appId && a.CreatorProfileId == creatorId.Value);
+        if (app == null) return NotFound();
+
+        if (app.IsPromptPublicRequested)
+        {
+            app.IsPromptPublicRequested = false;
+            app.IsPromptPublic = false;
+            app.UpdatedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync();
+            await _notify.CreateForAdminsAsync(
+                $"لغو درخواست پرامپت باز: {app.Title}",
+                "سازنده درخواست پرامپت باز خود را لغو کرد.",
+                $"/Admin/Apps/{appId}",
+                "open_prompt");
+            TempData["Success"] = "درخواست پرامپت باز لغو شد.";
+        }
+        else
+        {
+            app.IsPromptPublicRequested = true;
+            app.UpdatedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync();
+            await _notify.CreateForAdminsAsync(
+                $"درخواست پرامپت باز: {app.Title}",
+                "سازنده می‌خواهد پرامپت ابزارش برای کاربران قابل مشاهده باشد.",
+                $"/Admin/Apps/{appId}",
+                "open_prompt");
+            TempData["Success"] = "درخواست پرامپت باز ثبت شد و منتظر تایید ادمین است.";
+        }
+
+        return RedirectToPage(new { appId });
     }
 
     private async Task<string?> SaveThumbnailAsync(IFormFile? file)

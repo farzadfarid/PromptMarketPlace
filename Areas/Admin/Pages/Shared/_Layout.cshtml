@@ -1,5 +1,12 @@
 @inject PromptMarketPlace.Services.Interfaces.IMessageService _msgSvc
-@{ var _adminUnread = await _msgSvc.UnreadCountAsync(forAdmin: true); }
+@inject PromptMarketPlace.Services.Interfaces.INotificationService _notifSvc
+@using System.Security.Claims
+@{
+    var _adminUnread = await _msgSvc.UnreadCountAsync(forAdmin: true);
+    var _adminUserId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
+    var _adminNotifItems = _adminUserId != "" ? await _notifSvc.GetRecentAsync(_adminUserId, 10) : new();
+    var _adminNotifUnread = _adminUserId != "" ? await _notifSvc.GetUnreadCountAsync(_adminUserId) : 0;
+}
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
@@ -11,6 +18,7 @@
     <link href="~/css/font-awesome.css" rel="stylesheet" />
     <link href="~/css/site.css" rel="stylesheet" />
     <link href="~/css/pages/admin/admin-layout.css" rel="stylesheet" />
+    <link href="~/css/notification-bell.css" rel="stylesheet" />
     @await RenderSectionAsync("Styles", required: false)
 </head>
 <body class="admin-layout">
@@ -148,6 +156,58 @@
                 <a href="/" class="btn btn-sm btn-ghost d-none d-md-inline-flex align-items-center gap-2">
                     <i class="fas fa-external-link-alt fa-xs"></i>مشاهده سایت
                 </a>
+
+                <!-- زنگ اعلان -->
+                <div class="notif-bell-wrap" id="notifBellWrap">
+                    <button class="notif-bell-btn @(_adminNotifUnread > 0 ? "has-unread" : "")"
+                            id="notifBellBtn" type="button" aria-label="اعلان‌ها">
+                        <i class="fas fa-bell"></i>
+                        <span class="notif-badge @(_adminNotifUnread == 0 ? "hidden" : "pulse")" id="notifBadge">
+                            @(_adminNotifUnread > 99 ? "۹۹+" : _adminNotifUnread.ToString().Replace("0","۰").Replace("1","۱").Replace("2","۲").Replace("3","۳").Replace("4","۴").Replace("5","۵").Replace("6","۶").Replace("7","۷").Replace("8","۸").Replace("9","۹"))
+                        </span>
+                    </button>
+                    <div class="notif-dropdown" id="notifDropdown">
+                        <div class="notif-dropdown__header">
+                            <span class="notif-dropdown__title">اعلان‌ها</span>
+                            <button class="notif-mark-all-btn" id="notifMarkAll" type="button">همه خوانده شد</button>
+                        </div>
+                        <div class="notif-list" id="notifList">
+                            @if (!_adminNotifItems.Any())
+                            {
+                                <div class="notif-empty"><i class="fas fa-bell-slash"></i>اعلانی وجود ندارد</div>
+                            }
+                            else
+                            {
+                                @foreach (var n in _adminNotifItems)
+                                {
+                                    var catIcon = n.Category switch {
+                                        "app_review"  => "fa-clipboard-check",
+                                        "app_status"  => "fa-check-circle",
+                                        "open_prompt" => "fa-lock-open",
+                                        "review"      => "fa-star",
+                                        "withdrawal"  => "fa-money-bill-wave",
+                                        _             => "fa-bell"
+                                    };
+                                    <div class="notif-item @(n.IsRead ? "" : "unread")" data-cat="@n.Category"
+                                         @(n.Link != null ? $"onclick=\"location.href='{n.Link}'\"" : "")>
+                                        <div class="notif-icon"><i class="fas @catIcon"></i></div>
+                                        <div class="notif-item__body">
+                                            <div class="notif-item__title">@n.Title</div>
+                                            @if (!string.IsNullOrEmpty(n.Message))
+                                            {
+                                                <div class="notif-item__msg">@n.Message</div>
+                                            }
+                                            <div class="notif-item__time" data-time="@n.CreatedAt.ToString("o")">
+                                                @n.CreatedAt.ToShamsi("yyyy/MM/dd HH:mm")
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            }
+                        </div>
+                    </div>
+                </div>
+
                 <div class="admin-topbar__badge">
                     <i class="fas fa-shield-halved text-primary me-1"></i>
                     <span class="small fw-medium">ادمین</span>
@@ -166,6 +226,7 @@
 <script src="~/js/chart.umd.min.js"></script>
 <link rel="stylesheet" href="~/css/confirm-dialog.css" />
 <script src="~/js/confirm-dialog.js"></script>
+<script src="~/js/notification-bell.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.validation-summary-valid').forEach(function (ul) {

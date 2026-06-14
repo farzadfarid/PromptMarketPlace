@@ -12,8 +12,10 @@ public class IndexModel : PageModel
 {
     private readonly ApplicationDbContext _db;
     private readonly ICreditService _credits;
-    public IndexModel(ApplicationDbContext db, ICreditService credits)
-    { _db = db; _credits = credits; }
+    private readonly INotificationService _notify;
+
+    public IndexModel(ApplicationDbContext db, ICreditService credits, INotificationService notify)
+    { _db = db; _credits = credits; _notify = notify; }
 
     public List<Payment> Payments { get; set; } = new();
     public int TotalCount { get; set; }
@@ -60,6 +62,11 @@ public class IndexModel : PageModel
 
         payment.Status = PaymentStatus.Refunded;
         await _db.SaveChangesAsync();
+
+        await _notify.CreateAsync(payment.UserId,
+            $"استرداد اعتبار: {payment.CreditAmount} اعتبار",
+            $"مبلغ {payment.CreditAmount} اعتبار مربوط به پرداخت #{id} توسط ادمین به کیف‌پول شما بازگشت داده شد.",
+            null, "general");
 
         TempData["Success"] = $"{payment.CreditAmount} اعتبار به کاربر بازگشت داده شد.";
         return RedirectToPage();

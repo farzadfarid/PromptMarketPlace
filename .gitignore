@@ -1,5 +1,8 @@
-## User uploads (large files - never commit)
-wwwroot/uploads/
+## User uploads — files > 10MB are excluded; everything else is tracked
+wwwroot/uploads/showcase/videos/adfae6ae264d4c06b899630831813f8c.mp4
+wwwroot/uploads/showcase/videos/db029bff6df7430ba548d331fe17cdbd.mp4
+wwwroot/uploads/video/bbacb5ea6bf74d069d2906d701954d3f.mp4
+wwwroot/uploads/video/f4f8f8c1241f4f2f84ea1a6cdae65ce9.mp4
 
 ## Credentials (never commit)
 vertex-ai-credentials.json

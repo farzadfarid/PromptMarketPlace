@@ -20,6 +20,8 @@ public class AiApp
     public int CreatorProfileId { get; set; }
     public long ExecutionCount { get; set; }
     public double AverageRating { get; set; }
+    public bool IsPromptPublicRequested { get; set; }
+    public bool IsPromptPublic { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 

@@ -56,6 +56,9 @@ public class AppService : IAppService
         if (!string.IsNullOrWhiteSpace(filter.TagName))
             query = query.Where(a => a.Tags.Any(t => t.TagName == filter.TagName));
 
+        if (filter.OnlyOpenPrompt)
+            query = query.Where(a => a.IsPromptPublic);
+
         query = filter.SortBy switch
         {
             AppSortBy.Newest       => query.OrderByDescending(a => a.CreatedAt),

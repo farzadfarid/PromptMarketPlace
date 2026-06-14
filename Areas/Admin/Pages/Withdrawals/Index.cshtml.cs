@@ -14,11 +14,13 @@ public class IndexModel : PageModel
 {
     private readonly ApplicationDbContext _db;
     private readonly IWithdrawalService _withdrawals;
+    private readonly INotificationService _notify;
 
-    public IndexModel(ApplicationDbContext db, IWithdrawalService withdrawals)
+    public IndexModel(ApplicationDbContext db, IWithdrawalService withdrawals, INotificationService notify)
     {
         _db = db;
         _withdrawals = withdrawals;
+        _notify = notify;
     }
 
     public List<WithdrawalRow> Pending { get; set; } = new();
@@ -39,20 +41,32 @@ public class IndexModel : PageModel
 
     public async Task<IActionResult> OnPostApproveAsync(int id)
     {
+        var wr = await _db.WithdrawalRequests.Include(w => w.Creator).FirstOrDefaultAsync(w => w.Id == id);
         var note = string.IsNullOrWhiteSpace(PaymentRef) ? null : $"شناسه پرداخت: {PaymentRef}";
         await _withdrawals.ProcessRequestAsync(id, WithdrawalStatus.Paid, note);
         await AddAuditAsync("ApproveWithdrawal", "WithdrawalRequest", id.ToString(),
             $"درخواست برداشت #{id} تایید شد — {note}");
+        if (wr?.Creator?.UserId != null)
+            await _notify.CreateAsync(wr.Creator.UserId,
+                $"درخواست برداشت شما پرداخت شد",
+                note ?? "مبلغ درخواستی به حساب شما واریز شد.",
+                "/Creator/Earnings/Index", "withdrawal");
         TempData["Success"] = "درخواست تایید و پرداخت ثبت شد.";
         return RedirectToPage();
     }
 
     public async Task<IActionResult> OnPostRejectAsync(int id)
     {
+        var wr = await _db.WithdrawalRequests.Include(w => w.Creator).FirstOrDefaultAsync(w => w.Id == id);
         var reason = string.IsNullOrWhiteSpace(AdminNote) ? "بدون دلیل" : AdminNote;
         await _withdrawals.ProcessRequestAsync(id, WithdrawalStatus.Rejected, reason);
         await AddAuditAsync("RejectWithdrawal", "WithdrawalRequest", id.ToString(),
             $"درخواست برداشت #{id} رد شد — {reason}");
+        if (wr?.Creator?.UserId != null)
+            await _notify.CreateAsync(wr.Creator.UserId,
+                $"درخواست برداشت شما رد شد",
+                $"دلیل: {reason}",
+                "/Creator/Earnings/Index", "withdrawal");
         TempData["Warning"] = "درخواست رد شد.";
         return RedirectToPage();
     }

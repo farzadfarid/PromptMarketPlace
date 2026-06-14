@@ -119,6 +119,7 @@ try
     builder.Services.AddScoped<IWithdrawalService, WithdrawalService>();
     builder.Services.AddScoped<ICreatorHelper, CreatorHelper>();
     builder.Services.AddScoped<IMessageService, MessageService>();
+    builder.Services.AddScoped<INotificationService, NotificationService>();
     builder.Services.AddScoped<IEmailService, SmtpEmailService>();
     builder.Services.AddHttpContextAccessor();
     builder.Services.AddHostedService<ErrorLogWriterService>();

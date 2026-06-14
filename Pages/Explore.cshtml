@@ -25,11 +25,12 @@
 
             <!-- Search bar -->
             <form method="get" class="exp-search" id="exp-search-form">
-                <input type="hidden" name="CategoryId" value="@Model.CategoryId" />
-                <input type="hidden" name="OutputType" id="exp-output-type-val" value="@Model.OutputType" />
-                <input type="hidden" name="MaxCost"    value="@Model.MaxCost" />
-                <input type="hidden" name="MinRating"  value="@Model.MinRating" />
-                <input type="hidden" name="SortBy"     value="@Model.SortBy" />
+                <input type="hidden" name="CategoryId"     value="@Model.CategoryId" />
+                <input type="hidden" name="OutputType"     id="exp-output-type-val" value="@Model.OutputType" />
+                <input type="hidden" name="MaxCost"        value="@Model.MaxCost" />
+                <input type="hidden" name="MinRating"      value="@Model.MinRating" />
+                <input type="hidden" name="SortBy"         value="@Model.SortBy" />
+                <input type="hidden" name="OnlyOpenPrompt" value="@Model.OnlyOpenPrompt" />
                 <i class="fas fa-search exp-search__icon"></i>
                 <input type="text" name="Search" value="@Model.Search"
                        placeholder="جستجو در ابزارها..." class="exp-search__input" autocomplete="off" />
@@ -75,9 +76,9 @@
         <div class="col-lg-3">
             <div class="exp-sidebar" style="position:sticky;top:80px;">
                 <form method="get" id="filter-form">
-                    <input type="hidden" name="Search" value="@Model.Search" />
+                    <input type="hidden" name="Search"     value="@Model.Search" />
                     <input type="hidden" name="OutputType" value="@Model.OutputType" />
-                    <input type="hidden" name="SortBy" value="@Model.SortBy" />
+                    <input type="hidden" name="SortBy"     value="@Model.SortBy" />
 
                     <div class="exp-sidebar__section">
                         <p class="exp-sidebar__label"><i class="fas fa-layer-group me-2"></i>دسته‌بندی</p>
@@ -121,6 +122,18 @@
                         </div>
                     </div>
 
+                    <div class="exp-sidebar__section">
+                        <p class="exp-sidebar__label"><i class="fas fa-lock-open me-2"></i>نوع پرامپت</p>
+                        <label class="exp-cat-item @(Model.OnlyOpenPrompt ? "active" : "")"
+                               style="cursor:pointer;gap:.5rem">
+                            <input type="checkbox" name="OnlyOpenPrompt" value="true"
+                                   @(Model.OnlyOpenPrompt ? "checked" : "")
+                                   style="accent-color:#a78bfa;width:15px;height:15px;" />
+                            <i class="fas fa-lock-open" style="color:#a78bfa;font-size:.8rem"></i>
+                            <span>فقط پرامپت باز</span>
+                        </label>
+                    </div>
+
                     <div class="exp-sidebar__actions">
                         <button type="submit" class="btn btn-primary btn-sm w-100">اعمال فیلتر</button>
                         <a asp-page="/Explore" class="exp-clear-btn">پاک کردن فیلترها</a>
@@ -143,11 +156,12 @@
                     }
                 </span>
                 <form method="get" class="d-flex gap-2 align-items-center">
-                    <input type="hidden" name="CategoryId" value="@Model.CategoryId" />
-                    <input type="hidden" name="OutputType" value="@Model.OutputType" />
-                    <input type="hidden" name="Search"     value="@Model.Search" />
-                    <input type="hidden" name="MaxCost"    value="@Model.MaxCost" />
-                    <input type="hidden" name="MinRating"  value="@Model.MinRating" />
+                    <input type="hidden" name="CategoryId"     value="@Model.CategoryId" />
+                    <input type="hidden" name="OutputType"     value="@Model.OutputType" />
+                    <input type="hidden" name="Search"         value="@Model.Search" />
+                    <input type="hidden" name="MaxCost"        value="@Model.MaxCost" />
+                    <input type="hidden" name="MinRating"      value="@Model.MinRating" />
+                    <input type="hidden" name="OnlyOpenPrompt" value="@Model.OnlyOpenPrompt" />
                     <select name="SortBy" class="form-select form-select-sm exp-sort-select"
                             onchange="this.form.submit()">
                         <option value="MostUsed"     selected="@(Model.SortBy == AppSortBy.MostUsed)">پرکاربردترین</option>
@@ -194,7 +208,8 @@
                                        asp-route-CategoryId="@Model.CategoryId"
                                        asp-route-SortBy="@Model.SortBy"
                                        asp-route-Search="@Model.Search"
-                                       asp-route-OutputType="@Model.OutputType">
+                                       asp-route-OutputType="@Model.OutputType"
+                                       asp-route-OnlyOpenPrompt="@Model.OnlyOpenPrompt">
                                         <i class="fas fa-chevron-right"></i>
                                     </a>
                                 </li>
@@ -207,7 +222,8 @@
                                        asp-route-CategoryId="@Model.CategoryId"
                                        asp-route-SortBy="@Model.SortBy"
                                        asp-route-Search="@Model.Search"
-                                       asp-route-OutputType="@Model.OutputType">@i.ToFarsiDigits()</a>
+                                       asp-route-OutputType="@Model.OutputType"
+                                       asp-route-OnlyOpenPrompt="@Model.OnlyOpenPrompt">@i.ToFarsiDigits()</a>
                                 </li>
                             }
                             @if (Model.Result.PageNumber < Model.Result.TotalPages)
@@ -218,7 +234,8 @@
                                        asp-route-CategoryId="@Model.CategoryId"
                                        asp-route-SortBy="@Model.SortBy"
                                        asp-route-Search="@Model.Search"
-                                       asp-route-OutputType="@Model.OutputType">
+                                       asp-route-OutputType="@Model.OutputType"
+                                       asp-route-OnlyOpenPrompt="@Model.OnlyOpenPrompt">
                                         <i class="fas fa-chevron-left"></i>
                                     </a>
                                 </li>

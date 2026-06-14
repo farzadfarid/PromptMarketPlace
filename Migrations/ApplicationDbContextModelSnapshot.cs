@@ -237,6 +237,12 @@ namespace PromptMarketPlace.Migrations
                     b.Property<long>("ExecutionCount")
                         .HasColumnType("bigint");
 
+                    b.Property<bool>("IsPromptPublic")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsPromptPublicRequested")
+                        .HasColumnType("bit");
+
                     b.Property<int>("OutputType")
                         .HasColumnType("int");
 
@@ -1209,6 +1215,45 @@ namespace PromptMarketPlace.Migrations
                     b.ToTable("MessageThreads");
                 });
 
+            modelBuilder.Entity("PromptMarketPlace.Models.Domain.Notification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Link")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Message")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Notifications");
+                });
+
             modelBuilder.Entity("PromptMarketPlace.Models.Domain.Payment", b =>
                 {
                     b.Property<long>("Id")
@@ -1745,6 +1790,17 @@ namespace PromptMarketPlace.Migrations
                     b.Navigation("App");
 
                     b.Navigation("Creator");
+                });
+
+            modelBuilder.Entity("PromptMarketPlace.Models.Domain.Notification", b =>
+                {
+                    b.HasOne("PromptMarketPlace.Models.Domain.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("PromptMarketPlace.Models.Domain.Payment", b =>

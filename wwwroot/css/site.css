@@ -522,6 +522,25 @@ footer a:hover { color: rgba(255,255,255,.9) !important; }
     border-radius: 20px;
     letter-spacing: .03em;
 }
+.app-card__open-badge {
+    position: absolute;
+    top: .65rem;
+    left: .65rem;
+    background: linear-gradient(135deg, rgba(139,92,246,.85), rgba(167,139,250,.75));
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: #fff;
+    font-size: .64rem;
+    font-weight: 700;
+    padding: .2rem .55rem;
+    border-radius: 20px;
+    letter-spacing: .03em;
+    border: 1px solid rgba(167,139,250,.4);
+    display: flex;
+    align-items: center;
+    gap: .3rem;
+}
+
 .app-card__body {
     padding: .875rem 1rem 1rem;
     display: flex;

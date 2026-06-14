@@ -31,6 +31,12 @@
             <span class="app-card__type-badge">
                 <i class="fas @cardIcon me-1"></i>@cardType
             </span>
+            @if (Model.IsPromptPublic)
+            {
+                <span class="app-card__open-badge">
+                    <i class="fas fa-lock-open"></i>پرامپت باز
+                </span>
+            }
         </div>
 
         <!-- Body -->

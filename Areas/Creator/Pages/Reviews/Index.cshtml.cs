@@ -11,11 +11,15 @@ public class IndexModel : PageModel
 {
     private readonly IReviewService _reviews;
     private readonly ICreatorHelper _ch;
+    private readonly ApplicationDbContext _db;
+    private readonly INotificationService _notify;
 
-    public IndexModel(IReviewService reviews, ICreatorHelper ch)
+    public IndexModel(IReviewService reviews, ICreatorHelper ch, ApplicationDbContext db, INotificationService notify)
     {
         _reviews = reviews;
         _ch = ch;
+        _db = db;
+        _notify = notify;
     }
 
     public List<AppReview> Reviews { get; set; } = new();
@@ -50,8 +54,14 @@ public class IndexModel : PageModel
         var cid = await _ch.GetCreatorProfileIdAsync(User);
         if (cid == null) return Forbid();
 
+        var review = await _db.Reviews.Include(r => r.App).FirstOrDefaultAsync(r => r.Id == id);
         var result = await _reviews.ApproveAsync(id, cid.Value);
         TempData[result.IsSuccess ? "Success" : "Error"] = result.IsSuccess ? "نظر تایید و منتشر شد." : result.ErrorMessage;
+        if (result.IsSuccess && review != null)
+            await _notify.CreateAsync(review.UserId,
+                $"نظر شما تایید شد: {review.App.Title}",
+                "نظر شما توسط سازنده ابزار تایید و منتشر شد.",
+                $"/app/{review.App.Slug}", "review");
         return RedirectToPage(new { FilterStatus, PageNumber });
     }
 
@@ -60,8 +70,14 @@ public class IndexModel : PageModel
         var cid = await _ch.GetCreatorProfileIdAsync(User);
         if (cid == null) return Forbid();
 
+        var review = await _db.Reviews.Include(r => r.App).FirstOrDefaultAsync(r => r.Id == id);
         var result = await _reviews.RejectAsync(id, cid.Value);
         TempData[result.IsSuccess ? "Success" : "Error"] = result.IsSuccess ? "نظر رد شد." : result.ErrorMessage;
+        if (result.IsSuccess && review != null)
+            await _notify.CreateAsync(review.UserId,
+                $"نظر شما رد شد: {review.App.Title}",
+                "نظر ارسالی شما توسط سازنده ابزار تایید نشد.",
+                $"/app/{review.App.Slug}", "review");
         return RedirectToPage(new { FilterStatus, PageNumber });
     }
 
